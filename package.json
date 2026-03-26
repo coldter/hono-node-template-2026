@@ -1,0 +1,41 @@
+{
+  "name": "repo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "check": "ultracite check",
+    "fix": "ultracite fix",
+    "format": "biome format --write",
+    "dev": "turbo dev --filter=!@repo/email",
+    "build": "turbo build",
+    "clean": "rm -rf .turbo && git clean -xdf node_modules apps/*/node_modules && rm bun.lock",
+    "check-types": "turbo check-types",
+    "dev:web": "turbo -F web dev",
+    "preview:web": "turbo -F web preview",
+    "dev:server": "turbo -F server dev",
+    "dev:email": "turbo -F @repo/email dev",
+    "db:push": "turbo -F server db:push",
+    "db:studio": "turbo -F server db:studio",
+    "db:generate": "turbo -F server db:generate",
+    "db:migrate": "turbo -F server db:migrate",
+    "test": "turbo test",
+    "test:watch": "turbo test:watch",
+    "test:coverage": "turbo test:coverage",
+    "knip": "SKIP_ENV_VALIDATION=true knip -c knip.config.ts",
+    "knip:fix": "knip --fix -c knip.config.ts -W apps/web",
+    "update:deps": "bunx taze major -w -r --ignore-other-workspaces --ignore-paths apps/mobile"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
+    "@types/node": "^25.5.0",
+    "knip": "^6.0.6",
+    "tsx": "^4.21.0",
+    "turbo": "^2.8.20",
+    "typescript": "^6.0.2",
+    "ultracite": "^7.3.2"
+  },
+  "packageManager": "bun@1.3.11"
+}

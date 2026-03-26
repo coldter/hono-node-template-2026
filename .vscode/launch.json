@@ -1,0 +1,81 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "[NODE] Debug Server (TSX Direct)",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/apps/server",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": [
+                "tsx",
+                "watch",
+                "src/index.ts"
+            ],
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "[NODE] Debug Any Script",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/apps/server",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "<command>"
+            ],
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "[BUN] Debug Bun Backend (FIXME)",
+            "type": "bun",
+            "request": "launch",
+            "program": "${workspaceFolder}/apps/server/src/index.ts",
+            "cwd": "${workspaceFolder}/apps/server",
+            "stopOnEntry": true,
+            "watchMode": false,
+            "env": {
+                "NODE_ENV": "development",
+            },
+        },
+        {
+            "name": "[NODE] Debug Mock Server (TSX Direct)",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/apps/mock-issuer",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": [
+                "tsx",
+                "watch",
+                "src/index.ts"
+            ],
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "[WEB] Debug Web (Brave)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:3001",
+            "webRoot": "${workspaceFolder}/apps/web",
+            "runtimeExecutable": "/usr/bin/brave-browser"
+        }
+    ]
+}

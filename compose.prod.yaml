@@ -1,0 +1,282 @@
+# Production Docker Compose
+# Usage: docker compose -f compose.prod.yaml --env-file .env.production up -d
+
+name: app-prod
+
+volumes:
+  pg_data:
+  redis_data:
+  mailpit_data:
+  caddy_data:
+  caddy_config:
+  hatchet_postgres_data:
+  hatchet_config:
+  hatchet_certs:
+
+networks:
+  app-network:
+    driver: bridge
+  hatchet-network:
+    driver: bridge
+
+services:
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
+
+  db:
+    image: postgis/postgis:18-3.6
+    restart: always
+    command: ["-c", "wal_level=logical"]
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./docker/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
+
+  redis:
+    image: redis:8
+    restart: always
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app-network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - mailpit_data:/data
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # Migrations (one-shot)
+  # ---------------------------------------------------------------------------
+
+  db-migrate:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: server
+    command: ["bunx", "drizzle-kit", "migrate"]
+    working_dir: /app/apps/server
+    restart: "no"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # App Services
+  # ---------------------------------------------------------------------------
+
+  server:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: server
+    restart: always
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      APP_NAME: ${APP_NAME:-Server}
+      ENABLE_DOCS: ${ENABLE_DOCS}
+      DATABASE_URL: ${DATABASE_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      BASE_PATH: ${BASE_PATH:-}
+      SERVER_URL: ${SERVER_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      VAULT_PROVIDER: ${VAULT_PROVIDER}
+      VAULT_MASTER_KEY: ${VAULT_MASTER_KEY}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_SECURE: ${SMTP_SECURE}
+      REDIS_URL: ${REDIS_URL}
+      HATCHET_ENABLED: ${HATCHET_ENABLED}
+      HATCHET_CLIENT_TOKEN: ${HATCHET_CLIENT_TOKEN}
+      HATCHET_CLIENT_TLS_STRATEGY: ${HATCHET_CLIENT_TLS_STRATEGY}
+      HATCHET_CLIENT_HOST_PORT: ${HATCHET_CLIENT_HOST_PORT}
+      HATCHET_WORKER_SLOTS: ${HATCHET_WORKER_SLOTS}
+      HATCHET_THROW_ON_ERROR: ${HATCHET_THROW_ON_ERROR:-false}
+      WORK_FLOWS_LOG_LEVEL: ${WORK_FLOWS_LOG_LEVEL:-warn}
+      FCM_PROVIDER: ${FCM_PROVIDER:-console}
+      FIREBASE_SERVICE_ACCOUNT_KEY_BASE64: ${FIREBASE_SERVICE_ACCOUNT_KEY_BASE64:-}
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_TRACES_ENDPOINT: ${OTEL_TRACES_ENDPOINT:-}
+      OTEL_METRICS_ENDPOINT: ${OTEL_METRICS_ENDPOINT:-}
+      OTEL_LOGS_ENDPOINT: ${OTEL_LOGS_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+      - hatchet-network
+
+  # ---------------------------------------------------------------------------
+  # Hatchet Stack
+  # ---------------------------------------------------------------------------
+
+  hatchet-postgres:
+    image: postgres:15.6
+    restart: always
+    command: postgres -c 'max_connections=1000'
+    environment:
+      POSTGRES_USER: hatchet
+      POSTGRES_PASSWORD: hatchet
+      POSTGRES_DB: hatchet
+    volumes:
+      - hatchet_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d hatchet -U hatchet"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - hatchet-network
+
+  hatchet-migration:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.79.3
+    restart: "no"
+    command: /hatchet/hatchet-migrate
+    environment:
+      DATABASE_URL: "postgres://hatchet:hatchet@hatchet-postgres:5432/hatchet"
+    depends_on:
+      hatchet-postgres:
+        condition: service_healthy
+    networks:
+      - hatchet-network
+
+  hatchet-setup:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.79.3
+    restart: on-failure
+    command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet/config --overwrite=false
+    environment:
+      DATABASE_URL: "postgres://hatchet:hatchet@hatchet-postgres:5432/hatchet"
+      SERVER_AUTH_COOKIE_DOMAIN: ${HATCHET_DASHBOARD_DOMAIN}
+      SERVER_AUTH_COOKIE_INSECURE: "f"
+      SERVER_GRPC_BIND_ADDRESS: "0.0.0.0"
+      SERVER_GRPC_INSECURE: "t"
+      SERVER_GRPC_BROADCAST_ADDRESS: hatchet-engine:7070
+      SERVER_DEFAULT_ENGINE_VERSION: "V1"
+      SERVER_INTERNAL_CLIENT_INTERNAL_GRPC_BROADCAST_ADDRESS: hatchet-engine:7070
+      SERVER_MSGQUEUE_KIND: postgres
+    volumes:
+      - hatchet_certs:/hatchet/certs
+      - hatchet_config:/hatchet/config
+    depends_on:
+      hatchet-migration:
+        condition: service_completed_successfully
+      hatchet-postgres:
+        condition: service_healthy
+    networks:
+      - hatchet-network
+
+  hatchet-engine:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.79.3
+    restart: always
+    command: /hatchet/hatchet-engine --config /hatchet/config
+    environment:
+      DATABASE_URL: "postgres://hatchet:hatchet@hatchet-postgres:5432/hatchet"
+      SERVER_GRPC_BIND_ADDRESS: "0.0.0.0"
+      SERVER_GRPC_INSECURE: "t"
+    volumes:
+      - hatchet_certs:/hatchet/certs
+      - hatchet_config:/hatchet/config
+    depends_on:
+      hatchet-setup:
+        condition: service_completed_successfully
+      hatchet-migration:
+        condition: service_completed_successfully
+      hatchet-postgres:
+        condition: service_healthy
+    networks:
+      - hatchet-network
+
+  hatchet-dashboard:
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.79.3
+    restart: always
+    command: sh -c "sh ./entrypoint.sh --config /hatchet/config"
+    environment:
+      DATABASE_URL: "postgres://hatchet:hatchet@hatchet-postgres:5432/hatchet"
+    volumes:
+      - hatchet_certs:/hatchet/certs
+      - hatchet_config:/hatchet/config
+    depends_on:
+      hatchet-engine:
+        condition: service_started
+      hatchet-setup:
+        condition: service_completed_successfully
+      hatchet-migration:
+        condition: service_completed_successfully
+    networks:
+      - hatchet-network
+
+  # ---------------------------------------------------------------------------
+  # Reverse Proxy
+  # ---------------------------------------------------------------------------
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: caddy
+      args:
+        VITE_SERVER_URL: ${VITE_SERVER_URL}
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      server:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    networks:
+      - app-network

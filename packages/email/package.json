@@ -1,0 +1,38 @@
+{
+  "name": "@repo/email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./templates/*": "./src/templates/*"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "check-types": "tsc --noEmit",
+    "dev": "email dev --dir ./src/templates --port 3003"
+  },
+  "dependencies": {
+    "@react-email/components": "^1.0.10",
+    "@react-email/render": "^2.0.4",
+    "@react-email/tailwind": "^2.0.6",
+    "nodemailer": "^8.0.4",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-email": "^5.2.10",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@react-email/preview-server": "5.2.9",
+    "@types/nodemailer": "^7.0.11",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "esbuild": "0.25.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

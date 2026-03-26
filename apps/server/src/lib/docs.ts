@@ -1,0 +1,124 @@
+import fs from "node:fs/promises";
+import type { OpenAPIHono } from "@hono/zod-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
+import chalk from "chalk";
+import { env } from "@/env";
+import type { Env } from "@/lib/context";
+import { logger } from "@/lib/logger";
+import { auth } from "@/modules/auth/instance";
+
+const customCss: string = `
+`;
+
+const DOCS_REGEX = /\/docs*$/;
+const DOCS_AUTH_REGEX = /\/docs\/auth*$/;
+
+const openApiConfig = {
+  servers: [{ url: env.SERVER_URL }],
+  info: {
+    title: "Api Reference",
+    version: "v1",
+    description: "API documentation for the application",
+  },
+  openapi: "3.1.0" as const,
+};
+
+export const docs = async (
+  app: OpenAPIHono<Env>,
+  enable: boolean,
+  skipScalar = false
+) => {
+  const shouldGenerate = enable || skipScalar;
+  if (!shouldGenerate) {
+    return;
+  }
+  const registry = app.openAPIRegistry;
+
+  // Set security schemes
+  registry.registerComponent("securitySchemes", "cookieAuth", {
+    type: "apiKey",
+    in: "cookie",
+    name: "session_token_v1",
+    description:
+      "Authentication cookie. Copy the cookie from your network tab and paste it here. If you don't have it, you need to sign in or sign up first.",
+  });
+
+  app.doc31("/openapi.json", openApiConfig);
+
+  // Get JSON doc and save to file
+  const openApiDoc = app.getOpenAPI31Document(openApiConfig);
+  await fs.writeFile(
+    "./openapi.cache.json",
+    JSON.stringify(openApiDoc, null, 2)
+  );
+  logger.info(
+    `${chalk.greenBright.bold("\u2714")} OpenAPI document written to ./openapi.cache.json`
+  );
+
+  if (skipScalar) {
+    return;
+  }
+
+  app.get("/docs", (c) =>
+    Scalar<Env>({
+      url: "openapi.json",
+      theme: "deepSpace",
+      customCss,
+      servers: [
+        {
+          url: `${new URL(c.req.url).origin}`,
+          description: "Current",
+        },
+        {
+          url: `${c.req.url.replace(DOCS_REGEX, "/api")}`,
+          description: "Current_With_Params",
+        },
+        {
+          url: "http://localhost:3000",
+          description: "Localhost",
+        },
+        {
+          url: "{CUSTOM_URL}",
+          description: "Custom",
+          variables: {
+            CUSTOM_URL: {
+              default: "http://localhost:3000",
+            },
+          },
+        },
+      ],
+    })(c, async () => {})
+  );
+
+  app.get("/docs/auth", async (c) => {
+    const authSchema = await auth.api.generateOpenAPISchema();
+    return Scalar<Env>({
+      content: authSchema,
+      theme: "deepSpace",
+      customCss,
+      servers: [
+        {
+          url: `${new URL(c.req.url).origin}`,
+          description: "Current",
+        },
+        {
+          url: `${c.req.url.replace(DOCS_AUTH_REGEX, "/api/auth")}`,
+          description: "Current_With_Params",
+        },
+        {
+          url: "http://localhost:3000/api/auth",
+          description: "Localhost",
+        },
+        {
+          url: "{CUSTOM_URL}",
+          description: "Custom",
+          variables: {
+            CUSTOM_URL: {
+              default: "http://localhost:3000/api/auth",
+            },
+          },
+        },
+      ],
+    })(c, async () => {});
+  });
+};

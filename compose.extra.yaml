@@ -1,0 +1,23 @@
+# Optional development services
+# Usage: docker compose -f compose.extra.yaml up -d
+
+name: Repo-Extra
+
+volumes:
+  mailpit_data:
+
+services:
+  mailpit:
+    container_name: mailpit
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "8026:8025"  # Web UI (8025 is taken, using 8026)
+      - "1025:1025"  # SMTP
+    volumes:
+      - mailpit_data:/data
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1

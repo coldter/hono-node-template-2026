@@ -1,0 +1,28 @@
+node_modules
+.turbo
+.alchemy
+.env
+.vercel
+.cursor
+dist
+
+coverage
+.DS_Store
+*.db
+*.tsbuildinfo
+
+# references
+local-ref
+agent-ref
+*temp.md
+
+# .sisyphus
+scripts/copy-source.sh
+
+# Production env (contains secrets)
+.env.production
+
+docs/plans
+ref-doc
+
+plans/requirements

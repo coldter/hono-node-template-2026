@@ -1,0 +1,104 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "linter": { "enabled": false }
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "!bun.lock",
+      "!**/.next",
+      "!**/dist",
+      "!**/.turbo",
+      "!**/dev-dist",
+      "!**/.zed",
+      "!**/.vscode",
+      "!**/routeTree.gen.ts",
+      "!**/src-tauri",
+      "!**/.nuxt",
+      "!bts.jsonc",
+      "!**/.expo",
+      "!**/.wrangler",
+      "!**/.alchemy",
+      "!**/wrangler.jsonc",
+      "!**/.source",
+      "!**/api.gen",
+      "!agent-ref/**/*",
+      "!tsconfig.json",
+      "bun.lock",
+      "!openapi.cache.json",
+      "!apps/server/openapi.cache.json",
+      "!apps/server/src/db/migrations/**/*"
+    ]
+  },
+  "extends": ["ultracite/core", "ultracite/react"],
+  "linter": {
+    "rules": {
+      "a11y": {
+        "noSvgWithoutTitle": "off",
+        "noNoninteractiveElementInteractions": "off"
+      },
+      "suspicious": {
+        "noConsole": {
+          "level": "warn",
+          "options": {
+            "allow": ["error", "info", "warn"]
+          }
+        },
+        "noUnknownAtRules": "off",
+        "noEmptyBlockStatements": "off",
+        "useAwait": "off",
+        "noExplicitAny": "warn",
+        "noDocumentCookie": "error",
+        "noArrayIndexKey": "off"
+      },
+      "performance": {
+        "noNamespaceImport": "off",
+        "noBarrelFile": "off"
+      },
+      "style": {
+        "noMagicNumbers": "off",
+        "noExportedImports": "off",
+        "noNonNullAssertion": "off",
+        "useConsistentTypeDefinitions": "off",
+        "useAtIndex": "off",
+        "useFilenamingConvention": {
+          "level": "warn",
+          "options": {
+            "filenameCases": ["kebab-case", "camelCase"]
+          }
+        }
+      },
+      "nursery": {
+        "noUnnecessaryConditions": "off",
+        "useSortedClasses": "off",
+        "noLeakedRender": "off",
+        "noShadow": "off"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off"
+      },
+      "correctness": {
+        "useImportExtensions": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "packages/email/src/components/**/*.tsx",
+        "packages/email/src/templates/**/*.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@repo/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./abilities": "./src/abilities/index.ts",
+    "./permissions": "./src/permissions.ts",
+    "./users": "./src/users.ts",
+    "./roles": "./src/roles.ts",
+    "./pagination": "./src/pagination.ts",
+    "./audit": "./src/audit.ts"
+  },
+  "devDependencies": {
+    "@hono/zod-openapi": "^1.2.3",
+    "type-fest": "^5.5.0",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "@casl/ability": "^6.8.0",
+    "zod": "^4.3.6"
+  }
+}
