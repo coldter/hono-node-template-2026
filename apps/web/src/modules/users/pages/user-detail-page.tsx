@@ -14,7 +14,7 @@ import {
   UserX,
 } from "lucide-react";
 import { useState } from "react";
-import { PERMISSIONS, usePermission } from "@/modules/permissions";
+import { useAuthorization } from "@/hooks/use-authorization";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
 import { Badge } from "@/modules/ui/badge";
 import { Button } from "@/modules/ui/button";
@@ -27,6 +27,7 @@ import {
 } from "@/modules/ui/card";
 import { Separator } from "@/modules/ui/separator";
 import { Skeleton } from "@/modules/ui/skeleton";
+import { useUserStore } from "@/store/user";
 import { UserRoleBadges } from "../components/user-role-badges";
 import { UserStatusBadge } from "../components/user-status-badge";
 import { DeactivateDialog } from "../dialogs/deactivate-dialog";
@@ -42,7 +43,10 @@ import type { UserStatus } from "../types";
 export function UserDetailPage() {
   const { userId } = useParams({ strict: false });
   const { data: user, isLoading, isError } = useUserQuery(userId ?? "");
-  const { hasPermission } = usePermission();
+  const { capabilities } = useAuthorization();
+  const currentUser = useUserStore((s) => s.user);
+  const isOwnProfile = currentUser?.id === userId;
+  const hasAdminRole = currentUser?.roleSlugs?.includes("admin") ?? false;
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showRolesDialog, setShowRolesDialog] = useState(false);
@@ -92,7 +96,7 @@ export function UserDetailPage() {
           <h1 className="text-2xl font-bold tracking-tight">User Details</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {hasPermission(PERMISSIONS.USERS.UPDATE) && (
+          {capabilities["user:update"] && (hasAdminRole || isOwnProfile) && (
             <>
               <Button
                 className="gap-2 font-medium transition-colors focus-visible:ring-2"
@@ -103,20 +107,23 @@ export function UserDetailPage() {
                 <UserCog className="h-4 w-4" />
                 Edit Profile
               </Button>
-              <Button
-                className="gap-2 font-medium transition-colors focus-visible:ring-2"
-                onClick={() => setShowRolesDialog(true)}
-                size="sm"
-                variant="outline"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                Manage Roles
-              </Button>
+              {hasAdminRole && (
+                <Button
+                  className="gap-2 font-medium transition-colors focus-visible:ring-2"
+                  onClick={() => setShowRolesDialog(true)}
+                  size="sm"
+                  variant="outline"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Manage Roles
+                </Button>
+              )}
             </>
           )}
 
           {status === "active" &&
-            hasPermission(PERMISSIONS.USERS.DEACTIVATE) && (
+            capabilities["user:deactivate"] &&
+            !isOwnProfile && (
               <Button
                 className="gap-2 font-medium transition-colors focus-visible:ring-destructive/50"
                 onClick={() => setShowDeactivateDialog(true)}
@@ -128,19 +135,18 @@ export function UserDetailPage() {
               </Button>
             )}
 
-          {status === "inactive" &&
-            hasPermission(PERMISSIONS.USERS.ACTIVATE) && (
-              <Button
-                className="gap-2 font-medium transition-all focus-visible:ring-2"
-                disabled={activateMutation.isPending}
-                onClick={() => activateMutation.mutate(user.id)}
-                size="sm"
-              >
-                {activateMutation.isPending ? "Activating..." : "Activate"}
-              </Button>
-            )}
+          {status === "inactive" && capabilities["user:activate"] && (
+            <Button
+              className="gap-2 font-medium transition-all focus-visible:ring-2"
+              disabled={activateMutation.isPending}
+              onClick={() => activateMutation.mutate(user.id)}
+              size="sm"
+            >
+              {activateMutation.isPending ? "Activating..." : "Activate"}
+            </Button>
+          )}
 
-          {status === "locked" && hasPermission(PERMISSIONS.USERS.UNLOCK) && (
+          {status === "locked" && capabilities["user:unlock"] && (
             <Button
               className="gap-2 font-medium transition-all focus-visible:ring-2"
               disabled={unlockMutation.isPending}

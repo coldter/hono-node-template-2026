@@ -1,7 +1,6 @@
+import { authorize } from "@/auth/middleware";
 import { commonErrorResponses } from "@/lib/common-resonse";
 import { createRouteConfig } from "@/lib/route-config";
-import { requirePermission } from "@/middlewares/guard";
-import { PERMISSIONS } from "./permissions";
 import { listRolesResponseSchema } from "./schema";
 
 const rolesRoutes = {
@@ -9,7 +8,7 @@ const rolesRoutes = {
     operationId: "listRoles",
     method: "get",
     path: "/",
-    guard: [requirePermission(PERMISSIONS.ROLES.VIEW)],
+    guard: [authorize("role", "list")],
     tags: ["roles"],
     summary: "List all roles",
     description: "Returns a list of all system roles",

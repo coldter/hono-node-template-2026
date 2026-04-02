@@ -11,7 +11,6 @@ import type { Env } from "@/lib/context";
 import { handleError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { OTEL_ENABLED } from "@/lib/otel-config";
-import { abilityMiddleware } from "@/middlewares/ability";
 import { authContextMiddleware } from "@/middlewares/auth-context";
 import { customOtelMiddleware } from "@/middlewares/otel";
 import { globalRateLimitMW } from "@/middlewares/rate-limit";
@@ -46,7 +45,7 @@ baseApp.use(
 baseApp.use(
   "/*",
   cors({
-    origin: env.CORS_ORIGIN,
+    origin: Array.isArray(env.CORS_ORIGIN) ? env.CORS_ORIGIN : [],
     allowMethods: ["GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -96,7 +95,6 @@ baseApp.get("/ping", async (c) => {
 });
 
 baseApp.use(authContextMiddleware);
-baseApp.use(abilityMiddleware);
 
 baseApp.notFound(() => {
   throw new HTTPException(404, {

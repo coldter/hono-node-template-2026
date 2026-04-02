@@ -1,3 +1,5 @@
+import { relations } from "@repo/db";
+import * as schema from "@repo/db/schema";
 import type { DrizzleConfig } from "drizzle-orm";
 import {
   drizzle,
@@ -7,8 +9,6 @@ import {
 import { env } from "@/env";
 import { DrizzleLogger } from "@/lib/logger-drizzle";
 import { OTEL_ENABLED } from "@/lib/otel-config";
-import { relations } from "./relations";
-import * as schema from "./schema/index";
 
 // Dynamic import for @kubiks/otel-drizzle
 // Only load if OTEL is enabled to avoid unnecessary dependencies

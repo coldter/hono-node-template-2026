@@ -1,7 +1,6 @@
+import { authorize } from "@/auth/middleware";
 import { commonErrorResponses } from "@/lib/common-resonse";
 import { createRouteConfig } from "@/lib/route-config";
-import { requirePermission } from "@/middlewares/guard";
-import { PERMISSIONS } from "@/modules/auth/roles/permissions";
 
 import {
   listAuditLogsQuerySchema,
@@ -13,7 +12,7 @@ const auditLogsRoutes = {
     operationId: "listAuditLogs",
     method: "get",
     path: "/",
-    guard: [requirePermission(PERMISSIONS.AUDIT_LOGS.VIEW)],
+    guard: [authorize("audit-log", "list")],
     tags: ["audit-logs"],
     summary: "List audit logs",
     description: "Returns a paginated list of audit logs with optional filters",

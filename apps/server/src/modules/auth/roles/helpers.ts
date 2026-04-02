@@ -109,11 +109,9 @@ export async function hasPermission(
     columns: { permissions: true },
   });
 
-  const castedUserRoles = userRoles as Array<{ permissions: PermissionKey[] }>;
-
   const permissionKey = getPermissionKey(permission) as PermissionKey;
 
-  for (const role of castedUserRoles) {
+  for (const role of userRoles) {
     // Wildcard grants all permissions
     if (role.permissions.includes("*")) {
       return true;

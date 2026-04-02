@@ -1,13 +1,13 @@
-import type { NotificationPreference } from "@/db/schema/notification-preferences";
 import type {
   Notification,
   NotificationChannel,
+  NotificationPreference,
   NotificationPriority,
   NotificationStatus,
-} from "@/db/schema/notifications";
-import type { PushPlatform, PushToken } from "@/db/schema/push-tokens";
+  PushPlatform,
+  PushToken,
+} from "@repo/db/schema";
 import type { PaginationQuery } from "@/utils/pagination";
-
 import type { NotificationsSortColumn, NotificationType } from "./constants";
 
 // Re-export schema types

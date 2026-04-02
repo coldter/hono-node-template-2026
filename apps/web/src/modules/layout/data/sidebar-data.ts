@@ -11,7 +11,6 @@ import {
   Wrench,
 } from "lucide-react";
 import type { SidebarData } from "@/modules/layout/types";
-import { PERMISSIONS } from "@/modules/permissions";
 
 export const sidebarData: SidebarData = {
   user: {
@@ -27,7 +26,6 @@ export const sidebarData: SidebarData = {
           title: "Dashboard",
           url: "/dashboard",
           icon: LayoutDashboard,
-          permission: PERMISSIONS.DASHBOARD.ACCESS,
         },
       ],
     },
@@ -38,13 +36,13 @@ export const sidebarData: SidebarData = {
           title: "Users",
           url: "/users",
           icon: Users,
-          permission: PERMISSIONS.USERS.VIEW,
+          permission: "user:list",
         },
         {
           title: "Audit Logs",
           url: "/audit-logs",
           icon: FileText,
-          permission: PERMISSIONS.AUDIT_LOGS.VIEW,
+          permission: "audit-log:list",
         },
       ],
     },

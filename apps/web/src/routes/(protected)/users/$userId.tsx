@@ -1,12 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { PERMISSIONS, Protected } from "@/modules/permissions";
+import { Authorized } from "@/components/authorized";
+import { PermissionDenied } from "@/modules/permissions";
 import { UserDetailPage } from "@/modules/users/pages/user-detail-page";
 
 export const Route = createFileRoute("/(protected)/users/$userId")({
   component: () => (
-    <Protected permission={PERMISSIONS.USERS.VIEW}>
+    <Authorized
+      capability="user:view"
+      fallback={<PermissionDenied requiredPermission="user:view" />}
+    >
       <UserDetailPage />
-    </Protected>
+    </Authorized>
   ),
 });

@@ -1,9 +1,9 @@
+import * as schema from "@repo/db/schema";
 import type { BetterAuthPlugin } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import * as schema from "@/db/schema";
 
 type UserEmail = string;
 

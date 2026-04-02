@@ -1,3 +1,4 @@
+import { auditLogs } from "@repo/db/schema";
 import {
   and,
   asc,
@@ -11,7 +12,6 @@ import {
 } from "drizzle-orm";
 
 import { db, type Executor } from "@/db";
-import { auditLogs } from "@/db/schema/audit-logs";
 import type {
   CreateAuditLogInput,
   FindAuditLogsQuery,

@@ -1,4 +1,3 @@
-export * from "./abilities";
 export * from "./audit";
 export * from "./pagination";
 export * from "./permissions";

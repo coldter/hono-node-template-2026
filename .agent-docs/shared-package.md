@@ -3,7 +3,6 @@
 Use explicit subpath imports and treat shared runtime constants as source of truth.
 
 ## Stable Modules
-- `@repo/shared/abilities`
 - `@repo/shared/permissions`
 - `@repo/shared/roles`
 - `@repo/shared/pagination`

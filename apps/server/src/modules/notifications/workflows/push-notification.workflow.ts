@@ -1,7 +1,7 @@
+import { notifications, pushTokens } from "@repo/db/schema";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { notifications, pushTokens } from "@/db/schema";
 import { EVENTS, type EventPayloads } from "@/lib/events";
 import { getPushProvider } from "@/lib/firebase";
 import { isHatchetEnabled, requireHatchet } from "@/lib/hatchet";

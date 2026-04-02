@@ -1,6 +1,4 @@
 import type { HttpBindings } from "@hono/node-server";
-
-import type { AppAbility } from "@repo/shared/abilities";
 import type { AuthSession, AuthUser, auth } from "@/modules/auth/instance";
 
 /**
@@ -24,12 +22,6 @@ export type Env = {
     user: typeof auth.$Infer.Session.user | null;
     session: typeof auth.$Infer.Session.session | null;
     otel: { traceId: string | null; spanId: string | null } | null;
-    /**
-     * CASL ability instance for the current user.
-     * Injected by the ability middleware after authentication.
-     * Will be null if user is not authenticated.
-     */
-    ability: AppAbility | null;
   };
   Bindings: Bindings;
 };

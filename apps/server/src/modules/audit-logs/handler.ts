@@ -2,9 +2,9 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 
 import type { Env } from "@/lib/context";
 import { defaultHook } from "@/utils/default-hook";
-
 import auditLogsRoutes from "./routes";
 import { auditLogService } from "./service";
+import type { AuditEventKey } from "./types";
 
 const app = new OpenAPIHono<Env>({ defaultHook });
 
@@ -19,6 +19,8 @@ const auditLogsHandler = app.openapi(
         data: result.data.map((log) => ({
           ...log,
           createdAt: log.createdAt.toISOString(),
+          // Cast event to the proper AuditEventKey type (database returns string)
+          event: log.event as AuditEventKey,
         })),
         meta: result.meta,
       },

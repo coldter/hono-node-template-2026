@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { PERMISSIONS, Protected } from "@/modules/permissions";
+import { Authorized } from "@/components/authorized";
+import { PermissionDenied } from "@/modules/permissions";
 import { UsersPage } from "@/modules/users/pages/users-page";
 
 export const usersSearchSchema = z.object({
@@ -19,8 +20,11 @@ export type UsersSearch = z.infer<typeof usersSearchSchema>;
 export const Route = createFileRoute("/(protected)/users/")({
   validateSearch: (search) => usersSearchSchema.parse(search),
   component: () => (
-    <Protected permission={PERMISSIONS.USERS.VIEW}>
+    <Authorized
+      capability="user:list"
+      fallback={<PermissionDenied requiredPermission="user:list" />}
+    >
       <UsersPage />
-    </Protected>
+    </Authorized>
   ),
 });

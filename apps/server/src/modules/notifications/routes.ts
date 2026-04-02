@@ -1,6 +1,6 @@
+import { authorize } from "@/auth/middleware";
 import { commonErrorResponses } from "@/lib/common-resonse";
 import { createRouteConfig } from "@/lib/route-config";
-import { isAuthenticated } from "@/middlewares/guard";
 
 import {
   getNotificationResponseSchema,
@@ -27,7 +27,7 @@ const notificationsRoutes = {
     operationId: "listNotifications",
     method: "get",
     path: "/",
-    guard: isAuthenticated,
+    guard: authorize("notification", "list"),
     tags: ["notifications"],
     summary: "List notifications",
     description:
@@ -53,7 +53,7 @@ const notificationsRoutes = {
     operationId: "getNotification",
     method: "get",
     path: "/{notificationId}",
-    guard: isAuthenticated,
+    guard: authorize("notification", "view"),
     tags: ["notifications"],
     summary: "Get notification details",
     description: "Returns details of a specific notification",
@@ -78,7 +78,7 @@ const notificationsRoutes = {
     operationId: "getUnreadNotificationCount",
     method: "get",
     path: "/unread/count",
-    guard: isAuthenticated,
+    guard: authorize("notification", "get-unread-count"),
     tags: ["notifications"],
     summary: "Get unread notification count",
     description: "Returns the number of unread notifications for the user",
@@ -100,7 +100,7 @@ const notificationsRoutes = {
     operationId: "markNotificationAsRead",
     method: "post",
     path: "/{notificationId}/read",
-    guard: isAuthenticated,
+    guard: authorize("notification", "mark-read"),
     tags: ["notifications"],
     summary: "Mark notification as read",
     description: "Marks a specific notification as read",
@@ -125,7 +125,7 @@ const notificationsRoutes = {
     operationId: "markAllNotificationsAsRead",
     method: "post",
     path: "/read-all",
-    guard: isAuthenticated,
+    guard: authorize("notification", "mark-all-read"),
     tags: ["notifications"],
     summary: "Mark all notifications as read",
     description: "Marks all notifications as read for the authenticated user",
@@ -147,7 +147,7 @@ const notificationsRoutes = {
     operationId: "getNotificationPreferences",
     method: "get",
     path: "/preferences",
-    guard: isAuthenticated,
+    guard: authorize("notification", "get-preferences"),
     tags: ["notifications"],
     summary: "Get notification preferences",
     description: "Returns notification preferences for the authenticated user",
@@ -169,7 +169,7 @@ const notificationsRoutes = {
     operationId: "updateNotificationPreferences",
     method: "patch",
     path: "/preferences",
-    guard: isAuthenticated,
+    guard: authorize("notification", "update-preferences"),
     tags: ["notifications"],
     summary: "Update notification preferences",
     description: "Updates notification preferences for the authenticated user",
@@ -198,7 +198,7 @@ const notificationsRoutes = {
     operationId: "listPushTokens",
     method: "get",
     path: "/push-tokens",
-    guard: isAuthenticated,
+    guard: authorize("notification", "list-push-tokens"),
     tags: ["notifications"],
     summary: "List push tokens",
     description:
@@ -221,7 +221,7 @@ const notificationsRoutes = {
     operationId: "registerPushToken",
     method: "post",
     path: "/push-tokens",
-    guard: isAuthenticated,
+    guard: authorize("notification", "register-push-token"),
     tags: ["notifications"],
     summary: "Register push token",
     description:
@@ -251,7 +251,7 @@ const notificationsRoutes = {
     operationId: "deletePushToken",
     method: "delete",
     path: "/push-tokens/{tokenId}",
-    guard: isAuthenticated,
+    guard: authorize("notification", "delete-push-token"),
     tags: ["notifications"],
     summary: "Delete push token",
     description: "Deactivates a push token for the authenticated user",

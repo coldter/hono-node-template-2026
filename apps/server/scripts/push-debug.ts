@@ -1,16 +1,16 @@
 /** biome-ignore-all lint/suspicious/noConsole: script file */
 import { readFileSync } from "node:fs";
 import { confirm, input, select } from "@inquirer/prompts";
-import chalk from "chalk";
-import { highlight } from "cli-highlight";
-import { and, desc, eq } from "drizzle-orm";
-import { db } from "@/db";
 import {
   notificationPreferences,
   notifications,
   pushTokens,
-} from "@/db/schema";
-import { users } from "@/db/schema/auth";
+  users,
+} from "@repo/db/schema";
+import chalk from "chalk";
+import { highlight } from "cli-highlight";
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "@/db";
 import { env } from "@/env";
 import { getPushProvider } from "@/lib/firebase";
 import {

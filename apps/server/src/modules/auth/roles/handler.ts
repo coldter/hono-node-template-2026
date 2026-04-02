@@ -1,8 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { roles } from "@repo/db/schema";
 import { isNull } from "drizzle-orm";
 
 import { db } from "@/db";
-import { roles } from "@/db/schema";
 import type { Env } from "@/lib/context";
 import { defaultHook } from "@/utils/default-hook";
 

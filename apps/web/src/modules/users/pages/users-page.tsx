@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { PERMISSIONS, PermissionGuard } from "@/modules/permissions";
+import { Authorized } from "@/components/authorized";
 import { Button } from "@/modules/ui/button";
 
 import { CreateUserDialog } from "../dialogs/create-user-dialog";
@@ -19,12 +19,12 @@ export function UsersPage() {
           </p>
         </div>
 
-        <PermissionGuard permission={PERMISSIONS.USERS.CREATE}>
+        <Authorized capability="user:create">
           <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add User
           </Button>
-        </PermissionGuard>
+        </Authorized>
       </div>
 
       <UsersTable />

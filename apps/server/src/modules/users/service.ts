@@ -1,3 +1,4 @@
+import { accounts, sessions, users } from "@repo/db/schema";
 import {
   and,
   arrayContains,
@@ -11,7 +12,6 @@ import {
 } from "drizzle-orm";
 
 import { db } from "@/db";
-import { accounts, sessions, users } from "@/db/schema";
 import { AUDIT_EVENTS, TARGET_TYPES } from "@/modules/audit-logs/constants";
 import { auditLogService } from "@/modules/audit-logs/service";
 import type { AuditLogMetadata } from "@/modules/audit-logs/types";

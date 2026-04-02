@@ -1,7 +1,6 @@
+import { authorize } from "@/auth/middleware";
 import { commonErrorResponses } from "@/lib/common-resonse";
 import { createRouteConfig } from "@/lib/route-config";
-import { isAuthenticated, requirePermission } from "@/middlewares/guard";
-import { PERMISSIONS } from "@/modules/auth/roles/permissions";
 
 import {
   createUserBodySchema,
@@ -17,13 +16,14 @@ import {
   updateUserRolesBodySchema,
   userParamsSchema,
 } from "./schema";
+import { userService } from "./service";
 
 const usersRoutes = {
   listUsers: createRouteConfig({
     operationId: "listUsers",
     method: "get",
     path: "/",
-    guard: [requirePermission(PERMISSIONS.USERS.VIEW)],
+    guard: [authorize("user", "list")],
     tags: ["users"],
     summary: "List users",
     description: "Returns a paginated list of users with optional filters",
@@ -41,7 +41,17 @@ const usersRoutes = {
     operationId: "getMyAccount",
     method: "get",
     path: "/me",
-    guard: [isAuthenticated],
+    guard: [
+      authorize("user", "view", {
+        loadResource: async (c) => {
+          const user = c.get("user");
+          if (!user) {
+            return null;
+          }
+          return userService.findById(user.id);
+        },
+      }),
+    ],
     tags: ["users"],
     summary: "Get my profile summary",
     description: "Returns user-facing profile info and notification summary",
@@ -58,7 +68,17 @@ const usersRoutes = {
     operationId: "getUser",
     method: "get",
     path: "/{userId}",
-    guard: [requirePermission(PERMISSIONS.USERS.VIEW)],
+    guard: [
+      authorize("user", "view", {
+        loadResource: async (c) => {
+          const userId = c.req.param("userId");
+          if (!userId) {
+            return null;
+          }
+          return userService.findById(userId);
+        },
+      }),
+    ],
     tags: ["users"],
     summary: "Get user by ID",
     description: "Returns detailed user information",
@@ -76,7 +96,7 @@ const usersRoutes = {
     operationId: "createUser",
     method: "post",
     path: "/",
-    guard: [requirePermission(PERMISSIONS.USERS.CREATE)],
+    guard: [authorize("user", "create")],
     tags: ["users"],
     summary: "Create user",
     description: "Creates a new user with the specified details",
@@ -98,7 +118,17 @@ const usersRoutes = {
     operationId: "updateUser",
     method: "patch",
     path: "/{userId}",
-    guard: [requirePermission(PERMISSIONS.USERS.UPDATE)],
+    guard: [
+      authorize("user", "update", {
+        loadResource: async (c) => {
+          const userId = c.req.param("userId");
+          if (!userId) {
+            return null;
+          }
+          return userService.findById(userId);
+        },
+      }),
+    ],
     tags: ["users"],
     summary: "Update user",
     description: "Updates user profile information",
@@ -121,7 +151,7 @@ const usersRoutes = {
     operationId: "updateUserRoles",
     method: "patch",
     path: "/{userId}/roles",
-    guard: [requirePermission(PERMISSIONS.USERS.UPDATE)],
+    guard: [authorize("user", "update")],
     tags: ["users"],
     summary: "Update user roles",
     description: "Updates user role assignments",
@@ -144,7 +174,17 @@ const usersRoutes = {
     operationId: "deactivateUser",
     method: "post",
     path: "/{userId}/deactivate",
-    guard: [requirePermission(PERMISSIONS.USERS.DEACTIVATE)],
+    guard: [
+      authorize("user", "deactivate", {
+        loadResource: async (c) => {
+          const userId = c.req.param("userId");
+          if (!userId) {
+            return null;
+          }
+          return userService.findById(userId);
+        },
+      }),
+    ],
     tags: ["users"],
     summary: "Deactivate user",
     description: "Deactivates a user and revokes all sessions",
@@ -167,7 +207,7 @@ const usersRoutes = {
     operationId: "activateUser",
     method: "post",
     path: "/{userId}/activate",
-    guard: [requirePermission(PERMISSIONS.USERS.ACTIVATE)],
+    guard: [authorize("user", "activate")],
     tags: ["users"],
     summary: "Activate user",
     description: "Reactivates a deactivated user",
@@ -185,7 +225,7 @@ const usersRoutes = {
     operationId: "unlockUser",
     method: "post",
     path: "/{userId}/unlock",
-    guard: [requirePermission(PERMISSIONS.USERS.UNLOCK)],
+    guard: [authorize("user", "unlock")],
     tags: ["users"],
     summary: "Unlock user",
     description: "Unlocks a locked user and resets failed login attempts",

@@ -1,6 +1,6 @@
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
-import { PERMISSIONS, usePermission } from "@/modules/permissions";
+import { useAuthorization } from "@/hooks/use-authorization";
 import { Button } from "@/modules/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +20,7 @@ interface UserActionsMenuProps {
 }
 
 export function UserActionsMenu({ user }: UserActionsMenuProps) {
-  const { hasPermission } = usePermission();
+  const { capabilities } = useAuthorization();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showRolesDialog, setShowRolesDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
@@ -28,10 +28,10 @@ export function UserActionsMenu({ user }: UserActionsMenuProps) {
   const activateMutation = useActivateUserMutation();
   const unlockMutation = useUnlockUserMutation();
 
-  const canUpdate = hasPermission(PERMISSIONS.USERS.UPDATE);
-  const canDeactivate = hasPermission(PERMISSIONS.USERS.DEACTIVATE);
-  const canActivate = hasPermission(PERMISSIONS.USERS.ACTIVATE);
-  const canUnlock = hasPermission(PERMISSIONS.USERS.UNLOCK);
+  const canUpdate = capabilities["user:update"] === true;
+  const canDeactivate = capabilities["user:deactivate"] === true;
+  const canActivate = capabilities["user:activate"] === true;
+  const canUnlock = capabilities["user:unlock"] === true;
 
   const status = user.status as UserStatus;
 

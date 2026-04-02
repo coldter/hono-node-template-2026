@@ -53,4 +53,14 @@ export const AUDIT_EVENTS = {
   },
 } as const;
 
-export type AuditEventKey = string;
+type ExtractEventKeys<T> = T extends { event: infer E }
+  ? E
+  : T extends object
+    ? ExtractEventKeys<T[keyof T]>
+    : never;
+
+export type AuditEventKey = ExtractEventKeys<typeof AUDIT_EVENTS>;
+
+export interface AuditLogMetadata {
+  [key: string]: unknown;
+}

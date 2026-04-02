@@ -1,7 +1,7 @@
 import type {
   NotificationChannel,
   NotificationPriority,
-} from "@/db/schema/notifications";
+} from "@repo/db/schema";
 
 // ============================================================
 // NOTIFICATION TYPES

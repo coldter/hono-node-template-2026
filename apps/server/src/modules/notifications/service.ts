@@ -1,11 +1,11 @@
-import { and, asc, count, desc, eq, type SQL, sql } from "drizzle-orm";
-
-import { db } from "@/db";
 import {
   notificationPreferences,
   notifications,
   pushTokens,
-} from "@/db/schema";
+} from "@repo/db/schema";
+import { and, asc, count, desc, eq, type SQL, sql } from "drizzle-orm";
+
+import { db } from "@/db";
 import { EVENTS, pushEvent } from "@/lib/events";
 import { isHatchetEnabled } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";

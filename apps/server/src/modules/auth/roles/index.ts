@@ -15,16 +15,10 @@ export {
 // Helpers
 export {
   ensurePermission,
-  ensureRole,
   hasAllPermissions,
-  hasAllRoles,
   hasAnyPermission,
-  hasAnyRole,
   hasPermission,
-  hasRole,
-  isAdmin,
   isPermissionGrantedToRole,
-  isUser,
 } from "./helpers";
 export type { GenericPermissionObject } from "./permissions";
 export { PERMISSIONS } from "./permissions";

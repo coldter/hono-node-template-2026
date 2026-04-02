@@ -1,3 +1,4 @@
+import * as schema from "@repo/db/schema";
 import {
   sendEmail,
   TwoFactorOtpEmail,
@@ -11,11 +12,10 @@ import {
 } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP, openAPI, twoFactor } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { seconds } from "itty-time";
 import { z } from "zod";
 import { db } from "@/db";
-import * as schema from "@/db/schema";
 import { env } from "@/env";
 import { generateIdForModel } from "@/lib/ids";
 import { logger } from "@/lib/logger";
@@ -52,6 +52,7 @@ type Platform = "web" | "mobile";
 export type SessionWithAdditionalFields = {
   platform: Platform;
   expiresAt: Date;
+  activeOrgRole: string | null;
 };
 
 // Regex patterns at top-level for performance
@@ -152,6 +153,10 @@ const authConfig = {
         required: false,
         defaultValue: "web",
       },
+      activeOrgRole: {
+        type: "string",
+        required: false,
+      },
     },
   },
 
@@ -241,17 +246,89 @@ const authConfig = {
           // Calculate expiration based on platform
           const expiresAt = new Date(Date.now() + config.expiresIn * 1000);
 
+          let orgContext: {
+            activeOrganizationId: string;
+            activeOrgRole: string;
+          } | null = null;
+          try {
+            const [firstMembership] = await db
+              .select({
+                organizationId: schema.members.organizationId,
+                role: schema.members.role,
+              })
+              .from(schema.members)
+              .where(eq(schema.members.userId, session.userId))
+              .orderBy(desc(schema.members.createdAt))
+              .limit(1);
+
+            if (firstMembership) {
+              orgContext = {
+                activeOrganizationId: firstMembership.organizationId,
+                activeOrgRole: firstMembership.role,
+              };
+            }
+          } catch {
+            orgContext = null;
+          }
+
           return {
             data: {
               ...session,
               platform,
               expiresAt,
+              ...(orgContext ?? {}),
             },
           };
         },
       },
       update: {
         before: async (session, context) => {
+          const updateData = session as Record<string, unknown>;
+          if (updateData.activeOrganizationId !== undefined) {
+            const newOrgId = updateData.activeOrganizationId as string | null;
+
+            if (!newOrgId) {
+              return {
+                data: { ...session, activeOrgRole: null },
+              };
+            }
+
+            const endpointCtx = context as
+              | {
+                  context?: {
+                    session?: { user?: { id?: string } };
+                  };
+                }
+              | undefined;
+            const userId = endpointCtx?.context?.session?.user?.id;
+
+            if (userId) {
+              try {
+                const [membership] = await db
+                  .select({ role: schema.members.role })
+                  .from(schema.members)
+                  .where(
+                    and(
+                      eq(schema.members.userId, userId),
+                      eq(schema.members.organizationId, newOrgId)
+                    )
+                  )
+                  .limit(1);
+
+                return {
+                  data: {
+                    ...session,
+                    activeOrgRole: membership?.role ?? null,
+                  },
+                };
+              } catch {
+                return { data: session };
+              }
+            }
+
+            return { data: session };
+          }
+
           // Only intervene when Better Auth is refreshing the session expiry.
           // Other updates (e.g. updatedAt, ipAddress) should pass through.
           if (!session.expiresAt) {

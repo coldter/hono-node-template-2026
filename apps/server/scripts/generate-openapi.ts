@@ -1,4 +1,10 @@
 process.env.SKIP_DB = "true";
+process.env.DATABASE_URL ??= "postgres://localhost:5432/openapi";
+process.env.CORS_ORIGIN ??= "http://localhost:3001";
+process.env.BETTER_AUTH_SECRET ??=
+  "openapi-generation-secret-openapi-generation-secret";
+process.env.VAULT_MASTER_KEY ??=
+  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 /**
  * Generate OpenAPI documentation and save it to a file.

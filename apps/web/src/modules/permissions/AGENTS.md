@@ -1,8 +1,8 @@
 # Permissions Module
 
-Permission checks for routes, UI visibility, and action-level controls.
+Permission-denied fallback UI for capability-gated routes and screens.
 
 ## Essentials
-- Use string permissions for route/menu visibility and simple checks.
-- Use CASL ability checks for resource-level actions.
-- Keep constants centralized and reuse them across hooks/guards/components.
+- Use `useAuthorization()` from `@/hooks/use-authorization` for capability checks.
+- Use `<Authorized capability="resource:action">` for conditional rendering.
+- Capabilities are fetched from `GET /api/authorization/capabilities`.

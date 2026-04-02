@@ -1,7 +1,7 @@
+import { type Notification, notifications } from "@repo/db/schema";
 import { NotificationEmail, sendEmail } from "@repo/email";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { type Notification, notifications } from "@/db/schema";
 import { EVENTS, type EventPayloads } from "@/lib/events";
 import { isHatchetEnabled, requireHatchet } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";

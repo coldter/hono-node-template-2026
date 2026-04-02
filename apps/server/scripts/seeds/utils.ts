@@ -1,6 +1,5 @@
+import { auditLogs, users } from "@repo/db/schema";
 import { db } from "@/db";
-import { users } from "@/db/schema";
-import { auditLogs } from "@/db/schema/audit-logs";
 
 export const isUserSeeded = async () => {
   const usersInTable = await db.select().from(users).limit(1);

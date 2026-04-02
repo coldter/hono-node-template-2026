@@ -1,0 +1,31 @@
+{
+  "name": "@repo/authorization",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./hono": "./src/hono.ts",
+    "./drizzle": "./src/drizzle.ts"
+  },
+  "devDependencies": {
+    "hono": "^4.12.10",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.44.0",
+    "hono": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    }
+  }
+}

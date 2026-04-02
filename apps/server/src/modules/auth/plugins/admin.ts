@@ -1,3 +1,4 @@
+import * as schema from "@repo/db/schema";
 import type { BetterAuthPlugin } from "better-auth";
 import {
   APIError,
@@ -8,7 +9,6 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import * as schema from "@/db/schema";
 import { hasPermission, PERMISSIONS } from "@/modules/auth/roles";
 import { onUserStatusChange } from "@/modules/users/user-status-hooks";
 

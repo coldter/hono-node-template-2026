@@ -1,11 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { clearSession, sessionQueryOptions } from "@/modules/auth";
 import { AuthenticatedLayout } from "@/modules/layout/authenticated-layout";
-import {
-  PERMISSIONS,
-  PermissionDenied,
-  PermissionGuard,
-} from "@/modules/permissions";
 import { queryClient } from "@/query/query-client";
 import { useAlertStore } from "@/store/alert";
 import { useUserStore } from "@/store/user";
@@ -69,19 +64,5 @@ export const Route = createFileRoute("/(protected)")({
 });
 
 function ProtectedLayout() {
-  return (
-    <PermissionGuard
-      fallback={
-        <PermissionDenied
-          message="Your account doesn't have permission to access the dashboard. Please contact your administrator to request access."
-          requiredPermission={PERMISSIONS.DASHBOARD.ACCESS.key}
-          showLogoutButton={true}
-          title="Dashboard Access Required"
-        />
-      }
-      permission={PERMISSIONS.DASHBOARD.ACCESS}
-    >
-      <AuthenticatedLayout />
-    </PermissionGuard>
-  );
+  return <AuthenticatedLayout />;
 }

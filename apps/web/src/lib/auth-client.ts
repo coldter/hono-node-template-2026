@@ -1,4 +1,7 @@
-import { inferAdditionalFields } from "better-auth/client/plugins";
+import {
+  inferAdditionalFields,
+  organizationClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 const parsedUrl = new URL(import.meta.env.VITE_SERVER_URL);
@@ -8,6 +11,7 @@ export const authClient = createAuthClient({
   baseURL: parsedUrl.origin,
   basePath: pathname === "/" ? "/api/auth" : `${pathname}/api/auth`,
   plugins: [
+    organizationClient(),
     inferAdditionalFields({
       user: {
         status: { type: "string" },
@@ -21,6 +25,7 @@ export const authClient = createAuthClient({
       },
       session: {
         platform: { type: "string" },
+        activeOrgRole: { type: "string" },
       },
     }),
   ],

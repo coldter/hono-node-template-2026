@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { Authorized } from "@/components/authorized";
 import { AuditLogs } from "@/modules/audit-logs";
-import { PERMISSIONS, Protected } from "@/modules/permissions";
+import { PermissionDenied } from "@/modules/permissions";
 
 export const auditLogsSearchSchema = z.object({
   page: z.number().optional().catch(1),
@@ -19,8 +20,11 @@ export type AuditLogsSearch = z.infer<typeof auditLogsSearchSchema>;
 export const Route = createFileRoute("/(protected)/audit-logs/")({
   validateSearch: (search) => auditLogsSearchSchema.parse(search),
   component: () => (
-    <Protected permission={PERMISSIONS.AUDIT_LOGS.VIEW}>
+    <Authorized
+      capability="audit-log:list"
+      fallback={<PermissionDenied requiredPermission="audit-log:list" />}
+    >
       <AuditLogs />
-    </Protected>
+    </Authorized>
   ),
 });

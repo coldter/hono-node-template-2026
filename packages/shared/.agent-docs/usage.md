@@ -1,7 +1,7 @@
 # Shared Package Usage
 
 ## Core Modules
-- `permissions`, `roles`, `abilities`
+- `permissions`, `roles`
 - `pagination`
 - `audit`
 - `users`

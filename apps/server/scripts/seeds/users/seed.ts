@@ -1,7 +1,7 @@
+import { accounts, users } from "@repo/db/schema";
 import chalk from "chalk";
 
 import { db } from "@/db";
-import { accounts, users } from "@/db/schema";
 import { env } from "@/env";
 import { hashPassword } from "@/modules/auth/helpers/argon2id";
 import { SYSTEM_ROLES } from "@/modules/auth/roles";

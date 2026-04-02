@@ -1,5 +1,5 @@
+import type { PermissionKey } from "@repo/shared/permissions";
 import { db } from "@/db";
-import type { PermissionKey } from "@/modules/auth/roles/constants";
 import { patchedCustomSession } from "./patched-custom-session";
 
 export type SessionUserWithPermissions = {
