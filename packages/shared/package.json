@@ -5,18 +5,18 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./permissions": "./src/permissions.ts",
+    "./authorization": "./src/authorization.ts",
     "./users": "./src/users.ts",
     "./roles": "./src/roles.ts",
     "./pagination": "./src/pagination.ts",
     "./audit": "./src/audit.ts"
   },
   "devDependencies": {
-    "type-fest": "^5.5.0",
     "typescript": "^6.0.2"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.2.4",
+    "@repo/authorization": "workspace:*",
     "zod": "^4.3.6"
   }
 }

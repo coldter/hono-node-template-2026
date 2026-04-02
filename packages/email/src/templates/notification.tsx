@@ -45,5 +45,3 @@ NotificationEmail.PreviewProps = {
   actionUrl: "https://example.com/shares/123",
   actionLabel: "View Invitation",
 } satisfies NotificationEmailProps;
-
-export default NotificationEmail;

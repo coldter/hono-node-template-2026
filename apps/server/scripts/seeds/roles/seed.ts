@@ -1,4 +1,5 @@
 import { roles } from "@repo/db/schema";
+import { getLegacyPermissionKeysForRole } from "@repo/shared/authorization";
 import chalk from "chalk";
 
 import { db } from "@/db";
@@ -15,11 +16,11 @@ const systemRoles: Array<{
 }> = [
   {
     ...SYSTEM_ROLES.ADMIN,
-    permissions: ["*"], // Full access
+    permissions: getLegacyPermissionKeysForRole("admin"),
   },
   {
     ...SYSTEM_ROLES.USER,
-    permissions: [] as PermissionKey[],
+    permissions: getLegacyPermissionKeysForRole("user") as PermissionKey[],
   },
 ];
 

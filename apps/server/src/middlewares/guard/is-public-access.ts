@@ -3,7 +3,6 @@ import { createMiddleware } from "hono/factory";
 import type { Env } from "@/lib/context";
 
 /**
- * @lintignore
  * Middleware for routes that are publicly accessible.
  * This is a required placeholder for routes that can be accessed by anyone.
  *

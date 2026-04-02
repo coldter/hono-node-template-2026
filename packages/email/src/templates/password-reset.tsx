@@ -58,5 +58,3 @@ PasswordResetEmail.PreviewProps = {
   resetUrl: "https://example.com/reset?token=abc123",
   expiresIn: "60 minutes",
 } satisfies PasswordResetEmailProps;
-
-export default PasswordResetEmail;

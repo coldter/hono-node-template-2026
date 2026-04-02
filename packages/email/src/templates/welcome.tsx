@@ -35,5 +35,3 @@ WelcomeEmail.PreviewProps = {
   userName: "Ada",
   loginUrl: "https://example.com/login",
 } satisfies WelcomeEmailProps;
-
-export default WelcomeEmail;

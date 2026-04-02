@@ -1,5 +1,10 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { roles } from "@repo/db/schema";
+import {
+  getLegacyPermissionKeysForRole,
+  isAuthorizationRole,
+  isLegacyPermissionKey,
+} from "@repo/shared/authorization";
 import { isNull } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -27,7 +32,9 @@ const rolesHandler = app.openapi(rolesRoutes.listRoles, async (c) => {
         slug: role.slug,
         name: role.name,
         description: role.description ?? "",
-        permissions: role.permissions,
+        permissions: isAuthorizationRole(role.slug)
+          ? getLegacyPermissionKeysForRole(role.slug)
+          : role.permissions.filter(isLegacyPermissionKey),
       })),
     },
     200

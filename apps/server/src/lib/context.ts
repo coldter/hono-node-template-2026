@@ -1,5 +1,5 @@
 import type { HttpBindings } from "@hono/node-server";
-import type { AuthSession, AuthUser, auth } from "@/modules/auth/instance";
+import type { auth } from "@/modules/auth/instance";
 
 /**
  * Set node server bindings.
@@ -25,6 +25,3 @@ export type Env = {
   };
   Bindings: Bindings;
 };
-
-// Re-export auth types for convenience
-export type { AuthSession, AuthUser };

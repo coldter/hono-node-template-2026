@@ -1,6 +1,10 @@
-import { hasPermission } from "@repo/db/permissions";
+import { AuthorizationError, type Principal } from "@repo/authorization";
 import * as schema from "@repo/db/schema";
-import { PERMISSIONS } from "@repo/shared/permissions";
+import {
+  authorization,
+  buildAuthorizationPrincipal,
+  toBaseAuthorizationPrincipal,
+} from "@repo/shared/authorization";
 import type { BetterAuthPlugin } from "better-auth";
 import {
   APIError,
@@ -13,9 +17,40 @@ import { db } from "@/db";
 import { onUserStatusChange } from "@/modules/users/user-status-hooks";
 
 type UserId = string;
-type UserWithRoleSlugs = {
+type ManageUserStatusAction = "activate" | "deactivate" | "unlock";
+
+type AuthSessionUser = {
+  email?: string;
+  emailVerified?: boolean;
+  id: string;
   roleSlugs?: string[];
+  status?: string;
 };
+
+function getAuthorizationActor(user: AuthSessionUser) {
+  return {
+    id: user.id,
+    roleSlugs: user.roleSlugs ?? [],
+    status: user.status,
+    email: user.email,
+    emailVerified: user.emailVerified,
+  };
+}
+
+async function assertCanManageUserStatusWithApiError(
+  actor: AuthSessionUser,
+  action: ManageUserStatusAction,
+  targetUserId: string
+) {
+  try {
+    await assertCanManageUserStatus(actor, action, targetUserId);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      throw new APIError("FORBIDDEN", { message: "Permission denied" });
+    }
+    throw error;
+  }
+}
 
 /**
  * Admin Plugin
@@ -67,19 +102,13 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user;
+          const currentUser = ctx.context.session.user as AuthSessionUser;
 
-          // Permission check
-          const canDeactivate = await hasPermission(
-            db,
-            {
-              roleSlugs: (currentUser as UserWithRoleSlugs).roleSlugs ?? [],
-            },
-            PERMISSIONS.USERS.DEACTIVATE
+          await assertCanManageUserStatusWithApiError(
+            currentUser,
+            "deactivate",
+            ctx.body.userId
           );
-          if (!canDeactivate) {
-            throw new APIError("FORBIDDEN", { message: "Permission denied" });
-          }
 
           // Cannot deactivate yourself
           if (ctx.body.userId === currentUser.id) {
@@ -162,19 +191,13 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user;
+          const currentUser = ctx.context.session.user as AuthSessionUser;
 
-          // Permission check
-          const canActivate = await hasPermission(
-            db,
-            {
-              roleSlugs: (currentUser as UserWithRoleSlugs).roleSlugs ?? [],
-            },
-            PERMISSIONS.USERS.ACTIVATE
+          await assertCanManageUserStatusWithApiError(
+            currentUser,
+            "activate",
+            ctx.body.userId
           );
-          if (!canActivate) {
-            throw new APIError("FORBIDDEN", { message: "Permission denied" });
-          }
 
           // Check if user exists
           const targetUser = await db.query.users.findFirst({
@@ -244,19 +267,13 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user;
+          const currentUser = ctx.context.session.user as AuthSessionUser;
 
-          // Permission check
-          const canUnlock = await hasPermission(
-            db,
-            {
-              roleSlugs: (currentUser as UserWithRoleSlugs).roleSlugs ?? [],
-            },
-            PERMISSIONS.USERS.UNLOCK
+          await assertCanManageUserStatusWithApiError(
+            currentUser,
+            "unlock",
+            ctx.body.userId
           );
-          if (!canUnlock) {
-            throw new APIError("FORBIDDEN", { message: "Permission denied" });
-          }
 
           // Check if user exists
           const targetUser = await db.query.users.findFirst({
@@ -283,3 +300,16 @@ export const adminPlugin = () => {
     },
   } satisfies BetterAuthPlugin;
 };
+
+export async function assertCanManageUserStatus(
+  actor: AuthSessionUser,
+  action: ManageUserStatusAction,
+  targetUserId: string
+) {
+  const principal = buildAuthorizationPrincipal(getAuthorizationActor(actor));
+  const basePrincipal: Principal = toBaseAuthorizationPrincipal(principal);
+
+  await authorization.assertCan(basePrincipal, "user", action, {
+    resource: { id: targetUserId },
+  });
+}

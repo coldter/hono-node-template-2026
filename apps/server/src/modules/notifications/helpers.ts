@@ -105,23 +105,6 @@ export function formatPreferencesSummary(
   };
 }
 
-// ============================================================
-// REQUEST CONTEXT HELPERS
-// ============================================================
-
-/**
- * Get audit context from Hono context.
- */
-export function getAuditContext(c: Context<Env>): {
-  ipAddress: string | undefined;
-  userAgent: string | undefined;
-} {
-  return {
-    ipAddress: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
-    userAgent: c.req.header("user-agent"),
-  };
-}
-
 /**
  * Get current user ID from context.
  * Throws if user is not authenticated.

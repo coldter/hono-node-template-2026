@@ -1,4 +1,4 @@
-import type { PermissionKey } from "@repo/shared/permissions";
+import type { LegacyPermissionKey } from "@repo/shared/authorization";
 import {
   index,
   jsonb,
@@ -22,7 +22,7 @@ export const roles = pgTable(
     slug: varchar("slug", { length: 32 }).notNull().unique(),
     description: text("description"),
     permissions: jsonb("permissions")
-      .$type<PermissionKey[]>()
+      .$type<LegacyPermissionKey[]>()
       .default([])
       .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

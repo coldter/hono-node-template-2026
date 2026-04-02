@@ -6,8 +6,7 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
     "./client": "./src/client.ts",
-    "./ids": "./src/ids.ts",
-    "./permissions": "./src/permissions.ts"
+    "./ids": "./src/ids.ts"
   },
   "scripts": {
     "db:push": "drizzle-kit push",

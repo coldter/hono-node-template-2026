@@ -71,5 +71,3 @@ VerificationOtpEmail.PreviewProps = {
   type: "forget-password",
   expiresIn: "10 minutes",
 } satisfies VerificationOtpEmailProps;
-
-export default VerificationOtpEmail;

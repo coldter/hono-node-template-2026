@@ -44,15 +44,3 @@ export interface UserRecord {
   status: string;
   updatedAt: Date;
 }
-
-export interface UserResponse {
-  createdAt: string;
-  email: string;
-  emailVerified: boolean;
-  id: string;
-  image: string | null;
-  name: string;
-  roleSlugs: string[];
-  status: string;
-  updatedAt: string;
-}

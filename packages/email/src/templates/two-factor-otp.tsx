@@ -76,5 +76,3 @@ TwoFactorOtpEmail.PreviewProps = {
   ipAddress: "192.168.1.1",
   userAgent: "Chrome on macOS",
 } satisfies TwoFactorOtpEmailProps;
-
-export default TwoFactorOtpEmail;

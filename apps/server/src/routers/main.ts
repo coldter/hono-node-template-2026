@@ -4,7 +4,7 @@ import authRouteHandler from "@/modules/auth/handler";
 import rolesHandler from "@/modules/auth/roles/handler";
 import { notificationsHandler } from "@/modules/notifications";
 import { statusHandler } from "@/modules/status";
-import { usersHandler } from "@/modules/users";
+import usersHandler from "@/modules/users/handler";
 import baseApp from "@/server";
 
 export const app = baseApp

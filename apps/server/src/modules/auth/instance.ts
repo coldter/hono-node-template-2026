@@ -22,10 +22,6 @@ import { logger } from "@/lib/logger";
 import { adminPlugin } from "@/modules/auth/plugins/admin";
 import { loginSecurityPlugin } from "@/modules/auth/plugins/login-security";
 import {
-  enhancedSessionPlugin,
-  type SessionUserWithPermissions,
-} from "@/modules/auth/plugins/session-permissions";
-import {
   enhancedUserPlugin,
   type UserWithStatusFields,
 } from "@/modules/auth/plugins/user-status";
@@ -458,14 +454,12 @@ const authConfig = {
     openAPI({
       disableDefaultReference: true,
     }),
-    // Must be last to access all fields added by other plugins
-    enhancedSessionPlugin(),
     // override type
     {
       id: "override-type",
       $Infer: {} as {
         Session: {
-          user: User & UserWithStatusFields & SessionUserWithPermissions;
+          user: User & UserWithStatusFields;
           session: Session & SessionWithAdditionalFields;
         };
       },
@@ -474,7 +468,3 @@ const authConfig = {
 } satisfies BetterAuthOptions;
 
 export const auth = betterAuth(authConfig);
-
-// Export inferred types for full type safety throughout the app
-export type AuthUser = typeof auth.$Infer.Session.user;
-export type AuthSession = typeof auth.$Infer.Session.session;

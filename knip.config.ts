@@ -5,6 +5,7 @@ const config: KnipConfig = {
   tags: ["-lintignore"],
   ignoreIssues: {
     "apps/web/src/modules/ui/**": ["exports"],
+    "packages/authorization/package.json": ["optionalPeerDependencies"],
   },
   rules: {
     exports: "warn",
@@ -15,23 +16,28 @@ const config: KnipConfig = {
       ignoreDependencies: ["tsx"],
     },
     "apps/web": {
-      entry: [
-        "src/main.tsx",
-        "vite.config.ts",
-        "src/routes/**/*.tsx",
-        "openapi-ts.config.ts",
-        "src/api-config.ts",
+      entry: ["src/routes/**/*.tsx", "src/api-config.ts"],
+      project: ["src/**/*.{ts,tsx}", "index.html", "*.{ts,tsx}"],
+      ignore: ["src/api.gen/**"],
+      ignoreDependencies: [
+        "postcss",
+        "react-grab",
+        "tailwindcss",
+        "tw-animate-css",
       ],
-      project: ["src/**/*.{ts,tsx}", "*.{ts,tsx}"],
-      ignore: ["src/routeTree.gen.ts", "src/api.gen/**"],
-      ignoreDependencies: ["postcss", "tailwindcss", "tw-animate-css"],
       paths: {
         "@/*": ["./src/*"],
       },
     },
     "apps/server": {
-      entry: ["src/index.ts", "drizzle.config.ts"],
-      project: ["src/**/*.ts", "*.ts"],
+      entry: ["scripts/**/*.ts", "mocks/**/*.ts", "tests/**/*.ts"],
+      project: [
+        "src/**/*.ts",
+        "scripts/**/*.ts",
+        "mocks/**/*.ts",
+        "tests/**/*.ts",
+        "*.ts",
+      ],
       ignore: ["src/middlewares/**", "src/db/schema/**", "src/lib/**"],
       ignoreFiles: ["src/rcp-client.ts"],
       paths: {
@@ -39,7 +45,7 @@ const config: KnipConfig = {
       },
     },
     "packages/*": {
-      project: "**/*.ts",
+      project: ["**/*.{ts,tsx}"],
     },
   },
 };
