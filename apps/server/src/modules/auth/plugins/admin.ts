@@ -1,4 +1,6 @@
+import { hasPermission } from "@repo/db/permissions";
 import * as schema from "@repo/db/schema";
+import { PERMISSIONS } from "@repo/shared/permissions";
 import type { BetterAuthPlugin } from "better-auth";
 import {
   APIError,
@@ -7,12 +9,13 @@ import {
 } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-
 import { db } from "@/db";
-import { hasPermission, PERMISSIONS } from "@/modules/auth/roles";
 import { onUserStatusChange } from "@/modules/users/user-status-hooks";
 
 type UserId = string;
+type UserWithRoleSlugs = {
+  roleSlugs?: string[];
+};
 
 /**
  * Admin Plugin
@@ -68,9 +71,9 @@ export const adminPlugin = () => {
 
           // Permission check
           const canDeactivate = await hasPermission(
+            db,
             {
-              roleSlugs:
-                (currentUser as { roleSlugs?: string[] }).roleSlugs ?? [],
+              roleSlugs: (currentUser as UserWithRoleSlugs).roleSlugs ?? [],
             },
             PERMISSIONS.USERS.DEACTIVATE
           );
@@ -163,9 +166,9 @@ export const adminPlugin = () => {
 
           // Permission check
           const canActivate = await hasPermission(
+            db,
             {
-              roleSlugs:
-                (currentUser as { roleSlugs?: string[] }).roleSlugs ?? [],
+              roleSlugs: (currentUser as UserWithRoleSlugs).roleSlugs ?? [],
             },
             PERMISSIONS.USERS.ACTIVATE
           );
@@ -245,9 +248,9 @@ export const adminPlugin = () => {
 
           // Permission check
           const canUnlock = await hasPermission(
+            db,
             {
-              roleSlugs:
-                (currentUser as { roleSlugs?: string[] }).roleSlugs ?? [],
+              roleSlugs: (currentUser as UserWithRoleSlugs).roleSlugs ?? [],
             },
             PERMISSIONS.USERS.UNLOCK
           );

@@ -18,7 +18,7 @@ async function getPermissionsForUser(
   }
 
   const userRoles = await db.query.roles.findMany({
-    where: { slug: { in: roleSlugs } },
+    where: { slug: { in: roleSlugs }, deletedAt: { isNull: true } },
     columns: { permissions: true },
   });
 

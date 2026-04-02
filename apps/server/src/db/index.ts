@@ -1,11 +1,5 @@
-import { relations } from "@repo/db";
-import * as schema from "@repo/db/schema";
-import type { DrizzleConfig } from "drizzle-orm";
-import {
-  drizzle,
-  type NodePgClient,
-  type NodePgDatabase,
-} from "drizzle-orm/node-postgres";
+import { createNodeDrizzleClient, type DrizzleClient } from "@repo/db";
+import type { NodePgClient } from "drizzle-orm/node-postgres";
 import { env } from "@/env";
 import { DrizzleLogger } from "@/lib/logger-drizzle";
 import { OTEL_ENABLED } from "@/lib/otel-config";
@@ -21,17 +15,8 @@ if (OTEL_ENABLED) {
     .instrumentDrizzleClient;
 }
 
-/**
- * Database configuration for Drizzle ORM.
- */
-const dbConfig: DrizzleConfig<typeof schema, typeof relations> = {
-  logger: new DrizzleLogger(),
-  casing: "snake_case",
-  schema,
-  relations,
-};
-
-export type DB = NodePgDatabase<typeof schema, typeof relations> & {
+type DBCore = DrizzleClient;
+export type DB = DBCore & {
   $client: NodePgClient;
 };
 
@@ -60,16 +45,16 @@ if (isDbSkipped) {
       ? env.DATABASE_TEST_URL
       : env.DATABASE_URL;
 
-  db = drizzle({
-    ...dbConfig,
-    connection: {
+  db = createNodeDrizzleClient(
+    {
       connectionString,
       connectionTimeoutMillis: 10_000,
       idleTimeoutMillis: 30_000,
       max: 10,
       min: 0,
     },
-  }) as DB;
+    new DrizzleLogger()
+  ) as DB;
 
   // Add OpenTelemetry instrumentation to database client
   if (OTEL_ENABLED && instrumentDrizzleClient) {

@@ -1,3 +1,7 @@
+import {
+  hasAnyPermission as hasAnyDbPermission,
+  hasPermission as hasDbPermission,
+} from "@repo/db/permissions";
 import { HTTPException } from "hono/http-exception";
 
 import { db } from "@/db";
@@ -100,28 +104,7 @@ export async function hasPermission(
   user: UserWithRoles,
   permission: PermissionIdentifier
 ): Promise<boolean> {
-  if (!user.roleSlugs.length) {
-    return false;
-  }
-
-  const userRoles = await db.query.roles.findMany({
-    where: { slug: { in: user.roleSlugs } },
-    columns: { permissions: true },
-  });
-
-  const permissionKey = getPermissionKey(permission) as PermissionKey;
-
-  for (const role of userRoles) {
-    // Wildcard grants all permissions
-    if (role.permissions.includes("*")) {
-      return true;
-    }
-    if (role.permissions.includes(permissionKey)) {
-      return true;
-    }
-  }
-
-  return false;
+  return hasDbPermission(db, user, permission);
 }
 
 /**
@@ -147,12 +130,7 @@ export async function hasAnyPermission(
   user: UserWithRoles,
   permissionList: PermissionIdentifier[]
 ): Promise<boolean> {
-  for (const permission of permissionList) {
-    if (await hasPermission(user, permission)) {
-      return true;
-    }
-  }
-  return false;
+  return hasAnyDbPermission(db, user, permissionList);
 }
 
 /**

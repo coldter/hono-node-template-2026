@@ -1,6 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 
+import { isValidRole } from "@/auth/principal";
+import { auth } from "@/auth/schema";
 import type { Env } from "@/lib/context";
 import { EVENTS, pushEvent } from "@/lib/events";
 import { notificationService } from "@/modules/notifications";
@@ -151,6 +153,13 @@ const usersHandler = app
       throw new HTTPException(401, { message: "Unauthorized" });
     }
 
+    const invalidRoles = body.roleSlugs.filter((r) => !isValidRole(r));
+    if (invalidRoles.length > 0) {
+      throw new HTTPException(400, {
+        message: `Invalid roles: ${invalidRoles.join(", ")}. Valid: ${auth.roleValues.join(", ")}`,
+      });
+    }
+
     const auditContext = getRequestContext(c);
     const user = await userService.create(body, currentUser.id, auditContext);
 
@@ -202,6 +211,13 @@ const usersHandler = app
     if (userId === currentUser.id) {
       throw new HTTPException(400, {
         message: "Cannot modify your own roles",
+      });
+    }
+
+    const invalidRoles = body.roleSlugs.filter((r) => !isValidRole(r));
+    if (invalidRoles.length > 0) {
+      throw new HTTPException(400, {
+        message: `Invalid roles: ${invalidRoles.join(", ")}. Valid: ${auth.roleValues.join(", ")}`,
       });
     }
 

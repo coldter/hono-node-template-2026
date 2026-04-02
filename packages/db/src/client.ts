@@ -1,6 +1,6 @@
 import type { Logger as DrizzleLoggerInterface } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import type { Client } from "pg";
+import type { Client, PoolConfig } from "pg";
 import { relations } from "./relations";
 import * as schema from "./schema";
 
@@ -10,6 +10,19 @@ export function createDrizzleClient(
 ) {
   return drizzle({
     client,
+    schema,
+    relations,
+    casing: "snake_case",
+    ...(logger && { logger }),
+  });
+}
+
+export function createNodeDrizzleClient(
+  connection: string | PoolConfig,
+  logger?: DrizzleLoggerInterface
+) {
+  return drizzle({
+    connection,
     schema,
     relations,
     casing: "snake_case",

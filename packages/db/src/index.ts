@@ -1,5 +1,6 @@
 export {
   createDrizzleClient,
+  createNodeDrizzleClient,
   type DrizzleClient,
   type Executor,
   type Transaction,
