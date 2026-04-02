@@ -1,4 +1,4 @@
-# Worker Template
+# HONO Template
 
 A production-ready monorepo template with authentication, RBAC, user management, audit logging, notifications, and background jobs.
 
@@ -31,8 +31,8 @@ bun run db:studio                    # Open Drizzle Studio
 
 ## Structure
 
-| Path              | Purpose                                      |
-| ----------------- | -------------------------------------------- |
+| Path              | Purpose                                       |
+| ----------------- | --------------------------------------------- |
 | `apps/server`     | Main Hono API with OpenAPI + Drizzle/Postgres |
 | `apps/web`        | React SPA (TanStack Router/Query, Zustand)    |
 | `packages/shared` | Shared runtime constants, types, and helpers  |
