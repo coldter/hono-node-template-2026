@@ -29,8 +29,11 @@ export function createTransport(config: {
   const isExplicitNodemailer =
     config.provider === "nodemailer" && hasSmtpConfig;
 
-  if (isExplicitNodemailer || (!config.provider && hasSmtpConfig)) {
-    return new NodemailerTransport(config.smtp!);
+  if (
+    (isExplicitNodemailer || (!config.provider && hasSmtpConfig)) &&
+    config.smtp
+  ) {
+    return new NodemailerTransport(config.smtp);
   }
 
   console.warn(

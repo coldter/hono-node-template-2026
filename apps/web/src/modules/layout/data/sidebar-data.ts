@@ -3,12 +3,10 @@ import {
   FileText,
   HelpCircle,
   LayoutDashboard,
-  Monitor,
   Palette,
   Settings,
   UserCog,
   Users,
-  Wrench,
 } from "lucide-react";
 import type { SidebarData } from "@/modules/layout/types";
 
@@ -59,11 +57,6 @@ export const sidebarData: SidebarData = {
               icon: UserCog,
             },
             {
-              title: "Account",
-              url: "/settings/account",
-              icon: Wrench,
-            },
-            {
               title: "Appearance",
               url: "/settings/appearance",
               icon: Palette,
@@ -72,11 +65,6 @@ export const sidebarData: SidebarData = {
               title: "Notifications",
               url: "/settings/notifications",
               icon: Bell,
-            },
-            {
-              title: "Display",
-              url: "/settings/display",
-              icon: Monitor,
             },
           ],
         },

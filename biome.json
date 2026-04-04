@@ -31,7 +31,9 @@
       "bun.lock",
       "!openapi.cache.json",
       "!apps/server/openapi.cache.json",
-      "!apps/server/src/db/migrations/**/*"
+      "!apps/server/src/db/migrations/**/*",
+      "!.agents/**/*",
+      "!.claude/**/*"
     ]
   },
   "extends": ["ultracite/core", "ultracite/react"],
@@ -51,7 +53,7 @@
         "noUnknownAtRules": "off",
         "noEmptyBlockStatements": "off",
         "useAwait": "off",
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noDocumentCookie": "error",
         "noArrayIndexKey": "off"
       },
@@ -62,7 +64,7 @@
       "style": {
         "noMagicNumbers": "off",
         "noExportedImports": "off",
-        "noNonNullAssertion": "off",
+        "noNonNullAssertion": "warn",
         "useConsistentTypeDefinitions": "off",
         "useAtIndex": "off",
         "useFilenamingConvention": {

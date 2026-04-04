@@ -216,7 +216,7 @@ export function useTableUrlState(
           value.trim() === "" ? undefined : serialize(value);
       } else {
         const value = Array.isArray(found?.value)
-          ? (found!.value as unknown[])
+          ? (found?.value as unknown[])
           : [];
         patch[cfg.searchKey] = value.length > 0 ? serialize(value) : undefined;
       }

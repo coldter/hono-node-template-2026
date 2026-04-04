@@ -12,6 +12,7 @@ import {
   AuthStepTransition,
   SignInForm,
   SignInPasswordStep,
+  TwoFactorVerifyStep,
   WelcomeBackCard,
 } from "@/modules/auth";
 import { LoginLeftPanel } from "@/modules/auth/login-left-panel";
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/login")({
   pendingComponent: () => <Skeleton className="h-full w-full" />,
 });
 
-type LoginStep = "welcome" | "password" | "fresh";
+type LoginStep = "welcome" | "password" | "fresh" | "verify-otp";
 
 function RouteComponent() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ function RouteComponent() {
   const { clearLastUser, lastUser } = useLastUserStore();
 
   const [step, setStep] = useState<LoginStep>("fresh");
+  const [twoFactorEmail, setTwoFactorEmail] = useState("");
 
   useEffect(() => {
     if (lastUser) {
@@ -62,6 +64,11 @@ function RouteComponent() {
 
   const handleSuccess = () => {
     navigate({ to: redirect ?? "/dashboard" });
+  };
+
+  const handleTwoFactorRequired = (email: string) => {
+    setTwoFactorEmail(email);
+    setStep("verify-otp");
   };
 
   const handleSwitchAccount = () => {
@@ -91,6 +98,7 @@ function RouteComponent() {
               <SignInPasswordStep
                 onBack={() => setStep("welcome")}
                 onSuccess={handleSuccess}
+                onTwoFactorRequired={handleTwoFactorRequired}
                 user={lastUser}
               />
             )}
@@ -105,8 +113,19 @@ function RouteComponent() {
                     Welcome! Enter your credentials to continue.
                   </p>
                 </div>
-                <SignInForm onSuccess={handleSuccess} />
+                <SignInForm
+                  onSuccess={handleSuccess}
+                  onTwoFactorRequired={handleTwoFactorRequired}
+                />
               </div>
+            )}
+
+            {step === "verify-otp" && (
+              <TwoFactorVerifyStep
+                email={twoFactorEmail}
+                onBack={() => setStep(lastUser ? "password" : "fresh")}
+                onSuccess={handleSuccess}
+              />
             )}
           </AuthStepTransition>
         </div>

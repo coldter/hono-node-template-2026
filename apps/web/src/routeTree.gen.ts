@@ -25,9 +25,7 @@ import { Route as protectedDashboardIndexRouteImport } from './routes/(protected
 import { Route as protectedAuditLogsIndexRouteImport } from './routes/(protected)/audit-logs/index'
 import { Route as protectedUsersUserIdRouteImport } from './routes/(protected)/users/$userId'
 import { Route as protectedSettingsNotificationsRouteImport } from './routes/(protected)/settings/notifications'
-import { Route as protectedSettingsDisplayRouteImport } from './routes/(protected)/settings/display'
 import { Route as protectedSettingsAppearanceRouteImport } from './routes/(protected)/settings/appearance'
-import { Route as protectedSettingsAccountRouteImport } from './routes/(protected)/settings/account'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -110,22 +108,10 @@ const protectedSettingsNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => protectedSettingsRouteRoute,
   } as any)
-const protectedSettingsDisplayRoute =
-  protectedSettingsDisplayRouteImport.update({
-    id: '/display',
-    path: '/display',
-    getParentRoute: () => protectedSettingsRouteRoute,
-  } as any)
 const protectedSettingsAppearanceRoute =
   protectedSettingsAppearanceRouteImport.update({
     id: '/appearance',
     path: '/appearance',
-    getParentRoute: () => protectedSettingsRouteRoute,
-  } as any)
-const protectedSettingsAccountRoute =
-  protectedSettingsAccountRouteImport.update({
-    id: '/account',
-    path: '/account',
     getParentRoute: () => protectedSettingsRouteRoute,
   } as any)
 
@@ -139,9 +125,7 @@ export interface FileRoutesByFullPath {
   '/errors/404': typeof Errors404Route
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
-  '/settings/account': typeof protectedSettingsAccountRoute
   '/settings/appearance': typeof protectedSettingsAppearanceRoute
-  '/settings/display': typeof protectedSettingsDisplayRoute
   '/settings/notifications': typeof protectedSettingsNotificationsRoute
   '/users/$userId': typeof protectedUsersUserIdRoute
   '/audit-logs/': typeof protectedAuditLogsIndexRoute
@@ -158,9 +142,7 @@ export interface FileRoutesByTo {
   '/errors/404': typeof Errors404Route
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
-  '/settings/account': typeof protectedSettingsAccountRoute
   '/settings/appearance': typeof protectedSettingsAppearanceRoute
-  '/settings/display': typeof protectedSettingsDisplayRoute
   '/settings/notifications': typeof protectedSettingsNotificationsRoute
   '/users/$userId': typeof protectedUsersUserIdRoute
   '/audit-logs': typeof protectedAuditLogsIndexRoute
@@ -180,9 +162,7 @@ export interface FileRoutesById {
   '/errors/404': typeof Errors404Route
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
-  '/(protected)/settings/account': typeof protectedSettingsAccountRoute
   '/(protected)/settings/appearance': typeof protectedSettingsAppearanceRoute
-  '/(protected)/settings/display': typeof protectedSettingsDisplayRoute
   '/(protected)/settings/notifications': typeof protectedSettingsNotificationsRoute
   '/(protected)/users/$userId': typeof protectedUsersUserIdRoute
   '/(protected)/audit-logs/': typeof protectedAuditLogsIndexRoute
@@ -202,9 +182,7 @@ export interface FileRouteTypes {
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
-    | '/settings/account'
     | '/settings/appearance'
-    | '/settings/display'
     | '/settings/notifications'
     | '/users/$userId'
     | '/audit-logs/'
@@ -221,9 +199,7 @@ export interface FileRouteTypes {
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
-    | '/settings/account'
     | '/settings/appearance'
-    | '/settings/display'
     | '/settings/notifications'
     | '/users/$userId'
     | '/audit-logs'
@@ -242,9 +218,7 @@ export interface FileRouteTypes {
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
-    | '/(protected)/settings/account'
     | '/(protected)/settings/appearance'
-    | '/(protected)/settings/display'
     | '/(protected)/settings/notifications'
     | '/(protected)/users/$userId'
     | '/(protected)/audit-logs/'
@@ -378,13 +352,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedSettingsNotificationsRouteImport
       parentRoute: typeof protectedSettingsRouteRoute
     }
-    '/(protected)/settings/display': {
-      id: '/(protected)/settings/display'
-      path: '/display'
-      fullPath: '/settings/display'
-      preLoaderRoute: typeof protectedSettingsDisplayRouteImport
-      parentRoute: typeof protectedSettingsRouteRoute
-    }
     '/(protected)/settings/appearance': {
       id: '/(protected)/settings/appearance'
       path: '/appearance'
@@ -392,29 +359,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedSettingsAppearanceRouteImport
       parentRoute: typeof protectedSettingsRouteRoute
     }
-    '/(protected)/settings/account': {
-      id: '/(protected)/settings/account'
-      path: '/account'
-      fullPath: '/settings/account'
-      preLoaderRoute: typeof protectedSettingsAccountRouteImport
-      parentRoute: typeof protectedSettingsRouteRoute
-    }
   }
 }
 
 interface protectedSettingsRouteRouteChildren {
-  protectedSettingsAccountRoute: typeof protectedSettingsAccountRoute
   protectedSettingsAppearanceRoute: typeof protectedSettingsAppearanceRoute
-  protectedSettingsDisplayRoute: typeof protectedSettingsDisplayRoute
   protectedSettingsNotificationsRoute: typeof protectedSettingsNotificationsRoute
   protectedSettingsIndexRoute: typeof protectedSettingsIndexRoute
 }
 
 const protectedSettingsRouteRouteChildren: protectedSettingsRouteRouteChildren =
   {
-    protectedSettingsAccountRoute: protectedSettingsAccountRoute,
     protectedSettingsAppearanceRoute: protectedSettingsAppearanceRoute,
-    protectedSettingsDisplayRoute: protectedSettingsDisplayRoute,
     protectedSettingsNotificationsRoute: protectedSettingsNotificationsRoute,
     protectedSettingsIndexRoute: protectedSettingsIndexRoute,
   }

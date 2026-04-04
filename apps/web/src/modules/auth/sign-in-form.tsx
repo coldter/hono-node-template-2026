@@ -9,11 +9,13 @@ import { Label } from "@/modules/ui/label";
 interface SignInFormProps {
   initialEmail?: string;
   onSuccess?: () => void;
+  onTwoFactorRequired?: (email: string) => void;
   showEmailField?: boolean;
 }
 
 export function SignInForm({
   onSuccess,
+  onTwoFactorRequired,
   initialEmail = "",
   showEmailField = true,
 }: SignInFormProps) {
@@ -40,6 +42,15 @@ export function SignInForm({
       if (result.error) {
         toast.error(result.error.message ?? "Sign in failed");
         setPassword("");
+        return;
+      }
+
+      if (
+        result.data &&
+        "twoFactorRedirect" in result.data &&
+        result.data.twoFactorRedirect
+      ) {
+        onTwoFactorRequired?.(email);
         return;
       }
 

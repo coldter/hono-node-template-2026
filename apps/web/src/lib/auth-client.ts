@@ -1,6 +1,7 @@
 import {
   inferAdditionalFields,
   organizationClient,
+  twoFactorClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
@@ -12,6 +13,7 @@ export const authClient = createAuthClient({
   basePath: pathname === "/" ? "/api/auth" : `${pathname}/api/auth`,
   plugins: [
     organizationClient(),
+    twoFactorClient(),
     inferAdditionalFields({
       user: {
         status: { type: "string" },
@@ -22,6 +24,7 @@ export const authClient = createAuthClient({
         lockedUntil: { type: "date" },
         roleSlugs: { type: "string[]" },
         permissions: { type: "string[]" },
+        twoFactorEnabled: { type: "boolean" },
       },
       session: {
         platform: { type: "string" },

@@ -5,6 +5,7 @@ import { SignInForm } from "./sign-in-form";
 interface SignInPasswordStepProps {
   onBack: () => void;
   onSuccess: () => void;
+  onTwoFactorRequired: (email: string) => void;
   user: {
     name: string | null;
     email: string;
@@ -16,6 +17,7 @@ export function SignInPasswordStep({
   user,
   onBack,
   onSuccess,
+  onTwoFactorRequired,
 }: SignInPasswordStepProps) {
   const displayName = user.name || "User";
   const initials = user.name
@@ -61,6 +63,7 @@ export function SignInPasswordStep({
       <SignInForm
         initialEmail={user.email}
         onSuccess={onSuccess}
+        onTwoFactorRequired={onTwoFactorRequired}
         showEmailField={false}
       />
     </div>
