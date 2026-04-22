@@ -1,3 +1,4 @@
+import { type SQLWrapper, sql } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import type {
   CheckRelationInput,
@@ -14,16 +15,19 @@ import {
 } from "../drizzle";
 
 // ---------------------------------------------------------------------------
-// Fake table reference -- structural shape only, values are not used in tests
+// Fake table reference -- each column is a minimal SQLWrapper so the drizzle
+// helpers (eq, inArray) in the adapter under test accept it.
 // ---------------------------------------------------------------------------
 
+const col = (name: string): SQLWrapper => ({ getSQL: () => sql.raw(name) });
+
 const fakeTable = {
-  subjectType: "subjectType_col",
-  subjectId: "subjectId_col",
-  relation: "relation_col",
-  objectType: "objectType_col",
-  objectId: "objectId_col",
-  createdBy: "createdBy_col",
+  subjectType: col("subjectType_col"),
+  subjectId: col("subjectId_col"),
+  relation: col("relation_col"),
+  objectType: col("objectType_col"),
+  objectId: col("objectId_col"),
+  createdBy: col("createdBy_col"),
 };
 
 // ---------------------------------------------------------------------------
@@ -284,7 +288,7 @@ describe("deleteRelation", () => {
     await deleteRelation(db, fakeTable, checkInput);
     expect(whereFn).toHaveBeenCalledOnce();
     // The condition argument is a drizzle-orm SQL expression; just verify it was passed
-    expect(whereFn.mock.calls[0][0]).toBeDefined();
+    expect(whereFn.mock.calls[0]?.[0]).toBeDefined();
   });
 
   it("resolves to undefined", async () => {

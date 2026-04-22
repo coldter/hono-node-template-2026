@@ -1,6 +1,6 @@
 # Project Guidelines
 
-Monorepo with Hono APIs (`apps/server`, `apps/mock-issuer`), React web app (`apps/web`), and shared packages (`packages/*`).
+Monorepo with a Hono API (`apps/server`), a React web app (`apps/web`), and shared packages (`packages/*`).
 
 ## Critical Rules
 - Do not run `bun dev` or start/stop servers (environment managed externally).

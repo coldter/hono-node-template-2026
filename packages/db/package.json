@@ -9,6 +9,8 @@
     "./ids": "./src/ids.ts"
   },
   "scripts": {
+    "check-types": "tsgo --noEmit",
+    "check-types:backup": "tsc --noEmit",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
@@ -21,6 +23,8 @@
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
-    "drizzle-kit": "^1.0.0-beta.9-e89174b"
+    "@typescript/native-preview": "beta",
+    "drizzle-kit": "^1.0.0-beta.9-e89174b",
+    "typescript": "^6.0.3"
   }
 }

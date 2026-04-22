@@ -2,7 +2,7 @@
 // The db and table parameters are typed as `any` because this package cannot
 // depend on @repo/db directly -- drizzle-orm is an optional peer dependency,
 // and the consuming app (apps/server) supplies properly-typed instances.
-import { and, eq, inArray, type SQL } from "drizzle-orm";
+import { and, eq, inArray, type SQL, type SQLWrapper } from "drizzle-orm";
 
 export interface RelationTuple {
   objectId: string;
@@ -38,13 +38,15 @@ export interface ListRelationsInput {
 
 // Structural type for the auth_relations table columns.
 // Matches the authRelationsTable shape from packages/db without importing it.
+// Columns are typed as SQLWrapper so they satisfy drizzle helper signatures
+// (eq, inArray, etc.) while remaining agnostic to the concrete column type.
 type AuthRelationsTable = {
-  subjectType: unknown;
-  subjectId: unknown;
-  relation: unknown;
-  objectType: unknown;
-  objectId: unknown;
-  createdBy: unknown;
+  subjectType: SQLWrapper;
+  subjectId: SQLWrapper;
+  relation: SQLWrapper;
+  objectType: SQLWrapper;
+  objectId: SQLWrapper;
+  createdBy: SQLWrapper;
 };
 
 /**

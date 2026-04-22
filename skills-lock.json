@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-md-refactor": {
+      "source": "softaworks/agent-toolkit",
+      "sourceType": "github",
+      "computedHash": "51c53259bba830ebad6741b2ab69d213d5a4d02835f7f27925a0e4e93515fc22"
+    },
+    "better-auth-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "computedHash": "a4c830509e85557b59339d8d93a4e243e9e59c686e7678854d39230e12c2a6dc"
+    },
+    "caveman": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "934433479903febc585bf6deb5f0cebc63137e3f86b7babe0aab1ecb94d6d7a4"
+    },
+    "create-auth-skill": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "computedHash": "31c027d02dbf1faa37f58191f574b9443143042fb2b684fe32df53ab0270487c"
+    },
+    "design-an-interface": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "885b05367fb1cf61a1e27e0d50f14d2502a05c1fa276c6e9ea050ce6a90e7095"
+    },
+    "domain-model": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "71fd7d7d8c96228d663fcc133843e06e16f211c1d4d1e781aabdc73a097a2d60"
+    },
+    "email-and-password-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "computedHash": "747d7f73bd9e2ec5317b8ef88dc70f97df716d00e3d02de4051feebaa48b062d"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "784f0dbb7403b0f00324bce9a112f715342777a0daee7bbb7385f9c6f0a170ea"
+    },
+    "monorepo-architect": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "af072fb671eab947e4d374dcc19e270e696201edc2a97433b4ace7d0d5eb3128"
+    },
+    "organization-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "computedHash": "79a5a85b43d10e9fe37582b3506b051a33a991817b938f349099baa5ddba21aa"
+    },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "computedHash": "2bc6cf38ec7b4a5778a43fabb3e87642c9897ad45e9eb42438b57fd2def6cca8"
+    },
+    "tanstack-ai": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "d95cd0d1700d882cc2d38e6bd4f59d219954eabf579a8771f6cbccedce4892de"
+    },
+    "tanstack-cli": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "2f075c675dd814a87f8dfd7b94a03bd83d0aac98cac326d8b237ef967a18e2e8"
+    },
+    "tanstack-config": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "f1d53bd18002a098bf55153fbbf78ab504b89ec0cf03d2fbb79d3e31b3fbe91c"
+    },
+    "tanstack-db": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "9d21b2c472a9e642273ff70b52b1107839e414860462cad6ce6df3ae15debbda"
+    },
+    "tanstack-devtools": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "ecb51f9902ae6de9f512b299e6c16bd4befc3ff2c62f8cd1ece07e31b1c73dfe"
+    },
+    "tanstack-form": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "1eb9f9fc43ab2777f586f916b2234c5340ed98f296a98b22c75cbbafcbd29b86"
+    },
+    "tanstack-pacer": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "abc0e5bcf7b80a48b39d3e3aa1d6e67220c34a8a3240c1d6a28eba3fc2b5cfd0"
+    },
+    "tanstack-query": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "b8a0477cd4d7bf8fa54d27f8e64d82388402f0d502591db50a357df5b9995c75"
+    },
+    "tanstack-ranger": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "0d0a101ae1bcfbaa060ab5673d46ed9a369db02b3b719e9718405031d3655033"
+    },
+    "tanstack-router": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "24beccc4016f91bab65547209cfd849ea5e66f3d5d92820683a9dd84669ced56"
+    },
+    "tanstack-start": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "e9d8355fe3e47b118e739081f1123c52aa0ecde57da840722177e1ad5caf9908"
+    },
+    "tanstack-store": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "acfc5f1217685253fa9484f8f89dc92aae96a9ae30e42001b07b2ca672c758b2"
+    },
+    "tanstack-table": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "d5ac71bd795696cd3310165c3ea0e435c310a0ac3c4e9dd45b39ed91b8dbcbb1"
+    },
+    "tanstack-virtual": {
+      "source": "tanstack-skills/tanstack-skills",
+      "sourceType": "github",
+      "computedHash": "987d0fcffeac700cea1303a13a9cecd8a4583985dd675f97ebbca27bfa592b47"
+    },
+    "to-issues": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "2db47f0db7e6975486cd28bc6744f1358b47a434fb98df5b6ad507b6c3685b6a"
+    },
+    "two-factor-authentication-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "computedHash": "7e297aaf887e11fdc03e52bdbf44974e161e8f7c393170ced7dc66cace4f6d46"
+    },
+    "ubiquitous-language": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "32f8a3426cb2d2c3db05977369e70d793e342c38ea87f5447eb22108c03c8d7a"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+    }
+  }
+}

@@ -13,7 +13,9 @@ describe("createAuthSchema", () => {
     });
 
     expect(auth.roleValues).toEqual(["admin", "user"]);
-    expectTypeOf(auth.roleValues).toEqualTypeOf<readonly ["admin", "user"]>();
+    expectTypeOf(auth.roleValues).toEqualTypeOf<
+      readonly ("admin" | "user")[]
+    >();
   });
 
   it("infers relation literal types", () => {
