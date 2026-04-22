@@ -15,6 +15,9 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "check-types:backup": {
+      "dependsOn": ["^check-types:backup"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

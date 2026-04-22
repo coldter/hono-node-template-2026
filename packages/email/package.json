@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsgo --noEmit",
+    "check-types:backup": "tsc --noEmit",
     "dev": "email dev --dir ./src/templates --port 3003"
   },
   "dependencies": {
@@ -26,7 +27,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "@typescript/native-preview": "beta"
   },
   "peerDependencies": {
     "react": "^19.0.0",

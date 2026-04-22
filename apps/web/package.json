@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --port=3002",
     "start": "vite",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsgo --noEmit",
+    "check-types:backup": "tsc --noEmit",
     "generate-client": "openapi-ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -76,6 +77,7 @@
     "react-grab": "^0.1.32",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
+    "@typescript/native-preview": "beta",
     "vite": "^8.0.9",
     "vitest": "^4.1.5"
   }
