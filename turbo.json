@@ -47,6 +47,13 @@
       "cache": false,
       "persistent": true
     },
+    "generate-openapi": {
+      "cache": false,
+      "outputs": ["openapi.cache.json"]
+    },
+    "generate-client": {
+      "cache": false
+    },
     "test": {
       "cache": false,
       "env": ["DATABASE_TEST_URL"]
