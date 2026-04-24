@@ -1,18 +1,42 @@
 import { clientConfig } from "@/lib/utils";
 
-// Custom error class to handle API errors
-export class ApiError extends Error {
+export interface ApiErrorBody {
   error: {
+    code?: string;
     message?: string;
+    details?: unknown;
   };
+  name?: string;
+}
+
+// Custom error class to handle API errors. The body shape is what the server
+// returns as JSON for non-2xx responses; callers may also construct it from
+// an already-parsed response.
+export class ApiError extends Error {
+  error: ApiErrorBody["error"];
   status: number;
 
-  constructor(error: ApiError, status?: number) {
-    super(error.error.message);
-    this.name = error.name;
-    this.error = error.error;
+  constructor(body: ApiErrorBody, status?: number) {
+    super(body.error?.message ?? "Request failed");
+    this.name = body.name ?? "ApiError";
+    this.error = body.error ?? { message: "Request failed" };
     this.status = status ?? 500;
   }
+
+  static fromResponse(res: Response, body: unknown): ApiError {
+    const parsed = isApiErrorBody(body)
+      ? body
+      : { error: { message: res.statusText || "Request failed" } };
+    return new ApiError(parsed, res.status);
+  }
+}
+
+function isApiErrorBody(value: unknown): value is ApiErrorBody {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as { error?: unknown };
+  return typeof candidate.error === "object" && candidate.error !== null;
 }
 
 export { clientConfig };

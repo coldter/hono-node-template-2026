@@ -212,11 +212,8 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@hono/zod-openapi": "^1.3.0",
+        "zod": "^4.3.6",
       },
-      "optionalPeers": [
-        "@hono/zod-openapi",
-      ],
     },
   },
   "packages": {

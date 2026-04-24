@@ -704,10 +704,12 @@ async function main(): Promise<void> {
       let jsonInput: string | undefined;
       const jsonFlag = args.indexOf("--json");
       const fileFlag = args.indexOf("--file");
-      if (jsonFlag !== -1 && args[jsonFlag + 1]) {
-        jsonInput = args[jsonFlag + 1];
-      } else if (fileFlag !== -1 && args[fileFlag + 1]) {
-        jsonInput = readFileSync(args[fileFlag + 1], "utf8");
+      const jsonValue = jsonFlag !== -1 ? args[jsonFlag + 1] : undefined;
+      const fileValue = fileFlag !== -1 ? args[fileFlag + 1] : undefined;
+      if (jsonValue) {
+        jsonInput = jsonValue;
+      } else if (fileValue) {
+        jsonInput = readFileSync(fileValue, "utf8");
       }
       await sendRawCommand(identifier, jsonInput);
       break;

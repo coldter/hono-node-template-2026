@@ -1,16 +1,21 @@
 import { BoxSelectIcon, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface FullPageEmptyStateProps {
   children?: React.ReactNode;
   className?: string;
   description?: string;
+  /** Lucide icon component, rendered at size 60 with stroke width 1. */
   icon?: LucideIcon;
+  /** Custom icon node. Takes precedence over `icon` when provided. */
+  iconSlot?: ReactNode;
   title: string;
 }
 
 export function FullPageEmptyState({
   icon: Icon = BoxSelectIcon,
+  iconSlot,
   title,
   description,
   children,
@@ -25,7 +30,7 @@ export function FullPageEmptyState({
     >
       <div className="flex w-full max-w-xl flex-col items-center justify-center p-8">
         <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-card shadow-sm">
-          <Icon size={60} strokeWidth={1} />
+          {iconSlot ?? <Icon size={60} strokeWidth={1} />}
         </div>
 
         <div className="mb-4 space-y-1">
