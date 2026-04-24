@@ -2,7 +2,7 @@ import { z } from "zod";
 
 function parseBooleanString(value: string | undefined): boolean | undefined {
   if (value === undefined) {
-    return undefined;
+    return;
   }
 
   const normalized = value.trim().toLowerCase();
@@ -13,17 +13,17 @@ function parseBooleanString(value: string | undefined): boolean | undefined {
     return false;
   }
 
-  return undefined;
+  return;
 }
 
 function parseSmtpPort(value: string | undefined): number | undefined {
   if (value === undefined || value.trim() === "") {
-    return undefined;
+    return;
   }
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
-    return undefined;
+    return;
   }
 
   return parsed;

@@ -401,7 +401,7 @@ describe("evaluate", () => {
     ): string | null | undefined => {
       const r = resource as { orgId?: string | null | undefined } | undefined;
       if (!r) {
-        return undefined;
+        return;
       }
       return r.orgId;
     };

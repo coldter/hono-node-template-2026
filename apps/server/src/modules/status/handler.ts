@@ -7,8 +7,8 @@ import statusRoutes from "./routes";
 
 const app = new OpenAPIHono<Env>({ defaultHook });
 
-const statusHandler = app.openapi(statusRoutes.getStatus, (c) => {
-  return c.json({ status: "ok" as const }, 200);
-});
+const statusHandler = app.openapi(statusRoutes.getStatus, (c) =>
+  c.json({ status: "ok" as const }, 200)
+);
 
 export default statusHandler;
