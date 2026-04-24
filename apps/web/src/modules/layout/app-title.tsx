@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Logo } from "@/assets/logo";
+import { brand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -29,9 +30,9 @@ export function AppTitle() {
                 to="/"
               >
                 <div className="flex flex-col">
-                  <span className="font-bold text-sm">Shadcn-Admin</span>
+                  <span className="font-bold text-sm">{brand.appName}</span>
                   <span className="text-xs text-muted-foreground truncate">
-                    Vite + ShadcnUI
+                    {brand.companyName}
                   </span>
                 </div>
               </Link>

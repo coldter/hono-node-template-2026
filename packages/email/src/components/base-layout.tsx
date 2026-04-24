@@ -8,10 +8,13 @@ import {
   Section,
   Tailwind,
 } from "@react-email/components";
+import { getBrandConfig } from "@repo/shared/brand";
 import type { ReactNode } from "react";
 import React from "react";
 import { EmailFooter } from "./footer";
 import { EmailLogo } from "./logo";
+
+const brand = getBrandConfig(process.env);
 
 interface BaseLayoutProps {
   appName?: string;
@@ -62,7 +65,7 @@ export function BaseLayout({
               colors: {
                 brand: {
                   DEFAULT: "#000000",
-                  primary: "#2563eb",
+                  primary: brand.primaryColor,
                 },
                 slate: {
                   50: "#f8fafc",
