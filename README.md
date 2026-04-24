@@ -2,6 +2,55 @@
 
 A production-ready monorepo template with authentication, RBAC, user management, audit logging, notifications, and background jobs.
 
+## Quickstart
+
+1. Clone the template:
+
+   ```bash
+   bun create <repo> my-app
+   # or: git clone <repo-url> my-app
+   cd my-app
+   ```
+
+2. Personalize the template (renames `@repo/*` workspaces, sets brand defaults, then self-deletes):
+
+   ```bash
+   bun run template:init
+   ```
+
+   The script asks for an app name, package scope, company name, and support email. Use `--dry-run` first if you want to preview.
+
+3. Configure environment:
+
+   ```bash
+   cp apps/server/.env.example apps/server/.env
+   cp apps/web/.env.example apps/web/.env
+   # Generate the auth secret:
+   openssl rand -hex 32   # paste into BETTER_AUTH_SECRET
+   ```
+
+4. Start infrastructure (Postgres, Redis, optional Mailpit):
+
+   ```bash
+   docker compose up -d db redis
+   # see docker/ and compose.extra.yaml for additional services
+   ```
+
+5. Install, push schema, seed:
+
+   ```bash
+   bun install
+   bun run db:push
+   bun run db:seed
+   ```
+
+6. Run dev (use split terminals for the API and the web app):
+
+   ```bash
+   bun run dev:server   # terminal 1
+   bun run dev:web      # terminal 2
+   ```
+
 ## Build
 
 ```bash
