@@ -35,9 +35,7 @@ export function getBrandConfig(env: EnvSource): BrandConfig {
   return {
     appName: env.APP_NAME ?? env.VITE_APP_NAME ?? BRAND_DEFAULTS.appName,
     companyName:
-      env.COMPANY_NAME ??
-      env.VITE_COMPANY_NAME ??
-      BRAND_DEFAULTS.companyName,
+      env.COMPANY_NAME ?? env.VITE_COMPANY_NAME ?? BRAND_DEFAULTS.companyName,
     supportEmail:
       env.SUPPORT_EMAIL ??
       env.VITE_SUPPORT_EMAIL ??

@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
+import type { Session } from "@/lib/auth-client";
 import AppError from "@/modules/common/app-error";
 import { FullPageLoadingState } from "@/modules/common/full-page-loading-state";
 import { queryClient } from "@/query/query-client";
@@ -39,7 +40,7 @@ if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
 
   const bootstrap = async () => {
-    let session = null;
+    let session: Session | null = null;
     try {
       session = await queryClient.ensureQueryData(sessionQueryOptions);
     } catch (error) {

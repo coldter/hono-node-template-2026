@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// biome-ignore-all lint/suspicious/noConsole: CLI script — console output is the interface.
 /**
  * Template initialization script.
  *
@@ -22,6 +23,15 @@ declare const prompt: (message: string, defaultValue?: string) => string | null;
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DRY_RUN = process.argv.includes("--dry-run");
+
+const APP_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+const PACKAGE_SCOPE_PATTERN = /^@[a-z0-9][a-z0-9-]*$/;
+const EMAIL_PATTERN = /.+@.+\..+/;
+const SCOPE_PATTERN = /@repo\//g;
+const ROOT_NAME_PATTERN = /"name"\s*:\s*"repo"/g;
+const QUOTE_OR_SPACE_PATTERN = /\s|"/;
+const QUOTE_PATTERN = /"/g;
+const README_HEADING_PATTERN = /^#\s+.*$/m;
 
 type Answers = {
   appName: string;
@@ -64,35 +74,35 @@ function validateAppName(value: string): string | undefined {
   if (!value) {
     return "App name is required.";
   }
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(value)) {
+  if (!APP_NAME_PATTERN.test(value)) {
     return "App name must be lowercase letters, numbers, and dashes only.";
   }
-  return undefined;
+  return;
 }
 
 function validatePackageScope(value: string): string | undefined {
   if (!value) {
     return "Package scope is required.";
   }
-  if (!/^@[a-z0-9][a-z0-9-]*$/.test(value)) {
+  if (!PACKAGE_SCOPE_PATTERN.test(value)) {
     return "Package scope must start with '@' followed by lowercase letters, numbers, and dashes.";
   }
-  return undefined;
+  return;
 }
 
 function validateEmail(value: string): string | undefined {
   if (!value) {
     return "Email is required.";
   }
-  if (!/.+@.+\..+/.test(value)) {
+  if (!EMAIL_PATTERN.test(value)) {
     return "Invalid email address.";
   }
-  return undefined;
+  return;
 }
 
 function gatherAnswers(): Answers {
-  console.log("Template initializer");
-  console.log("--------------------");
+  console.info("Template initializer");
+  console.info("--------------------");
   const appName = ask("App name (lowercase, e.g. my-app): ", validateAppName);
   const packageScope = ask(
     "Package scope (e.g. @my-app): ",
@@ -154,31 +164,25 @@ async function rewriteFile(
     return false;
   }
   if (DRY_RUN) {
-    console.log(`  would update ${relative(ROOT, file)}`);
+    console.info(`  would update ${relative(ROOT, file)}`);
   } else {
     await writeFile(file, updated, "utf8");
-    console.log(`  updated ${relative(ROOT, file)}`);
+    console.info(`  updated ${relative(ROOT, file)}`);
   }
   return true;
 }
 
 function makeReplacer(answers: Answers) {
-  const scopePattern = /@repo\//g;
-  const rootNamePattern = /"name"\s*:\s*"repo"/g;
-
   return (content: string, file: string): string => {
-    let next = content.replace(scopePattern, `${answers.packageScope}/`);
+    let next = content.replace(SCOPE_PATTERN, `${answers.packageScope}/`);
     if (file === join(ROOT, "package.json")) {
-      next = next.replace(rootNamePattern, `"name": "${answers.appName}"`);
+      next = next.replace(ROOT_NAME_PATTERN, `"name": "${answers.appName}"`);
     }
     return next;
   };
 }
 
-async function updateEnvExample(
-  path: string,
-  answers: Answers
-): Promise<void> {
+async function updateEnvExample(path: string, answers: Answers): Promise<void> {
   try {
     await stat(path);
   } catch {
@@ -205,8 +209,10 @@ function setEnvVar(content: string, key: string, value: string): string {
   }
   pattern.lastIndex = 0;
   return content.replace(pattern, (_match, indent: string) => {
-    const needsQuotes = /\s|"/.test(value);
-    const safe = needsQuotes ? `"${value.replace(/"/g, '\\"')}"` : value;
+    const needsQuotes = QUOTE_OR_SPACE_PATTERN.test(value);
+    const safe = needsQuotes
+      ? `"${value.replace(QUOTE_PATTERN, '\\"')}"`
+      : value;
     return `${indent}${key}=${safe}`;
   });
 }
@@ -218,62 +224,67 @@ async function updateReadme(answers: Answers): Promise<void> {
   } catch {
     return;
   }
-  await rewriteFile(readmePath, (content) => {
-    return content.replace(/^#\s+.*$/m, `# ${answers.appName}`);
-  });
+  await rewriteFile(readmePath, (content) =>
+    content.replace(README_HEADING_PATTERN, `# ${answers.appName}`)
+  );
 }
 
 async function removeSelf(): Promise<void> {
   const self = fileURLToPath(import.meta.url);
   const pkgPath = join(ROOT, "package.json");
   if (DRY_RUN) {
-    console.log(`  would delete ${relative(ROOT, self)}`);
-    console.log(`  would remove "template:init" script from package.json`);
+    console.info(`  would delete ${relative(ROOT, self)}`);
+    console.info(`  would remove "template:init" script from package.json`);
     return;
   }
   const pkgRaw = await readFile(pkgPath, "utf8");
   const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> };
   if (pkg.scripts && "template:init" in pkg.scripts) {
-    delete pkg.scripts["template:init"];
+    const { "template:init": _removed, ...rest } = pkg.scripts;
+    pkg.scripts = rest;
     await writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
-    console.log("  removed template:init script from package.json");
+    console.info("  removed template:init script from package.json");
   }
   await unlink(self);
-  console.log(`  deleted ${relative(ROOT, self)}`);
+  console.info(`  deleted ${relative(ROOT, self)}`);
 }
 
 async function main(): Promise<void> {
   const answers = gatherAnswers();
-  console.log("");
-  console.log(DRY_RUN ? "Dry run -- no files will be written." : "Applying changes...");
+  console.info("");
+  console.info(
+    DRY_RUN ? "Dry run -- no files will be written." : "Applying changes..."
+  );
 
   const files = await collectTargetFiles();
   const replace = makeReplacer(answers);
   let touched = 0;
   for (const file of files) {
-    const changed = await rewriteFile(file, (content) => replace(content, file));
+    const changed = await rewriteFile(file, (content) =>
+      replace(content, file)
+    );
     if (changed) {
       touched += 1;
     }
   }
-  console.log(`Rewrote scope/name in ${touched} files.`);
+  console.info(`Rewrote scope/name in ${touched} files.`);
 
-  console.log("Updating env examples...");
+  console.info("Updating env examples...");
   await updateEnvExample(join(ROOT, "apps/server/.env.example"), answers);
   await updateEnvExample(join(ROOT, "apps/web/.env.example"), answers);
   await updateEnvExample(join(ROOT, ".env.production.example"), answers);
 
-  console.log("Updating README...");
+  console.info("Updating README...");
   await updateReadme(answers);
 
-  console.log("Cleaning up template scaffolding...");
+  console.info("Cleaning up template scaffolding...");
   await removeSelf();
 
-  console.log("");
-  console.log("Done. Next steps:");
-  console.log("  1. cp apps/server/.env.example apps/server/.env");
-  console.log("  2. openssl rand -hex 32  # use as BETTER_AUTH_SECRET");
-  console.log("  3. bun install && bun run db:push && bun run db:seed");
+  console.info("");
+  console.info("Done. Next steps:");
+  console.info("  1. cp apps/server/.env.example apps/server/.env");
+  console.info("  2. openssl rand -hex 32  # use as BETTER_AUTH_SECRET");
+  console.info("  3. bun install && bun run db:push && bun run db:seed");
 }
 
 main().catch((error) => {

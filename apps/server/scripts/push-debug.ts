@@ -704,8 +704,8 @@ async function main(): Promise<void> {
       let jsonInput: string | undefined;
       const jsonFlag = args.indexOf("--json");
       const fileFlag = args.indexOf("--file");
-      const jsonValue = jsonFlag !== -1 ? args[jsonFlag + 1] : undefined;
-      const fileValue = fileFlag !== -1 ? args[fileFlag + 1] : undefined;
+      const jsonValue = jsonFlag === -1 ? undefined : args[jsonFlag + 1];
+      const fileValue = fileFlag === -1 ? undefined : args[fileFlag + 1];
       if (jsonValue) {
         jsonInput = jsonValue;
       } else if (fileValue) {
