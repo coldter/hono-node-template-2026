@@ -2,6 +2,13 @@ import { type createRoute, z } from "@hono/zod-openapi";
 
 type ResponseConfig = Parameters<typeof createRoute>[0]["responses"];
 
+/**
+ * Mirrors the shape emitted by apps/server/src/lib/errors.ts:
+ * `{ error: { code, message, details? } }`.
+ *
+ * `code` and `message` are always populated by `handleError`, but marked
+ * optional here for forward-compatibility with custom error handlers.
+ */
 const failWithErrorSchema = z.object({
   error: z.object({
     code: z.string().optional(),
@@ -37,6 +44,32 @@ export const commonErrorResponses = {
   },
   404: {
     description: "Not found: resource does not exist.",
+    content: {
+      "application/json": {
+        schema: failWithErrorSchema,
+      },
+    },
+  },
+  409: {
+    description:
+      "Conflict: the request conflicts with current state (e.g. unique constraint violation).",
+    content: {
+      "application/json": {
+        schema: failWithErrorSchema,
+      },
+    },
+  },
+  422: {
+    description:
+      "Unprocessable entity: request body failed validation (Zod schema).",
+    content: {
+      "application/json": {
+        schema: failWithErrorSchema,
+      },
+    },
+  },
+  429: {
+    description: "Too many requests: rate limit exceeded.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
