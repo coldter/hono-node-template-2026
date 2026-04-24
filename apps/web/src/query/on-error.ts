@@ -22,23 +22,48 @@ interface ErrorWithStatus {
   status?: number;
 }
 
-const getStatusCode = (error: unknown): number => {
-  const err = error as ErrorWithStatus;
-  return typeof err?.status === "number" ? err.status : 0;
+function isErrorWithStatus(err: unknown): err is ErrorWithStatus {
+  if (typeof err !== "object" || err === null) {
+    return false;
+  }
+  const candidate = err as { status?: unknown };
+  return typeof candidate.status === "number";
+}
+
+function isObjectRecord(err: unknown): err is Record<string, unknown> {
+  return typeof err === "object" && err !== null;
+}
+
+const getStatusCode = (error: unknown): number =>
+  isErrorWithStatus(error) && typeof error.status === "number"
+    ? error.status
+    : 0;
+
+const getErrorPath = (error: unknown): string | undefined => {
+  if (!isObjectRecord(error)) {
+    return;
+  }
+  const path = error.path;
+  return typeof path === "string" ? path : undefined;
 };
 
-const getErrorPath = (error: unknown): string | undefined =>
-  (error as ErrorWithStatus)?.path;
-
 const getErrorMessage = (error: unknown): string => {
-  const err = error as ErrorWithStatus;
   const status = getStatusCode(error);
 
-  if (err?.error?.message) {
-    return err.error.message;
-  }
-  if (err?.message && err.message !== "Error") {
-    return err.message;
+  if (isObjectRecord(error)) {
+    const nested = error.error;
+    if (
+      isObjectRecord(nested) &&
+      typeof nested.message === "string" &&
+      nested.message.length > 0
+    ) {
+      return nested.message;
+    }
+
+    const message = error.message;
+    if (typeof message === "string" && message && message !== "Error") {
+      return message;
+    }
   }
 
   return FALLBACK_MESSAGES[status] || "An unexpected error occurred";
