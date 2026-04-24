@@ -11,7 +11,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 
-import { db } from "@/db";
+import { db, firstOrThrow } from "@/db";
 import { AUDIT_EVENTS, TARGET_TYPES } from "@/modules/audit-logs/constants";
 import { auditLogService } from "@/modules/audit-logs/service";
 import type { AuditLogMetadata } from "@/modules/audit-logs/types";
@@ -133,17 +133,20 @@ export const userService = {
     const hashedPassword = await hashPassword(input.password);
 
     return db.transaction(async (tx) => {
-      const [user] = await tx
-        .insert(users)
-        .values({
-          name: input.name,
-          email: input.email,
-          emailVerified: false,
-          status: USER_STATUS.ACTIVE,
-          roleSlugs: input.roleSlugs,
-          failedLoginAttempts: 0,
-        })
-        .returning();
+      const user = await firstOrThrow(
+        tx
+          .insert(users)
+          .values({
+            name: input.name,
+            email: input.email,
+            emailVerified: false,
+            status: USER_STATUS.ACTIVE,
+            roleSlugs: input.roleSlugs,
+            failedLoginAttempts: 0,
+          })
+          .returning(),
+        "Failed to create user"
+      );
 
       await tx.insert(accounts).values({
         userId: user.id,
@@ -186,14 +189,17 @@ export const userService = {
     }
 
     return db.transaction(async (tx) => {
-      const [updatedUser] = await tx
-        .update(users)
-        .set({
-          ...(input.name && { name: input.name }),
-          ...(input.email && { email: input.email }),
-        })
-        .where(eq(users.id, id))
-        .returning();
+      const updatedUser = await firstOrThrow(
+        tx
+          .update(users)
+          .set({
+            ...(input.name && { name: input.name }),
+            ...(input.email && { email: input.email }),
+          })
+          .where(eq(users.id, id))
+          .returning(),
+        "Failed to update user"
+      );
 
       const metadata = createChangeMetadata(
         { name: existingUser.name, email: existingUser.email },
@@ -233,11 +239,14 @@ export const userService = {
     }
 
     return db.transaction(async (tx) => {
-      const [updatedUser] = await tx
-        .update(users)
-        .set({ roleSlugs: input.roleSlugs })
-        .where(eq(users.id, id))
-        .returning();
+      const updatedUser = await firstOrThrow(
+        tx
+          .update(users)
+          .set({ roleSlugs: input.roleSlugs })
+          .where(eq(users.id, id))
+          .returning(),
+        "Failed to update user roles"
+      );
 
       const metadata: AuditLogMetadata = {
         changes: {
