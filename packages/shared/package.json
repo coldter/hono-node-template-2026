@@ -9,7 +9,8 @@
     "./users": "./src/users.ts",
     "./roles": "./src/roles.ts",
     "./pagination": "./src/pagination.ts",
-    "./audit": "./src/audit.ts"
+    "./audit": "./src/audit.ts",
+    "./brand": "./src/brand.ts"
   },
   "scripts": {
     "check-types": "tsgo --noEmit",

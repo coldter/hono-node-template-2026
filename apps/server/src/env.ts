@@ -13,7 +13,12 @@ const envSchema = z
     WORK_FLOWS_LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("warn"),
-    APP_NAME: z.string().default("Server"),
+    APP_NAME: z.string().default("App"),
+    COMPANY_NAME: z.string().default("Acme Inc."),
+    SUPPORT_EMAIL: z.email().default("support@example.com"),
+    BRAND_PRIMARY_COLOR: z.string().default("#2563eb"),
+    LOGO_TEXT: z.string().default("App"),
+    APP_URL: z.url().default("http://localhost:3001"),
     ENABLE_DOCS: z
       .string()
       .default("true")
@@ -63,7 +68,7 @@ const envSchema = z
 
     EMAIL_PROVIDER: z.enum(["nodemailer", "console"]).default("console"),
     EMAIL_FROM: z.email().default("noreply@example.com"),
-    EMAIL_FROM_NAME: z.string().default("Server"),
+    EMAIL_FROM_NAME: z.string().default("App"),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),
     SMTP_USER: z.string().optional(),

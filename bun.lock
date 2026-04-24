@@ -182,6 +182,7 @@
       "dependencies": {
         "@react-email/components": "^1.0.11",
         "@react-email/render": "^2.0.7",
+        "@repo/shared": "workspace:*",
         "nodemailer": "^8.0.5",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",

@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ThemeProvider } from "@/context/theme-provider";
+import { brand } from "@/lib/brand";
 import type { Session } from "@/modules/auth";
 import AppError from "@/modules/common/app-error";
 import { DownAlert } from "@/modules/common/down-alert";
@@ -27,7 +28,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     meta: [
       {
-        title: "App",
+        title: brand.appName,
       },
       {
         name: "description",
