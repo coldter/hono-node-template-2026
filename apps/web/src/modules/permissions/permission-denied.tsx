@@ -4,6 +4,8 @@ import { ArrowLeft, Home, LogOut, ShieldX } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { clearSession } from "@/modules/auth";
 import { Button } from "@/modules/ui/button";
+import { queryClient } from "@/query/query-client";
+import { sessionQueryOptions } from "@/query/session-query";
 
 interface PermissionDeniedProps {
   children?: React.ReactNode;
@@ -30,6 +32,9 @@ export function PermissionDenied({
   const handleLogout = async () => {
     await authClient.signOut();
     clearSession();
+    await queryClient.invalidateQueries({
+      queryKey: sessionQueryOptions.queryKey,
+    });
     navigate({ to: "/login" });
   };
 

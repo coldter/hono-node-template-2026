@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -5,6 +6,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/modules/ui/button";
 import { Input } from "@/modules/ui/input";
 import { Label } from "@/modules/ui/label";
+import { sessionQueryOptions } from "@/query/session-query";
 
 interface SignInFormProps {
   initialEmail?: string;
@@ -19,6 +21,7 @@ export function SignInForm({
   initialEmail = "",
   showEmailField = true,
 }: SignInFormProps) {
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +57,9 @@ export function SignInForm({
         return;
       }
 
+      await queryClient.invalidateQueries({
+        queryKey: sessionQueryOptions.queryKey,
+      });
       toast.success("Signed in successfully");
       onSuccess?.();
     } catch (error) {
