@@ -18,6 +18,8 @@
     "preview:web": "turbo -F web preview",
     "dev:server": "turbo -F server dev",
     "dev:email": "turbo -F @repo/email dev",
+    "dev:storybook": "turbo -F web storybook",
+    "build:storybook": "turbo -F web build-storybook",
     "db:push": "turbo -F server db:push",
     "db:studio": "turbo -F server db:studio",
     "db:generate": "turbo -F server db:generate",

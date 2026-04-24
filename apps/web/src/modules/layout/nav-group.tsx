@@ -45,8 +45,8 @@ function useFilteredItems(items: NavItem[]): NavItem[] {
       return capabilities[permission] === true;
     };
 
-    const filterItems = (itemList: NavItem[]): NavItem[] => {
-      return itemList
+    const filterItems = (itemList: NavItem[]): NavItem[] =>
+      itemList
         .map((item) => {
           if (!hasAccess(item.permission)) {
             return null;
@@ -67,7 +67,6 @@ function useFilteredItems(items: NavItem[]): NavItem[] {
           return item;
         })
         .filter((item): item is NavItem => item !== null);
-    };
 
     return filterItems(items);
   }, [items, capabilities]);
