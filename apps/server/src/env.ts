@@ -119,11 +119,11 @@ if (!parsedEnv.success) {
     process.env.SKIP_ENV_VALIDATION === "1" ||
     process.env.NODE_ENV === "test"
   ) {
-    console.warn("⚠️  Skipping environment validation");
+    console.warn("[warn] Skipping environment validation");
   } else {
-    console.error("⚠️  Environment validation failed");
+    console.error("[error] Environment validation failed");
     console.error(
-      "❌ Invalid environment variables:",
+      "[error] Invalid environment variables:",
       z.treeifyError(parsedEnv.error).errors
     );
     console.error(parsedEnv.error);

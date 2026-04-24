@@ -15,7 +15,7 @@ function buildProviderConfig(): ProviderConfig {
         if (env.NODE_ENV === "development") {
           const generatedKey = generateMasterKey();
           console.warn(
-            "⚠️  VAULT_MASTER_KEY not set. Using generated key for this session."
+            "[warn] VAULT_MASTER_KEY not set. Using generated key for this session."
           );
           console.warn(`   Add to .env: VAULT_MASTER_KEY=${generatedKey}`);
           return { provider: "local", masterKey: generatedKey };

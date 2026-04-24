@@ -37,7 +37,7 @@ export function createTransport(config: {
   }
 
   console.warn(
-    "⚠️ No valid email transport configuration found. Falling back to ConsoleTransport."
+    "[warn] No valid email transport configuration found. Falling back to ConsoleTransport."
   );
   return new ConsoleTransport();
 }
