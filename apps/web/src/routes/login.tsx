@@ -7,7 +7,6 @@ import {
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Logo } from "@/assets/logo";
-import { authClient } from "@/lib/auth-client";
 import {
   AuthStepTransition,
   SignInForm,
@@ -17,6 +16,7 @@ import {
 } from "@/modules/auth";
 import { LoginLeftPanel } from "@/modules/auth/login-left-panel";
 import { Skeleton } from "@/modules/ui/skeleton";
+import { sessionQueryOptions } from "@/query/session-query";
 import { useLastUserStore } from "@/store";
 
 export const Route = createFileRoute("/login")({
@@ -24,23 +24,12 @@ export const Route = createFileRoute("/login")({
   validateSearch: z.object({
     redirect: z.string().optional(),
   }),
-  beforeLoad: async ({ cause }) => {
-    if (cause !== "enter") {
-      return;
-    }
-    try {
-      const { data } = await authClient.getSession({
-        query: { disableCookieCache: true },
-      });
-
-      if (data?.session) {
-        throw redirect({
-          to: "/dashboard",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching session:", error);
-      throw error;
+  beforeLoad: ({ context, search }) => {
+    const session = context.queryClient.getQueryData(
+      sessionQueryOptions.queryKey
+    );
+    if (session) {
+      throw redirect({ to: search.redirect ?? "/dashboard" });
     }
   },
   pendingComponent: () => <Skeleton className="h-full w-full" />,

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck, ShieldOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -6,6 +7,7 @@ import { PasswordInput } from "@/modules/common/password-input";
 import { Badge } from "@/modules/ui/badge";
 import { Button } from "@/modules/ui/button";
 import { Label } from "@/modules/ui/label";
+import { sessionQueryOptions } from "@/query/session-query";
 import { useUserStore } from "@/store/user";
 
 type ConfirmAction = "enable" | "disable" | null;
@@ -20,6 +22,7 @@ function getConfirmButtonLabel(action: "enable" | "disable", loading: boolean) {
 export function TwoFactorSection() {
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
+  const queryClient = useQueryClient();
   const isEnabled = user?.twoFactorEnabled ?? false;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +52,9 @@ export function TwoFactorSection() {
       }
 
       updateUser({ twoFactorEnabled: true });
+      await queryClient.invalidateQueries({
+        queryKey: sessionQueryOptions.queryKey,
+      });
       resetConfirm();
       toast.success("Two-factor authentication enabled");
     } finally {
@@ -74,6 +80,9 @@ export function TwoFactorSection() {
       }
 
       updateUser({ twoFactorEnabled: false });
+      await queryClient.invalidateQueries({
+        queryKey: sessionQueryOptions.queryKey,
+      });
       resetConfirm();
       toast.success("Two-factor authentication disabled");
     } finally {
