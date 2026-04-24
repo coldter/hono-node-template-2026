@@ -20,6 +20,6 @@ export const createClientConfig: CreateClientConfig = (baseConfig) => ({
     }
 
     const json = await response.json();
-    throw new ApiError(json, response.status);
+    throw ApiError.fromResponse(response, json);
   },
 });

@@ -5,7 +5,7 @@ import {
 } from "@repo/db/schema";
 import { and, asc, count, desc, eq, type SQL, sql } from "drizzle-orm";
 
-import { db } from "@/db";
+import { db, type Executor } from "@/db";
 import { EVENTS, pushEvent } from "@/lib/events";
 import { isHatchetEnabled } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";
@@ -407,9 +407,10 @@ export const notificationService = {
    */
   async updatePreferences(
     userId: string,
-    input: UpdatePreferencesInput
+    input: UpdatePreferencesInput,
+    executor: Executor = db
   ): Promise<PreferencesRecord[]> {
-    return db.transaction(async (tx) => {
+    return executor.transaction(async (tx) => {
       // Upsert global preferences
       const globalValues = {
         userId,
@@ -477,14 +478,21 @@ export const notificationService = {
   /**
    * Ensure default preferences exist for a user.
    */
-  async ensureDefaultPreferences(userId: string): Promise<PreferencesRecord[]> {
+  async ensureDefaultPreferences(
+    userId: string,
+    executor: Executor = db
+  ): Promise<PreferencesRecord[]> {
     const existing = await this.getPreferences(userId);
     if (existing.length === 0) {
-      return this.updatePreferences(userId, {
-        emailEnabled: true,
-        smsEnabled: false,
-        pushEnabled: true,
-      });
+      return this.updatePreferences(
+        userId,
+        {
+          emailEnabled: true,
+          smsEnabled: false,
+          pushEnabled: true,
+        },
+        executor
+      );
     }
     return existing;
   },

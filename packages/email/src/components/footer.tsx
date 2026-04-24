@@ -1,4 +1,5 @@
 import { Hr, Link, Section, Text } from "@react-email/components";
+import { getBrandConfig } from "@repo/shared/brand";
 import React from "react";
 
 interface EmailFooterProps {
@@ -7,10 +8,12 @@ interface EmailFooterProps {
   supportEmail?: string;
 }
 
+const brand = getBrandConfig(process.env);
+
 export function EmailFooter({
-  companyName = "Your App",
+  companyName = brand.companyName,
   companyAddress = "123 Street Address, City, State 12345",
-  supportEmail = "support@example.com",
+  supportEmail = brand.supportEmail,
 }: EmailFooterProps) {
   return (
     <Section className="mt-8">

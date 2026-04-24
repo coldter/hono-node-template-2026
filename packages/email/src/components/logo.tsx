@@ -1,11 +1,14 @@
 import { Section, Text } from "@react-email/components";
+import { getBrandConfig } from "@repo/shared/brand";
 import React from "react";
 
 interface EmailLogoProps {
   appName?: string;
 }
 
-export function EmailLogo({ appName = "Your App" }: EmailLogoProps) {
+const brand = getBrandConfig(process.env);
+
+export function EmailLogo({ appName = brand.appName }: EmailLogoProps) {
   return (
     <Section className="mb-8">
       <Section className="flex items-center justify-center">

@@ -10,11 +10,7 @@
   },
   "scripts": {
     "check-types": "tsgo --noEmit",
-    "check-types:backup": "tsc --noEmit",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "check-types:backup": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/shared": "workspace:*",

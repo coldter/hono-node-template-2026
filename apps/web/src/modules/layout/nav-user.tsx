@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   BadgeCheck,
@@ -8,7 +9,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import useDialogState from "@/hooks/use-dialog-state";
-import { authClient } from "@/lib/auth-client";
 import { SignOutDialog } from "@/modules/common/sign-out-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
 import {
@@ -26,12 +26,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/modules/ui/sidebar";
+import { sessionQueryOptions } from "@/query/session-query";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const [open, setOpen] = useDialogState();
-  const session = authClient.useSession();
-  const user = session.data?.user;
+  const { data: session } = useQuery(sessionQueryOptions);
+  const user = session?.user;
 
   if (!user) {
     return null;

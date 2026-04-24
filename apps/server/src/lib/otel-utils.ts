@@ -146,12 +146,12 @@ export function startSpan(name: string, options?: SpanOptions): Span {
  */
 export function getTraceId(): string | undefined {
   if (!OTEL_ENABLED) {
-    return undefined;
+    return;
   }
 
   const span = trace.getActiveSpan();
   if (!span) {
-    return undefined;
+    return;
   }
 
   return span.spanContext().traceId;
@@ -162,12 +162,12 @@ export function getTraceId(): string | undefined {
  */
 export function getSpanId(): string | undefined {
   if (!OTEL_ENABLED) {
-    return undefined;
+    return;
   }
 
   const span = trace.getActiveSpan();
   if (!span) {
-    return undefined;
+    return;
   }
 
   return span.spanContext().spanId;

@@ -1,6 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import useDialogState from "@/hooks/use-dialog-state";
-import { authClient } from "@/lib/auth-client";
 import { SignOutDialog } from "@/modules/common/sign-out-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
 import { Button } from "@/modules/ui/button";
@@ -13,11 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/modules/ui/dropdown-menu";
+import { sessionQueryOptions } from "@/query/session-query";
 
 export function ProfileDropdown() {
   const [open, setOpen] = useDialogState();
-  const session = authClient.useSession();
-  const user = session.data?.user;
+  const { data: session } = useQuery(sessionQueryOptions);
+  const user = session?.user;
 
   return (
     <>

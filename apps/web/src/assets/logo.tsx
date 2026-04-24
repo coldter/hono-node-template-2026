@@ -1,13 +1,22 @@
 import type { SVGProps } from "react";
+import { brand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
-export function Logo({ className, ...props }: SVGProps<SVGSVGElement>) {
+interface LogoProps extends SVGProps<SVGSVGElement> {
+  title?: string;
+}
+
+export function Logo({
+  className,
+  title = brand.logoText,
+  ...props
+}: LogoProps) {
   return (
     <svg
       className={cn("size-6", className)}
       fill="none"
       height="24"
-      id="shadcn-admin-logo"
+      id="app-logo"
       stroke="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -17,7 +26,7 @@ export function Logo({ className, ...props }: SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <title>Shadcn-Admin</title>
+      <title>{title}</title>
       <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
     </svg>
   );

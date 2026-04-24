@@ -31,12 +31,12 @@
       "bun.lock",
       "!openapi.cache.json",
       "!apps/server/openapi.cache.json",
-      "!apps/server/src/db/migrations/**/*",
+      "!packages/db/src/migrations/**/*",
       "!.agents/**/*",
       "!.claude/**/*"
     ]
   },
-  "extends": ["ultracite/core", "ultracite/react"],
+  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
   "linter": {
     "rules": {
       "a11y": {

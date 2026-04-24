@@ -1,8 +1,11 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
+import type { Session } from "@/lib/auth-client";
 import AppError from "@/modules/common/app-error";
 import { FullPageLoadingState } from "@/modules/common/full-page-loading-state";
-import type { RouterAppContext } from "@/routes/__root";
+import { queryClient } from "@/query/query-client";
+import { sessionQueryOptions } from "@/query/session-query";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
@@ -13,8 +16,9 @@ const router = createRouter({
   defaultPendingComponent: () => <FullPageLoadingState />,
   defaultErrorComponent: AppError,
   context: {
-    session: undefined,
-  } satisfies RouterAppContext,
+    queryClient,
+    session: null,
+  },
   defaultPendingMinMs: 0,
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
@@ -34,5 +38,21 @@ if (!rootElement) {
 
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
-  root.render(<RouterProvider router={router} />);
+
+  const bootstrap = async () => {
+    let session: Session | null = null;
+    try {
+      session = await queryClient.ensureQueryData(sessionQueryOptions);
+    } catch (error) {
+      console.error("Failed to bootstrap session:", error);
+    }
+
+    root.render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider context={{ queryClient, session }} router={router} />
+      </QueryClientProvider>
+    );
+  };
+
+  bootstrap();
 }

@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { KeyRound } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -24,6 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/modules/ui/form";
+import { sessionQueryOptions } from "@/query/session-query";
 
 const changePasswordSchema = z
   .object({
@@ -42,6 +44,7 @@ type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 
 export function ChangePasswordDialog() {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
@@ -63,6 +66,9 @@ export function ChangePasswordDialog() {
       return;
     }
 
+    await queryClient.invalidateQueries({
+      queryKey: sessionQueryOptions.queryKey,
+    });
     toast.success("Password changed successfully");
     form.reset();
     setOpen(false);

@@ -23,6 +23,16 @@
       "inputs": ["$TURBO_DEFAULT$", "tsconfig*.json", "../../tsconfig*.json"],
       "outputs": []
     },
+    "storybook": {
+      "cache": false,
+      "persistent": true
+    },
+    "build-storybook": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".storybook/**"],
+      "outputs": ["storybook-static/**"],
+      "env": ["VITE_*", "NODE_ENV"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
@@ -46,6 +56,13 @@
     "db:generate": {
       "cache": false,
       "persistent": true
+    },
+    "generate-openapi": {
+      "cache": false,
+      "outputs": ["openapi.cache.json"]
+    },
+    "generate-client": {
+      "cache": false
     },
     "test": {
       "cache": false,

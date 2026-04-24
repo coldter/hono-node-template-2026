@@ -73,6 +73,40 @@ const detectPlatform = (userAgent: string | null): Platform => {
     : "web";
 };
 
+// Shape of the session update payload we care about. Unknown fields pass
+// through; we only read `activeOrganizationId` explicitly.
+const sessionUpdateInputSchema = z
+  .object({
+    activeOrganizationId: z.string().nullable().optional(),
+  })
+  .loose();
+
+// Extract the user id from Better Auth's endpoint context. The context is
+// typed as `unknown` by the SDK; we defensively walk the tree and narrow.
+const endpointCtxSchema = z
+  .object({
+    context: z
+      .object({
+        session: z
+          .object({
+            user: z.object({ id: z.string() }).partial().optional(),
+          })
+          .partial()
+          .optional(),
+      })
+      .partial()
+      .optional(),
+  })
+  .loose();
+
+function getSessionUserId(ctx: unknown): string | undefined {
+  const parsed = endpointCtxSchema.safeParse(ctx);
+  if (!parsed.success) {
+    return;
+  }
+  return parsed.data.context?.session?.user?.id;
+}
+
 const authConfig = {
   appName: env.APP_NAME,
   secret: env.BETTER_AUTH_SECRET,
@@ -279,9 +313,13 @@ const authConfig = {
       },
       update: {
         before: async (session, context) => {
-          const updateData = session as Record<string, unknown>;
-          if (updateData.activeOrganizationId !== undefined) {
-            const newOrgId = updateData.activeOrganizationId as string | null;
+          const parsedUpdate = sessionUpdateInputSchema.safeParse(session);
+          const activeOrganizationId = parsedUpdate.success
+            ? parsedUpdate.data.activeOrganizationId
+            : undefined;
+
+          if (activeOrganizationId !== undefined) {
+            const newOrgId = activeOrganizationId;
 
             if (!newOrgId) {
               return {
@@ -289,14 +327,7 @@ const authConfig = {
               };
             }
 
-            const endpointCtx = context as
-              | {
-                  context?: {
-                    session?: { user?: { id?: string } };
-                  };
-                }
-              | undefined;
-            const userId = endpointCtx?.context?.session?.user?.id;
+            const userId = getSessionUserId(context);
 
             if (userId) {
               try {

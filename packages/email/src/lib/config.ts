@@ -1,8 +1,11 @@
+import { BRAND_DEFAULTS, getBrandConfig } from "@repo/shared/brand";
 import { z } from "zod";
+
+const brand = getBrandConfig(process.env);
 
 function parseBooleanString(value: string | undefined): boolean | undefined {
   if (value === undefined) {
-    return undefined;
+    return;
   }
 
   const normalized = value.trim().toLowerCase();
@@ -13,17 +16,17 @@ function parseBooleanString(value: string | undefined): boolean | undefined {
     return false;
   }
 
-  return undefined;
+  return;
 }
 
 function parseSmtpPort(value: string | undefined): number | undefined {
   if (value === undefined || value.trim() === "") {
-    return undefined;
+    return;
   }
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
-    return undefined;
+    return;
   }
 
   return parsed;
@@ -33,7 +36,7 @@ const emailConfigSchema = z.object({
   provider: z.enum(["nodemailer", "console"]).optional(),
   from: z.object({
     default: z.email().default("noreply@example.com"),
-    name: z.string().default("Your App"),
+    name: z.string().default(BRAND_DEFAULTS.appName),
   }),
   smtp: z
     .object({
@@ -94,7 +97,7 @@ export function getEmailConfig(): EmailConfig {
   if (!parsed.success) {
     if (process.env.NODE_ENV === "production") {
       console.error(
-        "❌ Invalid email environment variables:",
+        "[error] Invalid email environment variables:",
         z.treeifyError(parsed.error)
       );
       throw new Error("Invalid email configuration");
@@ -102,7 +105,7 @@ export function getEmailConfig(): EmailConfig {
     return {
       from: {
         default: "noreply@example.com",
-        name: "Your App (Dev)",
+        name: `${brand.appName} (Dev)`,
       },
     } as EmailConfig;
   }

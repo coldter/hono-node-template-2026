@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import { Spinner } from "@/modules/ui/spinner";
 import { FullPageEmptyState } from "./full-page-empty-state";
 
@@ -14,7 +13,7 @@ export function FullPageLoadingState({
   return (
     <FullPageEmptyState
       description={description}
-      icon={Spinner as unknown as LucideIcon}
+      iconSlot={<Spinner size="xl" />}
       title={title}
     />
   );

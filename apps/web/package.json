@@ -13,7 +13,9 @@
     "generate-client": "openapi-ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -62,6 +64,10 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.96.1",
+    "@storybook/addon-a11y": "^10.3.5",
+    "@storybook/addon-docs": "^10.3.5",
+    "@storybook/addon-themes": "^10.3.5",
+    "@storybook/react-vite": "^10.3.5",
     "@tanstack/react-query-devtools": "^5.100.1",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/router-plugin": "^1.167.23",
@@ -76,6 +82,7 @@
     "jsdom": "^29.0.2",
     "postcss": "^8.5.10",
     "react-grab": "^0.1.32",
+    "storybook": "^10.3.5",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",

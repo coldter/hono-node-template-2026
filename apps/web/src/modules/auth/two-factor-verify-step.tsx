@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, ShieldCheck } from "lucide-react";
 import {
   type FormEvent,
@@ -11,6 +12,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/modules/ui/button";
 import { Input } from "@/modules/ui/input";
 import { Label } from "@/modules/ui/label";
+import { sessionQueryOptions } from "@/query/session-query";
 
 interface TwoFactorVerifyStepProps {
   email: string;
@@ -23,6 +25,7 @@ export function TwoFactorVerifyStep({
   onBack,
   onSuccess,
 }: TwoFactorVerifyStepProps) {
+  const queryClient = useQueryClient();
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -75,6 +78,9 @@ export function TwoFactorVerifyStep({
         return;
       }
 
+      await queryClient.invalidateQueries({
+        queryKey: sessionQueryOptions.queryKey,
+      });
       toast.success("Signed in successfully");
       onSuccess();
     } catch {
