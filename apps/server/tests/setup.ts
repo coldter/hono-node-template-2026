@@ -59,7 +59,7 @@ export async function clearDatabase() {
 export async function migrateDatabase() {
   const migrationsPath = path.resolve(
     import.meta.dirname,
-    "../src/db/migrations"
+    "../../../packages/db/src/migrations"
   );
   logger.info(`[Test Setup] Running migrations from ${migrationsPath}`);
 

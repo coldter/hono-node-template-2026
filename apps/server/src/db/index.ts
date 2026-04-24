@@ -20,11 +20,9 @@ export type DB = DBCore & {
   $client: NodePgClient;
 };
 
-/** Transaction instance type - use in functions that accept a transaction parameter. */
-export type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** Union type for functions that work both inside and outside a transaction. */
-export type Executor = DB | Transaction;
+// Re-export canonical transaction/executor types from @repo/db/client so the
+// server stays in lockstep with the package definitions.
+export type { Executor, Transaction } from "@repo/db/client";
 
 /**
  * The database client.
