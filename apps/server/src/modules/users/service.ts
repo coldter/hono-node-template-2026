@@ -11,7 +11,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 
-import { db } from "@/db";
+import { db, type Executor } from "@/db";
 import { AUDIT_EVENTS, TARGET_TYPES } from "@/modules/audit-logs/constants";
 import { auditLogService } from "@/modules/audit-logs/service";
 import type { AuditLogMetadata } from "@/modules/audit-logs/types";
@@ -128,11 +128,12 @@ export const userService = {
   async create(
     input: CreateUserInput,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string }
+    auditContext: { ipAddress?: string; userAgent?: string },
+    executor: Executor = db
   ): Promise<UserRecord> {
     const hashedPassword = await hashPassword(input.password);
 
-    return db.transaction(async (tx) => {
+    return executor.transaction(async (tx) => {
       const [user] = await tx
         .insert(users)
         .values({
@@ -178,14 +179,15 @@ export const userService = {
     id: string,
     input: UpdateUserInput,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string }
+    auditContext: { ipAddress?: string; userAgent?: string },
+    executor: Executor = db
   ): Promise<UserRecord> {
     const existingUser = await this.findById(id);
     if (!existingUser) {
       throw new Error("User not found");
     }
 
-    return db.transaction(async (tx) => {
+    return executor.transaction(async (tx) => {
       const [updatedUser] = await tx
         .update(users)
         .set({
@@ -225,14 +227,15 @@ export const userService = {
     id: string,
     input: UpdateUserRolesInput,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string }
+    auditContext: { ipAddress?: string; userAgent?: string },
+    executor: Executor = db
   ): Promise<UserRecord> {
     const existingUser = await this.findById(id);
     if (!existingUser) {
       throw new Error("User not found");
     }
 
-    return db.transaction(async (tx) => {
+    return executor.transaction(async (tx) => {
       const [updatedUser] = await tx
         .update(users)
         .set({ roleSlugs: input.roleSlugs })
@@ -271,9 +274,10 @@ export const userService = {
     id: string,
     reason: string | null,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string }
+    auditContext: { ipAddress?: string; userAgent?: string },
+    executor: Executor = db
   ): Promise<void> {
-    await db.transaction(async (tx) => {
+    await executor.transaction(async (tx) => {
       await tx
         .update(users)
         .set({
@@ -305,9 +309,10 @@ export const userService = {
   async activate(
     id: string,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string }
+    auditContext: { ipAddress?: string; userAgent?: string },
+    executor: Executor = db
   ): Promise<void> {
-    await db.transaction(async (tx) => {
+    await executor.transaction(async (tx) => {
       await tx
         .update(users)
         .set({
@@ -336,9 +341,10 @@ export const userService = {
   async unlock(
     id: string,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string }
+    auditContext: { ipAddress?: string; userAgent?: string },
+    executor: Executor = db
   ): Promise<void> {
-    await db.transaction(async (tx) => {
+    await executor.transaction(async (tx) => {
       await tx
         .update(users)
         .set({
