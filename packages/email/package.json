@@ -27,7 +27,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript/native-preview": "beta",
-    "tsdown": "^0.21.9",
+    "tsdown": "^0.21.10",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
