@@ -31,7 +31,7 @@
       "bun.lock",
       "!openapi.cache.json",
       "!apps/server/openapi.cache.json",
-      "!apps/server/src/db/migrations/**/*",
+      "!packages/db/src/migrations/**/*",
       "!.agents/**/*",
       "!.claude/**/*"
     ]
