@@ -65,16 +65,6 @@ if (isDbSkipped) {
 
 /**
  * Resolve a query that returns an array of rows and return the first row
- * or `null` when the array is empty. Use for single-row lookups where the
- * caller will handle the null case explicitly.
- */
-export async function firstOrNull<T>(query: Promise<T[]>): Promise<T | null> {
-  const rows = await query;
-  return rows[0] ?? null;
-}
-
-/**
- * Resolve a query that returns an array of rows and return the first row
  * or throw when the array is empty. Use for single-row lookups where the
  * row is known to exist and the caller wants to bail loudly otherwise.
  */

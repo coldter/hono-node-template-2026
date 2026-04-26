@@ -17,7 +17,7 @@ const config: KnipConfig = {
     },
     "apps/web": {
       entry: ["src/routes/**/*.tsx", "src/api-config.ts"],
-      project: ["src/**/*.{ts,tsx}", "index.html", "*.{ts,tsx}"],
+      project: ["src/**/*.{ts,tsx}", "*.{ts,tsx}"],
       ignore: ["src/api.gen/**"],
       ignoreDependencies: [
         "postcss",
@@ -46,6 +46,9 @@ const config: KnipConfig = {
     },
     "packages/*": {
       project: ["**/*.{ts,tsx}"],
+    },
+    "packages/email": {
+      ignoreDependencies: ["@react-email/ui"],
     },
   },
 };
