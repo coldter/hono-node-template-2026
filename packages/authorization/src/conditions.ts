@@ -70,19 +70,21 @@ export function createPredicateCondition<TResource = unknown>(
 export function createRelationCondition<TResource>(
   relation: string,
   targetKey: string,
-  resolveTarget: (resource: TResource) => string
+  resolveTarget: (resource: TResource) => string,
+  subjectType = "user"
 ): Condition<TResource> {
   return {
     type: "withRelation",
     effect: "requires_resource",
     label: `withRelation:${relation}:${targetKey}`,
+    params: { relation, targetKey, subjectType },
     evaluate(ctx: ConditionContext<TResource>): boolean | Promise<boolean> {
       if (!(ctx.resource && ctx.resolveRelation)) {
         return false;
       }
       const objectId = resolveTarget(ctx.resource);
       return ctx.resolveRelation(
-        "user",
+        subjectType,
         ctx.principal.id,
         relation,
         targetKey,
@@ -93,10 +95,12 @@ export function createRelationCondition<TResource>(
 }
 
 export function createOrgRoleCondition(orgRoles: string[]): Condition {
+  const frozenRoles = [...orgRoles];
   return {
     type: "withOrgRole",
     effect: "principal_only",
-    label: `withOrgRole:${orgRoles.join(",")}`,
+    label: `withOrgRole:${frozenRoles.join(",")}`,
+    params: { orgRoles: frozenRoles },
     evaluate(ctx: ConditionContext): boolean {
       const org = ctx.principal.organization as
         | { id: string; role: string }
@@ -104,7 +108,7 @@ export function createOrgRoleCondition(orgRoles: string[]): Condition {
       if (!org) {
         return false;
       }
-      return orgRoles.includes(org.role);
+      return frozenRoles.includes(org.role);
     },
   };
 }

@@ -75,10 +75,9 @@ function validateConditionValues(
 ): void {
   for (const condition of policy.conditions) {
     if (condition.type === "withRelation") {
-      // label format: "withRelation:<relation>:<targetKey>"
-      const relation = condition.label.split(":")[1];
+      const relation = condition.params?.relation;
       if (
-        relation &&
+        typeof relation === "string" &&
         schemaRelations.length > 0 &&
         !schemaRelations.includes(relation)
       ) {
@@ -88,11 +87,10 @@ function validateConditionValues(
       }
     }
     if (condition.type === "withOrgRole") {
-      // label format: "withOrgRole:<role1>,<role2>"
-      const rolesStr = condition.label.split(":")[1];
-      if (rolesStr && orgRoleValues.length > 0) {
-        for (const role of rolesStr.split(",")) {
-          if (!orgRoleValues.includes(role)) {
+      const orgRoles = condition.params?.orgRoles;
+      if (Array.isArray(orgRoles) && orgRoleValues.length > 0) {
+        for (const role of orgRoles) {
+          if (typeof role === "string" && !orgRoleValues.includes(role)) {
             throw new Error(
               `Policy in resource "${resourceName}" references org role "${role}" not in schema. Available: ${orgRoleValues.join(", ")}`
             );

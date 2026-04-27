@@ -25,10 +25,15 @@ export interface AuthorizeOptions {
   ) => Promise<boolean>;
 }
 
-export interface AuthorizeFunction {
+export interface AuthorizeFunction<
+  TResources extends Record<string, AnyResourceDef> = Record<
+    string,
+    AnyResourceDef
+  >,
+> {
   skip: (label: string) => MiddlewareHandler;
-  (
-    resource: string,
+  <K extends keyof TResources & string>(
+    resource: K,
     action: string,
     opts?: AuthorizeOptions
   ): MiddlewareHandler;
@@ -40,8 +45,12 @@ export function createAuthorize<
 >(
   registry: RegistryInstance<TResources>,
   options: CreateAuthorizeOptions<TEnv>
-): AuthorizeFunction {
-  const authorize: AuthorizeFunction = (resource, action, opts) => {
+): AuthorizeFunction<TResources> {
+  const authorizeImpl = (
+    resource: string,
+    action: string,
+    opts?: AuthorizeOptions
+  ): MiddlewareHandler => {
     return async (c, next) => {
       try {
         const principal = options.resolvePrincipal(c as Context<TEnv>);
@@ -104,6 +113,8 @@ export function createAuthorize<
     };
   };
 
+  const authorize = authorizeImpl as AuthorizeFunction<TResources>;
+
   authorize.skip = (_label: string): MiddlewareHandler => {
     return async (_c, next) => {
       // Intentionally unprotected route.
@@ -130,7 +141,7 @@ export async function assertCanOrThrow<
 >(
   registry: RegistryInstance<TResources>,
   principal: Principal | null | undefined,
-  resource: string,
+  resource: keyof TResources & string,
   action: string,
   opts?: { resource?: unknown }
 ): Promise<void> {
