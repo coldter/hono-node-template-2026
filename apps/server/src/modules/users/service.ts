@@ -22,6 +22,7 @@ import {
 } from "@/utils/pagination";
 
 import { USER_STATUS, USERS_SORT_COLUMNS } from "./constants";
+import { UserNotFoundError } from "./errors";
 import { createChangeMetadata } from "./helpers";
 import type {
   CreateUserInput,
@@ -30,6 +31,7 @@ import type {
   UpdateUserRolesInput,
   UserRecord,
 } from "./types";
+import { onUserStatusChange } from "./user-status-hooks";
 
 export const userService = {
   async find(query: ListUsersQuery) {
@@ -187,7 +189,7 @@ export const userService = {
   ): Promise<UserRecord> {
     const existingUser = await this.findById(id);
     if (!existingUser) {
-      throw new Error("User not found");
+      throw new UserNotFoundError(id);
     }
 
     return executor.transaction(async (tx) => {
@@ -238,7 +240,7 @@ export const userService = {
   ): Promise<UserRecord> {
     const existingUser = await this.findById(id);
     if (!existingUser) {
-      throw new Error("User not found");
+      throw new UserNotFoundError(id);
     }
 
     return executor.transaction(async (tx) => {
@@ -286,8 +288,13 @@ export const userService = {
     auditContext: { ipAddress?: string; userAgent?: string },
     executor: Executor = db
   ): Promise<void> {
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new UserNotFoundError(id);
+    }
+
     await executor.transaction(async (tx) => {
-      await tx
+      const updatedUsers = await tx
         .update(users)
         .set({
           status: USER_STATUS.INACTIVE,
@@ -295,7 +302,12 @@ export const userService = {
           deactivatedBy: actorId,
           deactivatedReason: reason,
         })
-        .where(eq(users.id, id));
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
+
+      if (updatedUsers.length === 0) {
+        throw new UserNotFoundError(id);
+      }
 
       await tx.delete(sessions).where(eq(sessions.userId, id));
 
@@ -313,6 +325,13 @@ export const userService = {
         tx
       );
     });
+
+    await onUserStatusChange(
+      id,
+      USER_STATUS.INACTIVE,
+      existingUser.status,
+      reason
+    );
   },
 
   async activate(
@@ -321,8 +340,13 @@ export const userService = {
     auditContext: { ipAddress?: string; userAgent?: string },
     executor: Executor = db
   ): Promise<void> {
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new UserNotFoundError(id);
+    }
+
     await executor.transaction(async (tx) => {
-      await tx
+      const updatedUsers = await tx
         .update(users)
         .set({
           status: USER_STATUS.ACTIVE,
@@ -330,7 +354,12 @@ export const userService = {
           deactivatedBy: null,
           deactivatedReason: null,
         })
-        .where(eq(users.id, id));
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
+
+      if (updatedUsers.length === 0) {
+        throw new UserNotFoundError(id);
+      }
 
       await auditLogService.create(
         {
@@ -345,6 +374,8 @@ export const userService = {
         tx
       );
     });
+
+    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
   },
 
   async unlock(
@@ -353,15 +384,25 @@ export const userService = {
     auditContext: { ipAddress?: string; userAgent?: string },
     executor: Executor = db
   ): Promise<void> {
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new UserNotFoundError(id);
+    }
+
     await executor.transaction(async (tx) => {
-      await tx
+      const updatedUsers = await tx
         .update(users)
         .set({
           status: USER_STATUS.ACTIVE,
           lockedUntil: null,
           failedLoginAttempts: 0,
         })
-        .where(eq(users.id, id));
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
+
+      if (updatedUsers.length === 0) {
+        throw new UserNotFoundError(id);
+      }
 
       await auditLogService.create(
         {
@@ -376,5 +417,7 @@ export const userService = {
         tx
       );
     });
+
+    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
   },
 };

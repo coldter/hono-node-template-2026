@@ -13,8 +13,6 @@ import {
   User as UserIcon,
   UserX,
 } from "lucide-react";
-import { useState } from "react";
-import { useAuthorization } from "@/hooks/use-authorization";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
 import { Badge } from "@/modules/ui/badge";
 import { Button } from "@/modules/ui/button";
@@ -27,35 +25,40 @@ import {
 } from "@/modules/ui/card";
 import { Separator } from "@/modules/ui/separator";
 import { Skeleton } from "@/modules/ui/skeleton";
-import { useUserStore } from "@/store/user";
 import { UserRoleBadges } from "../components/user-role-badges";
 import { UserStatusBadge } from "../components/user-status-badge";
 import { DeactivateDialog } from "../dialogs/deactivate-dialog";
 import { EditUserDialog } from "../dialogs/edit-user-dialog";
 import { RoleAssignmentDialog } from "../dialogs/role-assignment-dialog";
-import {
-  useActivateUserMutation,
-  useUnlockUserMutation,
-  useUserQuery,
-} from "../query";
-import type { UserStatus } from "../types";
+import { useUserQuery } from "../query";
+import { isUserStatus } from "../types";
+import { useUserDetailActions } from "./use-user-detail-actions";
 
 export function UserDetailPage() {
   const { userId } = useParams({ strict: false });
   const { data: user, isLoading, isError } = useUserQuery(userId ?? "");
-  const { capabilities } = useAuthorization();
-  const currentUser = useUserStore((s) => s.user);
-  const isOwnProfile = currentUser?.id === userId;
-  const hasAdminRole = currentUser?.roleSlugs?.includes("admin") ?? false;
+  const status = user && isUserStatus(user.status) ? user.status : undefined;
 
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showRolesDialog, setShowRolesDialog] = useState(false);
-  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
-
-  const activateMutation = useActivateUserMutation();
-  const unlockMutation = useUnlockUserMutation();
-
-  const status = user?.status as UserStatus | undefined;
+  const {
+    canActivate,
+    canDeactivate,
+    canEditProfile,
+    canManageRoles,
+    canUnlock,
+    handleActivate,
+    handleUnlock,
+    showDeactivateDialog,
+    showEditDialog,
+    showRolesDialog,
+    setShowDeactivateDialog,
+    setShowEditDialog,
+    setShowRolesDialog,
+    activateMutation,
+    unlockMutation,
+  } = useUserDetailActions({
+    userId,
+    status,
+  });
 
   if (isLoading) {
     return <UserDetailSkeleton />;
@@ -96,7 +99,7 @@ export function UserDetailPage() {
           <h1 className="text-2xl font-bold tracking-tight">User Details</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {capabilities["user:update"] && (hasAdminRole || isOwnProfile) && (
+          {canEditProfile && (
             <>
               <Button
                 className="gap-2 font-medium transition-colors focus-visible:ring-2"
@@ -107,7 +110,7 @@ export function UserDetailPage() {
                 <UserCog className="h-4 w-4" />
                 Edit Profile
               </Button>
-              {hasAdminRole && (
+              {canManageRoles && (
                 <Button
                   className="gap-2 font-medium transition-colors focus-visible:ring-2"
                   onClick={() => setShowRolesDialog(true)}
@@ -121,36 +124,34 @@ export function UserDetailPage() {
             </>
           )}
 
-          {status === "active" &&
-            capabilities["user:deactivate"] &&
-            !isOwnProfile && (
-              <Button
-                className="gap-2 font-medium transition-colors focus-visible:ring-destructive/50"
-                onClick={() => setShowDeactivateDialog(true)}
-                size="sm"
-                variant="destructive"
-              >
-                <UserX className="h-4 w-4" />
-                Deactivate
-              </Button>
-            )}
+          {canDeactivate && (
+            <Button
+              className="gap-2 font-medium transition-colors focus-visible:ring-destructive/50"
+              onClick={() => setShowDeactivateDialog(true)}
+              size="sm"
+              variant="destructive"
+            >
+              <UserX className="h-4 w-4" />
+              Deactivate
+            </Button>
+          )}
 
-          {status === "inactive" && capabilities["user:activate"] && (
+          {canActivate && (
             <Button
               className="gap-2 font-medium transition-all focus-visible:ring-2"
               disabled={activateMutation.isPending}
-              onClick={() => activateMutation.mutate(user.id)}
+              onClick={handleActivate}
               size="sm"
             >
               {activateMutation.isPending ? "Activating..." : "Activate"}
             </Button>
           )}
 
-          {status === "locked" && capabilities["user:unlock"] && (
+          {canUnlock && (
             <Button
               className="gap-2 font-medium transition-all focus-visible:ring-2"
               disabled={unlockMutation.isPending}
-              onClick={() => unlockMutation.mutate(user.id)}
+              onClick={handleUnlock}
               size="sm"
             >
               <Unlock className="h-4 w-4" />
@@ -172,7 +173,11 @@ export function UserDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-center gap-2">
-              <UserStatusBadge status={user.status as UserStatus} />
+              {status ? (
+                <UserStatusBadge status={status} />
+              ) : (
+                <Badge variant="outline">{user.status}</Badge>
+              )}
               {user.emailVerified && (
                 <Badge variant="outline">Email Verified</Badge>
               )}

@@ -7,3 +7,7 @@ export type UserDetail = GetUserResponse["user"];
 export type UserStatus = "active" | "inactive" | "locked";
 
 export const USER_STATUS_CONFIG = SHARED_USER_STATUS_CONFIG;
+
+export function isUserStatus(value: string): value is UserStatus {
+  return value === "active" || value === "inactive" || value === "locked";
+}

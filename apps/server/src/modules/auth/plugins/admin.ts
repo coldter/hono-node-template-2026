@@ -1,5 +1,4 @@
 import { AuthorizationError, type Principal } from "@repo/authorization";
-import * as schema from "@repo/db/schema";
 import {
   authorization,
   buildAuthorizationPrincipal,
@@ -11,12 +10,10 @@ import {
   createAuthEndpoint,
   sessionMiddleware,
 } from "better-auth/api";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/db";
-import { onUserStatusChange } from "@/modules/users/user-status-hooks";
+import { UserNotFoundError } from "@/modules/users/errors";
+import { userService } from "@/modules/users/service";
 
-type UserId = string;
 type ManageUserStatusAction = "activate" | "deactivate" | "unlock";
 
 type AuthSessionUser = {
@@ -25,6 +22,11 @@ type AuthSessionUser = {
   id: string;
   roleSlugs?: string[];
   status?: string;
+};
+
+const EMPTY_AUDIT_CONTEXT = {
+  ipAddress: undefined,
+  userAgent: undefined,
 };
 
 function getAuthorizationActor(user: AuthSessionUser) {
@@ -47,6 +49,19 @@ async function assertCanManageUserStatusWithApiError(
   } catch (error) {
     if (error instanceof AuthorizationError) {
       throw new APIError("FORBIDDEN", { message: "Permission denied" });
+    }
+    throw error;
+  }
+}
+
+async function runUserStatusMutationWithApiError(
+  mutation: () => Promise<void>
+): Promise<void> {
+  try {
+    await mutation();
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      throw new APIError("NOT_FOUND", { message: "User not found" });
     }
     throw error;
   }
@@ -117,39 +132,14 @@ export const adminPlugin = () => {
             });
           }
 
-          // Check if user exists
-          const targetUser = await db.query.users.findFirst({
-            where: { id: { eq: ctx.body.userId as UserId } },
-          });
-
-          if (!targetUser) {
-            throw new APIError("NOT_FOUND", { message: "User not found" });
-          }
-
-          // Update user status
-          await db
-            .update(schema.users)
-            .set({
-              status: "inactive",
-              deactivatedAt: new Date(),
-              deactivatedBy: currentUser.id,
-              deactivatedReason: ctx.body.reason ?? null,
-            })
-            .where(eq(schema.users.id, ctx.body.userId));
-
-          // Revoke all sessions for this user
-          await db
-            .delete(schema.sessions)
-            .where(eq(schema.sessions.userId, ctx.body.userId));
-
-          // Trigger status change hook for domain-specific side effects
-          await onUserStatusChange(
-            ctx.body.userId,
-            "inactive",
-            targetUser.status,
-            ctx.body.reason ?? "admin_deactivated"
+          await runUserStatusMutationWithApiError(() =>
+            userService.deactivate(
+              ctx.body.userId,
+              ctx.body.reason ?? null,
+              currentUser.id,
+              EMPTY_AUDIT_CONTEXT
+            )
           );
-
           return ctx.json({ success: true });
         }
       ),
@@ -199,32 +189,12 @@ export const adminPlugin = () => {
             ctx.body.userId
           );
 
-          // Check if user exists
-          const targetUser = await db.query.users.findFirst({
-            where: { id: { eq: ctx.body.userId as UserId } },
-          });
-
-          if (!targetUser) {
-            throw new APIError("NOT_FOUND", { message: "User not found" });
-          }
-
-          // Update user status
-          await db
-            .update(schema.users)
-            .set({
-              status: "active",
-              deactivatedAt: null,
-              deactivatedBy: null,
-              deactivatedReason: null,
-            })
-            .where(eq(schema.users.id, ctx.body.userId));
-
-          // Trigger status change hook for domain-specific side effects
-          await onUserStatusChange(
-            ctx.body.userId,
-            "active",
-            targetUser.status,
-            null
+          await runUserStatusMutationWithApiError(() =>
+            userService.activate(
+              ctx.body.userId,
+              currentUser.id,
+              EMPTY_AUDIT_CONTEXT
+            )
           );
 
           return ctx.json({ success: true });
@@ -275,24 +245,13 @@ export const adminPlugin = () => {
             ctx.body.userId
           );
 
-          // Check if user exists
-          const targetUser = await db.query.users.findFirst({
-            where: { id: { eq: ctx.body.userId as UserId } },
-          });
-
-          if (!targetUser) {
-            throw new APIError("NOT_FOUND", { message: "User not found" });
-          }
-
-          // Reset lockout status
-          await db
-            .update(schema.users)
-            .set({
-              status: "active",
-              lockedUntil: null,
-              failedLoginAttempts: 0,
-            })
-            .where(eq(schema.users.id, ctx.body.userId));
+          await runUserStatusMutationWithApiError(() =>
+            userService.unlock(
+              ctx.body.userId,
+              currentUser.id,
+              EMPTY_AUDIT_CONTEXT
+            )
+          );
 
           return ctx.json({ success: true });
         }

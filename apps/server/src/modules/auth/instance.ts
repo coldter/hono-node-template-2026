@@ -107,6 +107,120 @@ function getSessionUserId(ctx: unknown): string | undefined {
   return parsed.data.context?.session?.user?.id;
 }
 
+function resolveTrustedOrigins(request: Request | undefined): string[] {
+  // During initialization or auth.api calls, request is undefined
+  if (!request) {
+    return env.CORS_ORIGIN;
+  }
+
+  const userAgent = request.headers.get("user-agent");
+  const origin = request.headers.get("origin");
+
+  // If request has a valid origin, check against CORS_ORIGIN
+  if (origin) {
+    return env.CORS_ORIGIN;
+  }
+
+  // For mobile clients (no origin header), verify via user-agent
+  // and return an empty array to signal "trust this request"
+  if (userAgent && detectPlatform(userAgent) === "mobile") {
+    // Return the request URL origin to allow the request
+    // This is safe because we verified it's a mobile client
+    const url = new URL(request.url);
+    return [url.origin];
+  }
+
+  // Default: use configured CORS origins
+  return env.CORS_ORIGIN;
+}
+
+function resolveClientIp(headers: Headers | undefined): string | null {
+  const forwarded = headers?.get("x-forwarded-for");
+  if (forwarded) {
+    const firstIp = forwarded.split(",")[0]?.trim();
+    if (firstIp) {
+      return firstIp;
+    }
+  }
+
+  return headers?.get("x-real-ip") ?? null;
+}
+
+async function resolveInitialOrganizationContext(userId: string): Promise<{
+  activeOrganizationId: string;
+  activeOrgRole: string;
+} | null> {
+  try {
+    const [firstMembership] = await db
+      .select({
+        organizationId: schema.members.organizationId,
+        role: schema.members.role,
+      })
+      .from(schema.members)
+      .where(eq(schema.members.userId, userId))
+      .orderBy(desc(schema.members.createdAt))
+      .limit(1);
+
+    if (!firstMembership) {
+      return null;
+    }
+
+    return {
+      activeOrganizationId: firstMembership.organizationId,
+      activeOrgRole: firstMembership.role,
+    };
+  } catch (error) {
+    logger.warn("Failed to resolve initial organization context", {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+async function resolveActiveOrganizationRole(
+  userId: string,
+  organizationId: string
+): Promise<string | null | undefined> {
+  try {
+    const [membership] = await db
+      .select({ role: schema.members.role })
+      .from(schema.members)
+      .where(
+        and(
+          eq(schema.members.userId, userId),
+          eq(schema.members.organizationId, organizationId)
+        )
+      )
+      .limit(1);
+
+    return membership?.role ?? null;
+  } catch (error) {
+    logger.warn("Failed to resolve active organization role", {
+      userId,
+      organizationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return;
+  }
+}
+
+function queueNewDeviceNotification(params: {
+  userId: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  platform: Platform;
+}) {
+  import("./auth-notifications")
+    .then((module) => module.notifyLoginNewDevice(params))
+    .catch((error) => {
+      logger.warn("Failed to queue new-device notification", {
+        userId: params.userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+}
+
 const authConfig = {
   appName: env.APP_NAME,
   secret: env.BETTER_AUTH_SECRET,
@@ -118,32 +232,8 @@ const authConfig = {
   }),
   // Dynamic trustedOrigins to support both web and mobile clients
   // Mobile apps don't send Origin headers, so we detect them via user-agent
-  trustedOrigins: (request: Request | undefined) => {
-    // During initialization or auth.api calls, request is undefined
-    if (!request) {
-      return env.CORS_ORIGIN;
-    }
-
-    const userAgent = request.headers.get("user-agent");
-    const origin = request.headers.get("origin");
-
-    // If request has a valid origin, check against CORS_ORIGIN
-    if (origin) {
-      return env.CORS_ORIGIN;
-    }
-
-    // For mobile clients (no origin header), verify via user-agent
-    // and return an empty array to signal "trust this request"
-    if (userAgent && detectPlatform(userAgent) === "mobile") {
-      // Return the request URL origin to allow the request
-      // This is safe because we verified it's a mobile client
-      const url = new URL(request.url);
-      return [url.origin];
-    }
-
-    // Default: use configured CORS origins
-    return env.CORS_ORIGIN;
-  },
+  trustedOrigins: (request: Request | undefined) =>
+    resolveTrustedOrigins(request),
 
   // Rate limiting - set higher than lockout to ensure our custom lockout kicks in first
   rateLimit: {
@@ -231,10 +321,7 @@ const authConfig = {
 
           // Platform detection and session configuration
           const userAgent = context?.headers?.get("user-agent") ?? null;
-          const ipAddress =
-            context?.headers?.get("x-forwarded-for") ??
-            context?.headers?.get("x-real-ip") ??
-            null;
+          const ipAddress = resolveClientIp(context?.headers);
           const platform = detectPlatform(userAgent);
           const config = SESSION_CONFIG[platform];
 
@@ -260,46 +347,21 @@ const authConfig = {
               previousSession.ipAddress !== ipAddress;
 
             if (isNewDevice) {
-              import("./auth-notifications")
-                .then((m) =>
-                  m.notifyLoginNewDevice({
-                    userId: session.userId,
-                    ipAddress,
-                    userAgent,
-                    platform,
-                  })
-                )
-                .catch(() => {});
+              queueNewDeviceNotification({
+                userId: session.userId,
+                ipAddress,
+                userAgent,
+                platform,
+              });
             }
           }
 
           // Calculate expiration based on platform
           const expiresAt = new Date(Date.now() + config.expiresIn * 1000);
 
-          let orgContext: {
-            activeOrganizationId: string;
-            activeOrgRole: string;
-          } | null = null;
-          try {
-            const [firstMembership] = await db
-              .select({
-                organizationId: schema.members.organizationId,
-                role: schema.members.role,
-              })
-              .from(schema.members)
-              .where(eq(schema.members.userId, session.userId))
-              .orderBy(desc(schema.members.createdAt))
-              .limit(1);
-
-            if (firstMembership) {
-              orgContext = {
-                activeOrganizationId: firstMembership.organizationId,
-                activeOrgRole: firstMembership.role,
-              };
-            }
-          } catch {
-            orgContext = null;
-          }
+          const orgContext = await resolveInitialOrganizationContext(
+            session.userId
+          );
 
           return {
             data: {
@@ -330,27 +392,21 @@ const authConfig = {
             const userId = getSessionUserId(context);
 
             if (userId) {
-              try {
-                const [membership] = await db
-                  .select({ role: schema.members.role })
-                  .from(schema.members)
-                  .where(
-                    and(
-                      eq(schema.members.userId, userId),
-                      eq(schema.members.organizationId, newOrgId)
-                    )
-                  )
-                  .limit(1);
+              const activeOrgRole = await resolveActiveOrganizationRole(
+                userId,
+                newOrgId
+              );
 
-                return {
-                  data: {
-                    ...session,
-                    activeOrgRole: membership?.role ?? null,
-                  },
-                };
-              } catch {
+              if (activeOrgRole === undefined) {
                 return { data: session };
               }
+
+              return {
+                data: {
+                  ...session,
+                  activeOrgRole,
+                },
+              };
             }
 
             return { data: session };
