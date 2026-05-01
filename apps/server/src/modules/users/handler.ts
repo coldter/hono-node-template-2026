@@ -9,7 +9,6 @@ import { EVENTS, pushEvent } from "@/lib/events";
 import { notificationService } from "@/modules/notifications";
 import { defaultHook } from "@/utils/default-hook";
 import { UserNotFoundError } from "./errors";
-import { getRequestContext } from "./helpers";
 import {
   toMyAccountResponse,
   toUserDetailResponse,
@@ -95,8 +94,11 @@ const usersHandler = app
       });
     }
 
-    const auditContext = getRequestContext(c);
-    const user = await userService.create(body, currentUser.id, auditContext);
+    const user = await userService.create(
+      body,
+      currentUser.id,
+      c.var.auditContext
+    );
 
     await pushEvent(EVENTS.USER_CREATED, {
       userId: user.id,
@@ -112,14 +114,12 @@ const usersHandler = app
     const body = c.req.valid("json");
     const currentUser = requireCurrentUser(c);
 
-    const auditContext = getRequestContext(c);
-
     try {
       const user = await userService.update(
         userId,
         body,
         currentUser.id,
-        auditContext
+        c.var.auditContext
       );
       return c.json({ user: toUserSummaryResponse(user) }, 200);
     } catch (error) {
@@ -145,14 +145,12 @@ const usersHandler = app
       });
     }
 
-    const auditContext = getRequestContext(c);
-
     try {
       const user = await userService.updateRoles(
         userId,
         body,
         currentUser.id,
-        auditContext
+        c.var.auditContext
       );
       return c.json({ user: toUserSummaryResponse(user) }, 200);
     } catch (error) {
@@ -169,13 +167,12 @@ const usersHandler = app
       throw new HTTPException(400, { message: "Cannot deactivate yourself" });
     }
 
-    const auditContext = getRequestContext(c);
     try {
       await userService.deactivate(
         userId,
         body.reason ?? null,
         currentUser.id,
-        auditContext
+        c.var.auditContext
       );
     } catch (error) {
       handleUserNotFound(error);
@@ -188,9 +185,8 @@ const usersHandler = app
     const { userId } = c.req.valid("param");
     const currentUser = requireCurrentUser(c);
 
-    const auditContext = getRequestContext(c);
     try {
-      await userService.activate(userId, currentUser.id, auditContext);
+      await userService.activate(userId, currentUser.id, c.var.auditContext);
     } catch (error) {
       handleUserNotFound(error);
     }
@@ -202,9 +198,8 @@ const usersHandler = app
     const { userId } = c.req.valid("param");
     const currentUser = requireCurrentUser(c);
 
-    const auditContext = getRequestContext(c);
     try {
-      await userService.unlock(userId, currentUser.id, auditContext);
+      await userService.unlock(userId, currentUser.id, c.var.auditContext);
     } catch (error) {
       handleUserNotFound(error);
     }

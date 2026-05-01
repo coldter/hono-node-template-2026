@@ -108,18 +108,23 @@ describe("buildRegistry", () => {
     }
   });
 
-  // isAllowed() returns boolean
-  it("isAllowed returns boolean", async () => {
-    expect(await registry.isAllowed(adminPrincipal, "test", "list")).toBe(true);
-    expect(await registry.isAllowed(userPrincipal, "test", "create")).toBe(
+  // can().allowed yields the boolean directly
+  it("can() returns allowed=true on permitted action", async () => {
+    expect((await registry.can(adminPrincipal, "test", "list")).allowed).toBe(
+      true
+    );
+    expect((await registry.can(userPrincipal, "test", "create")).allowed).toBe(
       false
     );
   });
 
-  // isDenied() returns boolean
-  it("isDenied returns boolean", async () => {
-    expect(await registry.isDenied(userPrincipal, "test", "create")).toBe(true);
-    expect(await registry.isDenied(adminPrincipal, "test", "list")).toBe(false);
+  it("can() returns allowed=false (deny) for unauthorised action", async () => {
+    expect((await registry.can(userPrincipal, "test", "create")).allowed).toBe(
+      false
+    );
+    expect((await registry.can(adminPrincipal, "test", "list")).allowed).toBe(
+      true
+    );
   });
 
   // assertCan() throws on deny

@@ -1,4 +1,5 @@
 import type { HttpBindings } from "@hono/node-server";
+import type { AuditContext } from "@/lib/audit-context";
 import type { auth } from "@/modules/auth/instance";
 
 /**
@@ -22,6 +23,7 @@ export type Env = {
     user: typeof auth.$Infer.Session.user | null;
     session: typeof auth.$Infer.Session.session | null;
     otel: { traceId: string | null; spanId: string | null } | null;
+    auditContext: AuditContext;
   };
   Bindings: Bindings;
 };

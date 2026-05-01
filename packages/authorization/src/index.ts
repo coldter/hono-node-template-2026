@@ -12,8 +12,18 @@ export {
 export { AuthorizationError } from "./errors";
 export type { EvaluateInput } from "./evaluator";
 export { evaluate } from "./evaluator";
-export type { RegistryInstance, RegistryOptions } from "./registry";
+export type {
+  CapabilityKey,
+  CapabilityMap,
+  RegistryInstance,
+  RegistryOptions,
+} from "./registry";
 export { buildRegistryInstance } from "./registry";
+export type {
+  ActionsOf,
+  PolicyActionStage,
+  ResourceTypeFor,
+} from "./resource";
 export {
   createResourceDefinition,
   PolicyBuilder,

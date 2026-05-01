@@ -1,8 +1,10 @@
 // Drizzle ORM adapter for relationship queries.
-// The db and table parameters are typed as `any` because this package cannot
-// depend on @repo/db directly -- drizzle-orm is an optional peer dependency,
-// and the consuming app (apps/server) supplies properly-typed instances.
-import { and, eq, inArray, type SQL, type SQLWrapper } from "drizzle-orm";
+// One DrizzleLike type captures the subset of the Drizzle client surface
+// this module touches; one AuthRelationsTable type captures the column
+// shape. Both avoid importing @repo/db so this package stays self-contained
+// while drizzle-orm remains an optional peer dependency.
+// boundary: drizzle-orm generic variance
+import { and, type Column, eq, inArray, type SQL } from "drizzle-orm";
 
 export interface RelationTuple {
   objectId: string;
@@ -36,37 +38,52 @@ export interface ListRelationsInput {
   subject?: RelationEntity;
 }
 
-// Structural type for the auth_relations table columns.
-// Matches the authRelationsTable shape from packages/db without importing it.
-// Columns are typed as SQLWrapper so they satisfy drizzle helper signatures
-// (eq, inArray, etc.) while remaining agnostic to the concrete column type.
+// Structural shape of the auth_relations table. Columns are typed as
+// drizzle-orm Column so eq/inArray overloads resolve.
 type AuthRelationsTable = {
-  subjectType: SQLWrapper;
-  subjectId: SQLWrapper;
-  relation: SQLWrapper;
-  objectType: SQLWrapper;
-  objectId: SQLWrapper;
-  createdBy: SQLWrapper;
+  subjectType: Column;
+  subjectId: Column;
+  relation: Column;
+  objectType: Column;
+  objectId: Column;
+  createdBy: Column;
+};
+
+// Subset of the Drizzle client surface used by this module. Each chain
+// step returns the next builder; final terminal calls return Promises.
+// Per-function arguments use `Pick<DrizzleLike, ...>` so test mocks can
+// implement only the verbs they need.
+// boundary: drizzle-orm generic variance
+type SelectChain<TRow> = {
+  from: (table: unknown) => {
+    where: (condition: unknown) => Promise<TRow[]> & {
+      limit: (n: number) => Promise<TRow[]>;
+    };
+  };
+};
+
+export type DrizzleLike = {
+  select: <TRow>(fields: Record<string, unknown>) => SelectChain<TRow>;
+  insert: (table: unknown) => {
+    values: (data: Record<string, unknown>) => {
+      onConflictDoNothing: () => Promise<void>;
+    };
+  };
+  delete: (table: unknown) => {
+    where: (condition: unknown) => Promise<void>;
+  };
 };
 
 /**
  * Check if a single relation tuple exists.
  */
 export async function checkRelation(
-  db: {
-    select: (fields: Record<string, unknown>) => {
-      from: (table: unknown) => {
-        where: (condition: unknown) => {
-          limit: (n: number) => Promise<unknown[]>;
-        };
-      };
-    };
-  },
+  db: Pick<DrizzleLike, "select">,
   table: AuthRelationsTable,
   input: CheckRelationInput
 ): Promise<boolean> {
   const result = await db
-    .select({ id: table.subjectId })
+    .select<{ id: string }>({ id: table.subjectId })
     .from(table)
     .where(
       and(
@@ -88,21 +105,7 @@ export async function checkRelation(
  * optimized with per-tuple queries or a multi-column IN when Drizzle supports it.
  */
 export async function checkRelationBatch(
-  db: {
-    select: (fields: Record<string, unknown>) => {
-      from: (table: unknown) => {
-        where: (condition: unknown) => Promise<
-          {
-            subjectType: string;
-            subjectId: string;
-            relation: string;
-            objectType: string;
-            objectId: string;
-          }[]
-        >;
-      };
-    };
-  },
+  db: Pick<DrizzleLike, "select">,
   table: AuthRelationsTable,
   inputs: CheckRelationInput[]
 ): Promise<Map<string, boolean>> {
@@ -116,7 +119,7 @@ export async function checkRelationBatch(
   }
 
   const results = await db
-    .select({
+    .select<RelationTuple>({
       subjectType: table.subjectType,
       subjectId: table.subjectId,
       relation: table.relation,
@@ -148,13 +151,7 @@ export async function checkRelationBatch(
  * Create a new relation tuple. Silently ignores duplicates via onConflictDoNothing.
  */
 export async function createRelation(
-  db: {
-    insert: (table: unknown) => {
-      values: (data: Record<string, unknown>) => {
-        onConflictDoNothing: () => Promise<void>;
-      };
-    };
-  },
+  db: Pick<DrizzleLike, "insert">,
   table: AuthRelationsTable,
   input: CreateRelationInput
 ): Promise<void> {
@@ -175,11 +172,7 @@ export async function createRelation(
  * Delete a relation tuple.
  */
 export async function deleteRelation(
-  db: {
-    delete: (table: unknown) => {
-      where: (condition: unknown) => Promise<void>;
-    };
-  },
+  db: Pick<DrizzleLike, "delete">,
   table: AuthRelationsTable,
   input: CheckRelationInput
 ): Promise<void> {
@@ -200,13 +193,7 @@ export async function deleteRelation(
  * List relations matching a filter. All filter fields are optional.
  */
 export async function listRelations(
-  db: {
-    select: (fields: Record<string, unknown>) => {
-      from: (table: unknown) => {
-        where: (condition: unknown) => Promise<RelationTuple[]>;
-      };
-    };
-  },
+  db: Pick<DrizzleLike, "select">,
   table: AuthRelationsTable,
   input: ListRelationsInput
 ): Promise<RelationTuple[]> {
@@ -224,7 +211,7 @@ export async function listRelations(
   }
 
   const results = await db
-    .select({
+    .select<RelationTuple>({
       subjectType: table.subjectType,
       subjectId: table.subjectId,
       relation: table.relation,

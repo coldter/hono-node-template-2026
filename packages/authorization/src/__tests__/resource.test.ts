@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { createResourceDefinition, PolicyBuilder } from "../resource";
 import type { ConditionContext } from "../types";
 
+const AT_LEAST_ONE_ACTION = /at least one action/;
+const CANNOT_MIX_WILDCARD = /cannot mix the wildcard/;
+
 type TestResource = { id: string; createdBy: string };
 
 describe("PolicyBuilder", () => {
@@ -138,6 +141,30 @@ describe("PolicyBuilder", () => {
     expect(() => {
       builderNoOwner.allow("user").to("update").whereOwner();
     }).toThrow("whereOwner() requires resolveOwner to be defined");
+  });
+
+  it("to() with no args throws", () => {
+    expect(() => {
+      builder.allow("user").to();
+    }).toThrow(AT_LEAST_ONE_ACTION);
+  });
+
+  it("to('*', 'view') mixing wildcard and explicit actions throws", () => {
+    expect(() => {
+      builder.allow("user").to("*", "view");
+    }).toThrow(CANNOT_MIX_WILDCARD);
+  });
+
+  it("allow() return type does not expose where()/whereOwner() until to() runs", () => {
+    // @ts-expect-error -- where() is not on the action stage; must call to() first
+    builder.allow("user").where(() => true);
+
+    // @ts-expect-error -- whereOwner() is not on the action stage either
+    builder.allow("user").whereOwner();
+
+    // sanity: chaining via to() resolves the type stage
+    const rule = builder.allow("user").to("update").whereOwner();
+    expect(rule.effect).toBe("allow");
   });
 });
 

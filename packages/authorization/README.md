@@ -73,11 +73,24 @@ import {
 } from "@repo/authorization/hono";
 ```
 
-- `createAuthorize(registry, options)` builds the route middleware. The returned `authorize(resource, action)` is type-safe: `resource` must be a key of the registry, so typos fail to compile.
-- `getAuthorizedResource<T>(c)` retrieves the record loaded by `loadResource` so handlers do not need to refetch.
+- `createAuthorize(registry, options)` builds the route middleware. The returned `authorize(resource, action)` is type-safe: both `resource` and `action` are narrowed to the registry's vocabulary, so typos fail to compile.
+- `getAuthorizedResource<T>(c)` retrieves the record loaded by `loadResource` so handlers do not need to refetch. It throws if invoked on a route that did not declare a `loadResource`, so handlers can rely on a non-null `T`.
 - `assertCanOrThrow(registry, principal, resource, action, opts?)` is an in-handler escape hatch that throws an `HTTPException` (401/403) on deny. Prefer middleware where possible.
+- `authorize.unsafeBypassAuthorization(label)` opts a route out of authorization. The label MUST appear in `createAuthorize({ allowedBypassLabels: [...] })` or the call throws at construction time. Each request through a bypassed route emits a structured `authorization.bypass` warning to stderr.
 
 Note on `globalPolicies`: only `deny()` is exposed by the global builder. The engine is deny-first, and a global allow would invert that contract; resource-level `allow` policies are the right place to grant access.
+
+### Builder and registry validation
+
+The fluent policy builder fails fast when a policy is malformed:
+
+- `allow()` / `deny()` return a stage that exposes only `to(...)`. Forgetting `to(...)` is a TypeScript error.
+- `to()` throws at construction time if called with no arguments, or if `"*"` is mixed with explicit action names (use `to("*")` for "any action" or `to("list", "view")` for explicit lists, never both).
+- `auth.buildRegistry({ ... })` validates that policy roles, relations, and org roles all exist in the schema vocabulary, and that any resource using `withOrgRole(...)` also defines `resolveOrganization`. Mismatches throw with a message naming the offending resource.
+
+### Capability maps are optimistic
+
+`registry.evaluateCapabilities(principal)` returns a typed map keyed by `${resourceName}:${action}`. It is **optimistic by design**: conditional allows (`whereOwner`, `whereTargetIsSelf`, custom `where`) resolve to `true`, and conditional denies are skipped. Use it for UI gating — navigation visibility, page entry points, broad action visibility. Use `registry.can(...)` against a loaded resource for any record-level decision.
 
 ### Drizzle adapter
 

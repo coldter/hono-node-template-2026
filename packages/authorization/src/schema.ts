@@ -1,7 +1,15 @@
 // packages/authorization/src/schema.ts
 import { buildRegistryInstance, type RegistryInstance } from "./registry";
-import { createResourceDefinition } from "./resource";
+import {
+  createResourceDefinition,
+  type ResourceConfig,
+  type ResourceDef,
+} from "./resource";
 import type { Condition, PolicyRule } from "./types";
+
+// Re-export for downstream consumers; the canonical declarations live in
+// resource.ts next to the PolicyBuilder/PolicyRuleBuilder classes.
+export type { ResourceConfig, ResourceDef } from "./resource";
 
 // Type-level marker for principal attributes
 export function principalAttribute<T>(): { __type: T } {
@@ -22,6 +30,17 @@ class GlobalPolicyRuleBuilder<TRole extends string> {
   }
 
   to(...actions: string[]): this {
+    if (actions.length === 0) {
+      throw new Error(
+        "to() requires at least one action. Use to('*') to match every action."
+      );
+    }
+    if (actions.includes("*") && actions.length > 1) {
+      throw new Error(
+        "to('*', ...) cannot mix the wildcard with explicit actions. " +
+          "Either pass a single '*' or list explicit actions."
+      );
+    }
     this.rule.actions =
       actions.length === 1 && actions[0] === "*" ? "*" : actions;
     return this;
@@ -64,10 +83,20 @@ export interface AuthSchema<
     resources: TRegistry
   ): RegistryInstance<TRegistry>;
 
-  createResource<TResource>(
+  createResource<
+    TResource,
+    const TActions extends readonly string[] = readonly string[],
+  >(
     name: string,
-    config: ResourceConfig<TResource, TRole, TRelation, TAttributes, TOrgRole>
-  ): ResourceDef<TResource, TRole>;
+    config: ResourceConfig<
+      TResource,
+      TRole,
+      TRelation,
+      TAttributes,
+      TOrgRole,
+      TActions
+    >
+  ): ResourceDef<TResource, TRole, TActions[number]>;
   readonly globalPolicies: PolicyRule[];
   readonly orgRoleValues: readonly TOrgRole[];
   readonly relationValues: readonly TRelation[];
@@ -75,74 +104,23 @@ export interface AuthSchema<
   readonly systemAdminRoles: readonly TRole[];
 }
 
-// Forward declarations for resource/registry types (implemented in resource.ts/registry.ts)
-export interface ResourceConfig<
-  TResource,
-  TRole extends string,
-  TRelation extends string,
-  _TAttributes extends Record<string, unknown>,
-  TOrgRole extends string,
-> {
-  actions: readonly string[];
-  policies: (
-    builder: PolicyBuilderInterface<TResource, TRole, TRelation, TOrgRole>
-  ) => PolicyRule<TResource, TRole>[];
-  relations?: Record<string, (resource: TResource) => string>;
-  resolveOrganization?: (resource: TResource) => string | null | undefined;
-  resolveOwner?: (resource: TResource) => string;
-}
-
-// Structural interface for the fluent rule builder returned by allow()/deny().
-// The real implementation lives in resource.ts (PolicyRuleBuilder class).
-export interface PolicyRuleBuilderInterface<
-  TResource,
-  TRole extends string,
-  TRelation extends string = string,
-  TOrgRole extends string = string,
-> extends PolicyRule<TResource, TRole> {
-  to(...actions: string[]): this;
-  where(
-    predicate: (
-      ctx: import("./types").ConditionContext<TResource>
-    ) => boolean | Promise<boolean>
-  ): this;
-  whereOwner(): this;
-  whereTargetIsSelf(): this;
-  withOrgRole(...orgRoles: TOrgRole[]): this;
-  withRelation(relation: TRelation, targetKey: string): this;
-}
-
-// Structural interface for the policy builder passed to resource config callbacks.
-// The real implementation lives in resource.ts (PolicyBuilder class).
-export interface PolicyBuilderInterface<
-  TResource,
-  TRole extends string,
-  TRelation extends string,
-  TOrgRole extends string,
-> {
-  allow(
-    role: TRole | "*"
-  ): PolicyRuleBuilderInterface<TResource, TRole, TRelation, TOrgRole>;
-  deny(
-    role: TRole | "*"
-  ): PolicyRuleBuilderInterface<TResource, TRole, TRelation, TOrgRole>;
-}
-export interface ResourceDef<TResource, TRole extends string> {
-  readonly actions: readonly string[];
-  readonly name: string;
-  readonly policies: PolicyRule<TResource, TRole>[];
-  readonly relations?: Record<string, (resource: TResource) => string>;
-  readonly resolveOrganization?: (
-    resource: TResource
-  ) => string | null | undefined;
-  readonly resolveOwner?: (resource: TResource) => string;
-}
-
 // Covariant-safe bound for buildRegistry/RegistryInstance constraints.
 // Function parameters use `never` so that ResourceDef<Concrete, Role> satisfies
 // this bound (since (arg: Concrete) => R is assignable to (arg: never) => R).
-export type AnyResourceDef<TRole extends string = string> = {
-  readonly actions: readonly string[];
+// `TAction` defaults to `string` so legacy specs continue to assign; concrete
+// ResourceDef<R, Role, "list" | "view"> still satisfies because the wider
+// `string` upper bound is covariant in this position.
+//
+// Note: the phantom `__resource` marker on `ResourceDef` is intentionally
+// omitted here so concrete ResourceDef<TResource, ...> values remain
+// assignable to AnyResourceDef without a structural conflict on that field.
+// Adapters should recover the resource type via `ResourceTypeFor<TR>` against
+// the concrete `TResources[K]`, which still carries the phantom.
+export type AnyResourceDef<
+  TRole extends string = string,
+  TAction extends string = string,
+> = {
+  readonly actions: readonly TAction[];
   readonly name: string;
   readonly policies: PolicyRule<never, TRole>[];
   readonly relations?: Record<string, (resource: never) => string>;
@@ -181,26 +159,38 @@ export function createAuthSchema<
   type Attrs = ExtractAttributes<TPrincipal>;
   type OrgRole = TOrgRoles extends readonly [] ? never : TOrgRoles[number];
 
+  const orgRoles = (config.organizationRoles ?? []) as readonly OrgRole[];
+
   return {
     roleValues: config.roles,
     relationValues: config.relations,
-    orgRoleValues: (config.organizationRoles ?? []) as readonly OrgRole[],
-    systemAdminRoles: config.systemAdminRoles as readonly Role[],
+    orgRoleValues: orgRoles,
+    systemAdminRoles: config.systemAdminRoles,
     globalPolicies,
-    createResource<TResource>(
+    createResource<
+      TResource,
+      const TActions extends readonly string[] = readonly string[],
+    >(
       name: string,
-      resourceConfig: ResourceConfig<TResource, Role, Relation, Attrs, OrgRole>
-    ): ResourceDef<TResource, Role> {
+      resourceConfig: ResourceConfig<
+        TResource,
+        Role,
+        Relation,
+        Attrs,
+        OrgRole,
+        TActions
+      >
+    ): ResourceDef<TResource, Role, TActions[number]> {
       return createResourceDefinition<
         TResource,
         Role,
         Relation,
         Attrs,
-        OrgRole
+        OrgRole,
+        TActions
       >(name, resourceConfig, {
-        validRelations: config.relations as unknown as readonly string[],
-        validOrgRoles: (config.organizationRoles ??
-          []) as unknown as readonly string[],
+        validRelations: config.relations,
+        validOrgRoles: orgRoles,
       });
     },
     buildRegistry<TRegistry extends Record<string, AnyResourceDef<Role>>>(
@@ -208,11 +198,11 @@ export function createAuthSchema<
     ): RegistryInstance<TRegistry> {
       return buildRegistryInstance(resources, {
         globalPolicies,
-        systemAdminRoles: config.systemAdminRoles as readonly string[],
-        schemaRoles: config.roles as unknown as readonly string[],
-        schemaRelations: config.relations as unknown as readonly string[],
-        orgRoleValues: (config.organizationRoles ?? []) as readonly string[],
+        systemAdminRoles: config.systemAdminRoles,
+        schemaRoles: config.roles,
+        schemaRelations: config.relations,
+        orgRoleValues: orgRoles,
       });
     },
-  } as AuthSchema<Role, Relation, Attrs, OrgRole>;
+  } satisfies AuthSchema<Role, Relation, Attrs, OrgRole>;
 }

@@ -181,23 +181,47 @@ export const authorize = createAuthorize(authorization, {
 });
 ```
 
+Both `resource` and `action` are narrowed to the registry vocabulary. `authorize("user", "fly")` is a TypeScript error if `"fly"` is not in the resource's `actions` tuple.
+
 Use it directly on routes that do not need a loaded record:
 
 ```ts
 app.get("/users", authorize("user", "list"), listUsersHandler);
 ```
 
-Use `loadResource` when the policy depends on a concrete record:
+Use `loadResource` when the policy depends on a concrete record. The callback's return type is type-checked against the registered resource shape, and `getAuthorizedResource` retrieves it without a refetch:
 
 ```ts
+import { getAuthorizedResource } from "@repo/authorization/hono";
+
 app.get(
   "/users/:userId",
   authorize("user", "view", {
     loadResource: async (c) => findUserById(c.req.param("userId")),
   }),
-  getUserHandler
+  async (c) => {
+    const user = getAuthorizedResource<UserRecord>(c);
+    return c.json({ user });
+  }
 );
 ```
+
+`getAuthorizedResource<T>(c)` throws if invoked on a route that did not declare a `loadResource`, so handlers can rely on a non-null value.
+
+### Bypassing authorization (rare)
+
+Some routes are intentionally public (health checks, public webhooks). To opt them out, register the labels at construction time and use `unsafeBypassAuthorization`:
+
+```ts
+export const authorize = createAuthorize(authorization, {
+  resolvePrincipal: (c) => c.get("principal"),
+  allowedBypassLabels: ["health", "stripe-webhook"],
+});
+
+app.get("/health", authorize.unsafeBypassAuthorization("health"), healthHandler);
+```
+
+Calling `unsafeBypassAuthorization` with an unregistered label throws at middleware construction. Each request through a bypassed route emits a structured `console.warn` (`{ event: "authorization.bypass", label, path, method }`) so deliberate exceptions remain auditable.
 
 ## 6. Add a capabilities endpoint
 

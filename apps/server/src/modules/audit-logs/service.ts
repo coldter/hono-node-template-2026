@@ -1,15 +1,5 @@
 import { auditLogs } from "@repo/db/schema";
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gte,
-  lte,
-  type SQL,
-  sql,
-} from "drizzle-orm";
+import { and, count, eq, gte, lte, type SQL, sql } from "drizzle-orm";
 
 import { db, type Executor } from "@/db";
 import type {
@@ -17,6 +7,7 @@ import type {
   FindAuditLogsQuery,
 } from "@/modules/audit-logs/types";
 import {
+  buildOrderBy,
   createPaginatedResponse,
   getPaginationParams,
 } from "@/utils/pagination";
@@ -84,17 +75,14 @@ export const auditLogService = {
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const sortColumn =
-      ALLOWED_SORT_COLUMNS[sort as keyof typeof ALLOWED_SORT_COLUMNS] ??
-      auditLogs.createdAt;
-    const orderFn = order === "asc" ? asc : desc;
-
     const [data, [countResult]] = await Promise.all([
       db
         .select()
         .from(auditLogs)
         .where(where)
-        .orderBy(orderFn(sortColumn))
+        .orderBy(
+          buildOrderBy(ALLOWED_SORT_COLUMNS, sort, order, auditLogs.createdAt)
+        )
         .limit(perPage)
         .offset(offset),
       db.select({ total: count() }).from(auditLogs).where(where),

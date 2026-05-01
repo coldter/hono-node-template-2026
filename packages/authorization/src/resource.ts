@@ -5,13 +5,65 @@ import {
   createRelationCondition,
   createSelfTargetCondition,
 } from "./conditions";
-import type { ResourceConfig, ResourceDef } from "./schema";
 import type {
   Condition,
   ConditionContext,
   ConditionEffect,
   PolicyRule,
 } from "./types";
+
+/**
+ * Configuration for a resource. Authored by package consumers and
+ * passed to createResourceDefinition / AuthSchema.createResource.
+ *
+ * `TActions` is captured as a `const` tuple so each resource carries its
+ * action union into the registry (powers typed `can(...)` calls).
+ */
+export interface ResourceConfig<
+  TResource,
+  TRole extends string,
+  TRelation extends string,
+  _TAttributes extends Record<string, unknown>,
+  TOrgRole extends string,
+  TActions extends readonly string[] = readonly string[],
+> {
+  actions: TActions;
+  policies: (
+    builder: PolicyBuilder<TResource, TRole, TRelation, TOrgRole>
+  ) => PolicyRule<TResource, TRole>[];
+  relations?: Record<string, (resource: TResource) => string>;
+  resolveOrganization?: (resource: TResource) => string | null | undefined;
+  resolveOwner?: (resource: TResource) => string;
+}
+
+/**
+ * Compiled resource definition produced by createResourceDefinition.
+ * Stored in the registry and consumed by the evaluator.
+ *
+ * `TAction` defaults to `string` so legacy callers and the covariant
+ * `AnyResourceDef` bound continue to assign without changes; concrete
+ * resources produced via `createResource` narrow to a literal union.
+ *
+ * The optional `__resource` phantom captures the resource payload type
+ * so adapters can recover it via `ResourceTypeFor<...>` (used by the
+ * Hono `loadResource` / `getAuthorizedResource` typing).
+ */
+export interface ResourceDef<
+  TResource,
+  TRole extends string,
+  TAction extends string = string,
+> {
+  // Phantom marker for type-only resource recovery; never read at runtime.
+  readonly __resource?: TResource;
+  readonly actions: readonly TAction[];
+  readonly name: string;
+  readonly policies: PolicyRule<TResource, TRole>[];
+  readonly relations?: Record<string, (resource: TResource) => string>;
+  readonly resolveOrganization?: (
+    resource: TResource
+  ) => string | null | undefined;
+  readonly resolveOwner?: (resource: TResource) => string;
+}
 
 /**
  * PolicyRuleBuilder chains conditions onto a single rule.
@@ -68,6 +120,17 @@ export class PolicyRuleBuilder<
   }
 
   to(...newActions: string[]): this {
+    if (newActions.length === 0) {
+      throw new Error(
+        "to() requires at least one action. Use to('*') to match every action."
+      );
+    }
+    if (newActions.includes("*") && newActions.length > 1) {
+      throw new Error(
+        "to('*', ...) cannot mix the wildcard with explicit actions. " +
+          "Either pass a single '*' or list explicit actions."
+      );
+    }
     this.actions =
       newActions.length === 1 && newActions[0] === "*" ? "*" : newActions;
     return this;
@@ -84,9 +147,7 @@ export class PolicyRuleBuilder<
   }
 
   whereTargetIsSelf(): this {
-    this.conditions.push(
-      createSelfTargetCondition() as unknown as Condition<TResource>
-    );
+    this.conditions.push(createSelfTargetCondition<TResource>());
     return this;
   }
 
@@ -128,19 +189,37 @@ export class PolicyRuleBuilder<
         }
       }
     }
-    this.conditions.push(
-      createOrgRoleCondition(orgRoles) as unknown as Condition<TResource>
-    );
+    this.conditions.push(createOrgRoleCondition<TResource>(orgRoles));
     return this;
   }
 }
 
 /**
+ * Type-level view of `allow()` / `deny()` BEFORE `.to(...)` has narrowed
+ * the rule. The runtime object is still a full PolicyRuleBuilder, but the
+ * exposed surface forces callers to provide actions before chaining
+ * conditions or returning a rule. This prevents the silent
+ * `p.allow("admin").whereOwner()` (no `.to(...)`) footgun.
+ */
+export interface PolicyActionStage<
+  TResource,
+  TRole extends string,
+  TRelation extends string,
+  TOrgRole extends string,
+> {
+  to(
+    ...actions: string[]
+  ): PolicyRuleBuilder<TResource, TRole, TRelation, TOrgRole>;
+}
+
+/**
  * PolicyBuilder creates PolicyRuleBuilders for a given resource type.
  *
- * The `allow()` and `deny()` methods return a PolicyRuleBuilder whose
- * `to()` call (and optional condition chaining) produces an object that
- * satisfies PolicyRule<TResource, TRole>.
+ * `allow()` / `deny()` return a `PolicyActionStage` -- only `.to(...)`
+ * is callable until actions are bound. `.to(...)` returns the full
+ * PolicyRuleBuilder which exposes condition chaining and satisfies
+ * PolicyRule<TResource, TRole>. A bare `.to("*")` (single arg) is still
+ * a valid one-liner because the builder also implements PolicyRule.
  */
 export class PolicyBuilder<
   TResource,
@@ -166,14 +245,14 @@ export class PolicyBuilder<
 
   allow(
     role: TRole | "*"
-  ): PolicyRuleBuilder<TResource, TRole, TRelation, TOrgRole> {
+  ): PolicyActionStage<TResource, TRole, TRelation, TOrgRole> {
     const roles = role === "*" ? ("*" as const) : [role];
     return new PolicyRuleBuilder("allow", roles, this.opts);
   }
 
   deny(
     role: TRole | "*"
-  ): PolicyRuleBuilder<TResource, TRole, TRelation, TOrgRole> {
+  ): PolicyActionStage<TResource, TRole, TRelation, TOrgRole> {
     const roles = role === "*" ? ("*" as const) : [role];
     return new PolicyRuleBuilder("deny", roles, this.opts);
   }
@@ -192,14 +271,22 @@ export function createResourceDefinition<
   TRelation extends string,
   TAttributes extends Record<string, unknown>,
   TOrgRole extends string,
+  const TActions extends readonly string[] = readonly string[],
 >(
   name: string,
-  config: ResourceConfig<TResource, TRole, TRelation, TAttributes, TOrgRole>,
+  config: ResourceConfig<
+    TResource,
+    TRole,
+    TRelation,
+    TAttributes,
+    TOrgRole,
+    TActions
+  >,
   schemaOpts?: {
     validRelations?: readonly string[];
     validOrgRoles?: readonly string[];
   }
-): ResourceDef<TResource, TRole> {
+): ResourceDef<TResource, TRole, TActions[number]> {
   const builder = new PolicyBuilder<TResource, TRole, TRelation, TOrgRole>({
     resolveOwner: config.resolveOwner,
     relations: config.relations,
@@ -218,3 +305,11 @@ export function createResourceDefinition<
     relations: config.relations,
   };
 }
+
+/** Recover the action union for a given ResourceDef. */
+export type ActionsOf<TR> =
+  TR extends ResourceDef<infer _R, infer _Role, infer A> ? A : string;
+
+/** Recover the resource payload type for a given ResourceDef. */
+export type ResourceTypeFor<TR> =
+  TR extends ResourceDef<infer R, infer _Role, infer _A> ? R : unknown;

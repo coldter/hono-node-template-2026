@@ -247,19 +247,24 @@ describe("integration: single-tenant", () => {
     ).resolves.toBeUndefined();
   });
 
-  // Test 15: isAllowed and isDenied return correct booleans
-  it("isAllowed returns correct booleans", async () => {
-    expect(await registry.isAllowed(admin, "user", "list")).toBe(true);
-    expect(await registry.isAllowed(user1, "user", "list")).toBe(true);
-    expect(await registry.isAllowed(user1, "user", "create")).toBe(false);
-    expect(await registry.isAllowed(inactiveUser, "user", "list")).toBe(false);
+  // Test 15: can().allowed reports the same boolean information that the
+  // removed isAllowed/isDenied helpers used to expose.
+  it("can() returns allowed=true for permitted actions", async () => {
+    expect((await registry.can(admin, "user", "list")).allowed).toBe(true);
+    expect((await registry.can(user1, "user", "list")).allowed).toBe(true);
+    expect((await registry.can(user1, "user", "create")).allowed).toBe(false);
+    expect((await registry.can(inactiveUser, "user", "list")).allowed).toBe(
+      false
+    );
   });
 
-  it("isDenied returns correct booleans", async () => {
-    expect(await registry.isDenied(admin, "user", "list")).toBe(false);
-    expect(await registry.isDenied(user1, "user", "list")).toBe(false);
-    expect(await registry.isDenied(user1, "user", "create")).toBe(true);
-    expect(await registry.isDenied(inactiveUser, "user", "list")).toBe(true);
+  it("can() returns allowed=false (denial) for unauthorised actions", async () => {
+    expect((await registry.can(admin, "user", "list")).allowed).toBe(true);
+    expect((await registry.can(user1, "user", "list")).allowed).toBe(true);
+    expect((await registry.can(user1, "user", "create")).allowed).toBe(false);
+    expect((await registry.can(inactiveUser, "user", "list")).allowed).toBe(
+      false
+    );
   });
 });
 

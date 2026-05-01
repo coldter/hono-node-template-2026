@@ -1,5 +1,3 @@
-import type { Context } from "hono";
-
 import type { AuditLogMetadata, FieldChange } from "@/modules/audit-logs/types";
 
 export function createChangeMetadata<T extends Record<string, unknown>>(
@@ -24,17 +22,4 @@ export function createChangeMetadata<T extends Record<string, unknown>>(
   }
 
   return { changes, changedFields };
-}
-
-export function getRequestContext(c: Context): {
-  ipAddress: string | undefined;
-  userAgent: string | undefined;
-} {
-  return {
-    ipAddress:
-      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-      c.req.header("x-real-ip") ??
-      undefined,
-    userAgent: c.req.header("user-agent") ?? undefined,
-  };
 }

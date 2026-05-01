@@ -1,4 +1,3 @@
-import { type SQLWrapper, sql } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import type {
   CheckRelationInput,
@@ -15,20 +14,22 @@ import {
 } from "../drizzle";
 
 // ---------------------------------------------------------------------------
-// Fake table reference -- each column is a minimal SQLWrapper so the drizzle
-// helpers (eq, inArray) in the adapter under test accept it.
+// Fake table reference -- structural shape only, values are not used in tests.
+// The drizzle module expects columns typed as Column (from drizzle-orm); here
+// we feed string sentinels so the mocks can assert equality on them.
+// boundary: test fixture reflection
 // ---------------------------------------------------------------------------
 
-const col = (name: string): SQLWrapper => ({ getSQL: () => sql.raw(name) });
+type FakeTable = Parameters<typeof checkRelation>[1];
 
 const fakeTable = {
-  subjectType: col("subjectType_col"),
-  subjectId: col("subjectId_col"),
-  relation: col("relation_col"),
-  objectType: col("objectType_col"),
-  objectId: col("objectId_col"),
-  createdBy: col("createdBy_col"),
-};
+  subjectType: "subjectType_col",
+  subjectId: "subjectId_col",
+  relation: "relation_col",
+  objectType: "objectType_col",
+  objectId: "objectId_col",
+  createdBy: "createdBy_col",
+} as unknown as FakeTable;
 
 // ---------------------------------------------------------------------------
 // Helpers to build mock db instances

@@ -1,7 +1,8 @@
 import { notifications } from "@repo/db/schema";
-import { and, asc, count, desc, eq, type SQL, sql } from "drizzle-orm";
+import { and, count, eq, type SQL, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  buildOrderBy,
   createPaginatedResponse,
   getPaginationParams,
 } from "@/utils/pagination";
@@ -45,15 +46,11 @@ export const notificationQueryService = {
 
     const where = and(...conditions);
 
-    const sortKey = sort as keyof typeof SORT_COLUMNS | undefined;
-    const sortColumn = sortKey ? SORT_COLUMNS[sortKey] : SORT_COLUMNS.createdAt;
-    const orderFn = order === "asc" ? asc : desc;
-
     const notificationsList = await db
       .select()
       .from(notifications)
       .where(where)
-      .orderBy(orderFn(sortColumn))
+      .orderBy(buildOrderBy(SORT_COLUMNS, sort, order, SORT_COLUMNS.createdAt))
       .limit(perPage)
       .offset(offset);
 

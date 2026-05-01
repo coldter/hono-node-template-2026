@@ -11,6 +11,7 @@ import type { Env } from "@/lib/context";
 import { handleError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { OTEL_ENABLED } from "@/lib/otel-config";
+import { auditContextMiddleware } from "@/middlewares/audit-context";
 import { authContextMiddleware } from "@/middlewares/auth-context";
 import { customOtelMiddleware } from "@/middlewares/otel";
 import { globalRateLimitMW } from "@/middlewares/rate-limit";
@@ -95,6 +96,7 @@ baseApp.get("/ping", async (c) => {
 });
 
 baseApp.use(authContextMiddleware);
+baseApp.use(auditContextMiddleware);
 
 baseApp.notFound(() => {
   throw new HTTPException(404, {

@@ -2,9 +2,7 @@ import { accounts, sessions, users } from "@repo/db/schema";
 import {
   and,
   arrayContains,
-  asc,
   count,
-  desc,
   eq,
   ilike,
   or,
@@ -12,11 +10,13 @@ import {
 } from "drizzle-orm";
 
 import { db, type Executor, firstOrThrow } from "@/db";
+import type { AuditContext } from "@/lib/audit-context";
 import { AUDIT_EVENTS, TARGET_TYPES } from "@/modules/audit-logs/constants";
 import { auditLogService } from "@/modules/audit-logs/service";
 import type { AuditLogMetadata } from "@/modules/audit-logs/types";
 import { hashPassword } from "@/modules/auth/helpers/argon2id";
 import {
+  buildOrderBy,
   createPaginatedResponse,
   getPaginationParams,
 } from "@/utils/pagination";
@@ -67,9 +67,6 @@ export const userService = {
       [USERS_SORT_COLUMNS.createdAt]: users.createdAt,
       [USERS_SORT_COLUMNS.updatedAt]: users.updatedAt,
     };
-    const sortColumn =
-      sortColumnMap[sort as keyof typeof sortColumnMap] ?? users.createdAt;
-    const orderFn = order === "asc" ? asc : desc;
 
     const [data, [countResult]] = await Promise.all([
       db
@@ -86,7 +83,7 @@ export const userService = {
         })
         .from(users)
         .where(where)
-        .orderBy(orderFn(sortColumn))
+        .orderBy(buildOrderBy(sortColumnMap, sort, order, users.createdAt))
         .limit(perPage)
         .offset(offset),
       db.select({ total: count() }).from(users).where(where),
@@ -130,7 +127,7 @@ export const userService = {
   async create(
     input: CreateUserInput,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string },
+    auditContext: AuditContext,
     executor: Executor = db
   ): Promise<UserRecord> {
     const hashedPassword = await hashPassword(input.password);
@@ -184,7 +181,7 @@ export const userService = {
     id: string,
     input: UpdateUserInput,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string },
+    auditContext: AuditContext,
     executor: Executor = db
   ): Promise<UserRecord> {
     const existingUser = await this.findById(id);
@@ -235,7 +232,7 @@ export const userService = {
     id: string,
     input: UpdateUserRolesInput,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string },
+    auditContext: AuditContext,
     executor: Executor = db
   ): Promise<UserRecord> {
     const existingUser = await this.findById(id);
@@ -285,7 +282,7 @@ export const userService = {
     id: string,
     reason: string | null,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string },
+    auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
     const existingUser = await this.findById(id);
@@ -337,7 +334,7 @@ export const userService = {
   async activate(
     id: string,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string },
+    auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
     const existingUser = await this.findById(id);
@@ -381,7 +378,7 @@ export const userService = {
   async unlock(
     id: string,
     actorId: string,
-    auditContext: { ipAddress?: string; userAgent?: string },
+    auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
     const existingUser = await this.findById(id);
