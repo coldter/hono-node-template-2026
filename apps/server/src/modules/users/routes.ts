@@ -44,7 +44,7 @@ const usersRoutes = {
     guard: [
       authorize("user", "view", {
         loadResource: async (c) => {
-          const user = c.get("user");
+          const user = c.var.requestContext.principal?.user;
           if (!user) {
             return null;
           }

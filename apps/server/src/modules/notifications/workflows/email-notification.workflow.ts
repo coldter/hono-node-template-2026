@@ -50,7 +50,6 @@ function createEmailNotificationWorkflow() {
         notificationId: input.notificationId,
       });
 
-      // Load notification record
       const [notification] = await db
         .select()
         .from(notifications)
@@ -67,7 +66,6 @@ function createEmailNotificationWorkflow() {
         );
       }
 
-      // Look up user email
       const user = await userService.findById(notification.userId);
 
       if (!user) {
@@ -104,7 +102,6 @@ function createEmailNotificationWorkflow() {
           return { sent: false };
         }
 
-        // Success: update DB record
         await db
           .update(notifications)
           .set({

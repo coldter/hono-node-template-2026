@@ -1,8 +1,5 @@
 import { userSeed } from "./seed";
 
-/**
- * Run user seed script.
- */
 userSeed()
   .catch((error) => {
     console.error(error);

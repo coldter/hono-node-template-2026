@@ -24,21 +24,16 @@ export const users = pgTable("users", {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-  // User status fields (from userStatusPlugin)
   status: text("status").default("active").notNull(),
   deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
   deactivatedBy: varchar("deactivated_by", { length: 255 }),
   deactivatedReason: text("deactivated_reason"),
-  // Lockout fields (from userStatusPlugin)
   failedLoginAttempts: integer("failed_login_attempts").default(0).notNull(),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
-  // Role assignment (from userStatusPlugin)
   roleSlugs: text("role_slugs").array().default([]).notNull(),
-  // Onboarding tracking
   onboardingCompletedAt: timestamp("onboarding_completed_at", {
     withTimezone: true,
   }),
-  // Two-factor authentication enabled flag
   twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
 });
 
@@ -65,6 +60,12 @@ export const sessions = pgTable(
     platform: text("platform", { enum: ["web", "mobile"] }).default("web"),
     activeOrganizationId: text("active_organization_id"),
     activeOrgRole: text("active_org_role"),
+    // These columns bridge BA JWT mint → kill-list at logout. If the
+    // access-token TTL ever drops below the acceptable revocation latency,
+    // this column pair and the kill-list module can be deleted together.
+    // The `active-session-jwt.ts` module is the sole writer/reader.
+    currentJti: text("current_jti"),
+    currentJtiExp: timestamp("current_jti_exp", { withTimezone: true }),
   },
   (table) => [index("sessions_user_id_idx").on(table.userId)]
 );
@@ -122,10 +123,6 @@ export const verifications = pgTable(
   (table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
 
-/**
- * JWKS table
- * Used by better-auth JWT plugin for storing JSON Web Key Sets (key rotation)
- */
 export const jwkss = pgTable("jwks", {
   id: varchar("id", { length: 255 })
     .primaryKey()
@@ -138,10 +135,6 @@ export const jwkss = pgTable("jwks", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 
-/**
- * Two-Factor Authentication table
- * Used by better-auth twoFactor plugin for storing OTP secrets and backup codes
- */
 export const twoFactors = pgTable(
   "two_factors",
   {
@@ -151,9 +144,8 @@ export const twoFactors = pgTable(
     userId: varchar("user_id", { length: 255 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    // Secret for TOTP (not used in our OTP-only setup, but required by plugin)
+    // TOTP secret kept nullable — unused in OTP-only flow but required by BA plugin schema.
     secret: text("secret"),
-    // Backup codes for recovery (JSON array)
     backupCodes: text("backup_codes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

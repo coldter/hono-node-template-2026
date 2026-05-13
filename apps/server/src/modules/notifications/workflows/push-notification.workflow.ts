@@ -35,7 +35,6 @@ function createPushNotificationWorkflow() {
         notificationId: input.notificationId,
       });
 
-      // Load notification record
       const [notification] = await db
         .select()
         .from(notifications)
@@ -59,7 +58,6 @@ function createPushNotificationWorkflow() {
         return { sent: false, deliveredCount: 0, failedCount: 0 };
       }
 
-      // Fetch active push tokens for this user
       const tokens = await db
         .select()
         .from(pushTokens)
@@ -117,7 +115,6 @@ function createPushNotificationWorkflow() {
             invalidToken: result.invalidToken,
           });
 
-          // Remove invalid tokens
           if (result.invalidToken) {
             await notificationService.deletePushTokenByToken(pushToken.token);
             taskLogger.info("Removed invalid push token", {
@@ -127,7 +124,6 @@ function createPushNotificationWorkflow() {
         }
       }
 
-      // Update notification status
       const allFailed = deliveredCount === 0;
       await db
         .update(notifications)

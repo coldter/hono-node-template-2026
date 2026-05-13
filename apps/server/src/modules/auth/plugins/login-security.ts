@@ -14,9 +14,6 @@ import {
 } from "../constants";
 import { userStatusSchema } from "./user-status";
 
-/**
- * Auth error codes for client handling
- */
 export const AUTH_ERROR_CODES = {
   ACCOUNT_DELETED: "ACCOUNT_DELETED",
   ACCOUNT_INACTIVE: "ACCOUNT_INACTIVE",
@@ -24,18 +21,8 @@ export const AUTH_ERROR_CODES = {
   INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
 } as const;
 
-/**
- * Login Security Plugin
- *
- * Handles all login security concerns within better-auth's plugin system:
- * - User status validation (deleted, inactive, locked)
- * - Failed login attempt tracking
- * - Account lockout after max failed attempts
- * - Lockout expiry and auto-unlock
- * - Reset failed attempts on successful login
- */
-export const loginSecurityPlugin = () => {
-  return {
+export const loginSecurityPlugin = () =>
+  ({
     id: "login-security",
 
     hooks: {
@@ -109,7 +96,6 @@ export const loginSecurityPlugin = () => {
                 });
               }
 
-              // Lockout expired - auto-unlock
               await db
                 .update(schema.users)
                 .set({
@@ -135,7 +121,6 @@ export const loginSecurityPlugin = () => {
             const isFailure = returned instanceof APIError;
 
             if (isFailure) {
-              // Handle failed login attempt
               const user = await db.query.users.findFirst({
                 where: { email: { eq: body.email as UserEmail } },
               });
@@ -159,7 +144,6 @@ export const loginSecurityPlugin = () => {
                 })
                 .where(eq(schema.users.id, user.id));
 
-              // Return modified response with lockout info
               if (shouldLock) {
                 throw new APIError("TOO_MANY_REQUESTS", {
                   message: `Account locked after ${LOCKOUT_CONFIG.maxFailedAttempts} failed attempts. Try again in ${LOCKOUT_CONFIG.lockoutDurationMinutes} minutes.`,
@@ -176,7 +160,6 @@ export const loginSecurityPlugin = () => {
               });
             }
 
-            // Reset failed attempts on successful login
             await db
               .update(schema.users)
               .set({
@@ -184,11 +167,8 @@ export const loginSecurityPlugin = () => {
                 lockedUntil: null,
               })
               .where(eq(schema.users.email, body.email));
-
-            // Don't return anything - let the original response pass through
           }),
         },
       ],
     },
-  } satisfies BetterAuthPlugin;
-};
+  }) satisfies BetterAuthPlugin;

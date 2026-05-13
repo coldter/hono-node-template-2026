@@ -1,37 +1,50 @@
+import { sso } from "@better-auth/sso";
+import type { DrizzleClient } from "@repo/db";
+import { liveOrganizations, organizations } from "@repo/db";
 import * as schema from "@repo/db/schema";
-import {
-  sendEmail,
-  TwoFactorOtpEmail,
-  VerificationOtpEmail,
-} from "@repo/email";
+import type { HostConfig, Tenant } from "@repo/tenancy";
 import {
   type BetterAuthOptions,
   betterAuth,
   type Session,
   type User,
 } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { emailOTP, openAPI, twoFactor } from "better-auth/plugins";
+import { APIError } from "better-auth/api";
+import { jwt } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { seconds } from "itty-time";
+import type { Logger } from "winston";
 import { z } from "zod";
-import { db } from "@/db";
 import { env } from "@/env";
-import { generateIdForModel } from "@/lib/ids";
-import { logger } from "@/lib/logger";
-import { adminPlugin } from "@/modules/auth/plugins/admin";
-import { loginSecurityPlugin } from "@/modules/auth/plugins/login-security";
-import {
-  enhancedUserPlugin,
-  type UserWithStatusFields,
-} from "@/modules/auth/plugins/user-status";
+import type { UserWithStatusFields } from "@/modules/auth/plugins/user-status";
 import { SYSTEM_ROLES } from "@/modules/auth/roles";
-import { RATE_LIMIT_CONFIG, TWO_FACTOR_CONFIG } from "./constants";
-import { hashPassword, verifyPasswordHash } from "./helpers/argon2id";
+import * as activeSessionJwt from "./active-session-jwt";
+import {
+  type AllowedHostsSnapshot,
+  type AuthHostPolicy,
+  buildAuthHostPolicy,
+} from "./auth-host-policy";
+import { RATE_LIMIT_CONFIG } from "./constants";
+import { enforceSsoIfRequired } from "./enforce-sso";
+import { createAuthBase } from "./instance-base";
+import type { JtiKillList } from "./jti-kill-list";
+import { buildTenantJwtPayload } from "./jwt-payload";
+import { disableOrgCreatePlugin } from "./plugins/disable-org-create";
+import { runSessionDeleteAfter } from "./run-session-delete-after";
+import {
+  getSessionUserId,
+  inferAuthProvider,
+  readSessionUpdateActiveOrgId,
+} from "./session-readers";
+import { shouldAutoLink } from "./sso-link-rules";
+
+// Access-token TTL in seconds. Mirrors the `"15m"` string passed to BA's
+// `jwt.expirationTime` — kept as a number here so the `definePayload`
+// side-effect can compute the same `exp` Date that BA will sign.
+const JWT_TTL_SECONDS = 15 * 60;
 
 const platformSchema = z.enum(["web", "mobile"]);
 
-// Platform-specific session durations
 const SESSION_CONFIG = {
   web: {
     expiresIn: seconds("1 hour"),
@@ -51,7 +64,6 @@ export type SessionWithAdditionalFields = {
   activeOrgRole: string | null;
 };
 
-// Regex patterns at top-level for performance
 const MOBILE_PATTERNS = [
   /android/i,
   /iphone/i,
@@ -73,67 +85,6 @@ const detectPlatform = (userAgent: string | null): Platform => {
     : "web";
 };
 
-// Shape of the session update payload we care about. Unknown fields pass
-// through; we only read `activeOrganizationId` explicitly.
-const sessionUpdateInputSchema = z
-  .object({
-    activeOrganizationId: z.string().nullable().optional(),
-  })
-  .loose();
-
-// Extract the user id from Better Auth's endpoint context. The context is
-// typed as `unknown` by the SDK; we defensively walk the tree and narrow.
-const endpointCtxSchema = z
-  .object({
-    context: z
-      .object({
-        session: z
-          .object({
-            user: z.object({ id: z.string() }).partial().optional(),
-          })
-          .partial()
-          .optional(),
-      })
-      .partial()
-      .optional(),
-  })
-  .loose();
-
-function getSessionUserId(ctx: unknown): string | undefined {
-  const parsed = endpointCtxSchema.safeParse(ctx);
-  if (!parsed.success) {
-    return;
-  }
-  return parsed.data.context?.session?.user?.id;
-}
-
-function resolveTrustedOrigins(request: Request | undefined): string[] {
-  // During initialization or auth.api calls, request is undefined
-  if (!request) {
-    return env.CORS_ORIGIN;
-  }
-
-  const userAgent = request.headers.get("user-agent");
-  const origin = request.headers.get("origin");
-
-  // If request has a valid origin, check against CORS_ORIGIN
-  if (origin) {
-    return env.CORS_ORIGIN;
-  }
-
-  // For mobile clients (no origin header), verify via user-agent
-  // and return an empty array to signal "trust this request"
-  if (userAgent && detectPlatform(userAgent) === "mobile") {
-    // Return the request URL origin to allow the request
-    // This is safe because we verified it's a mobile client
-    const url = new URL(request.url);
-    return [url.origin];
-  }
-
-  // Default: use configured CORS origins
-  return env.CORS_ORIGIN;
-}
-
 function resolveClientIp(headers: Headers | undefined): string | null {
   const forwarded = headers?.get("x-forwarded-for");
   if (forwarded) {
@@ -146,412 +97,603 @@ function resolveClientIp(headers: Headers | undefined): string | null {
   return headers?.get("x-real-ip") ?? null;
 }
 
-async function resolveInitialOrganizationContext(userId: string): Promise<{
-  activeOrganizationId: string;
-  activeOrgRole: string;
-} | null> {
-  try {
-    const [firstMembership] = await db
-      .select({
-        organizationId: schema.members.organizationId,
-        role: schema.members.role,
-      })
-      .from(schema.members)
-      .where(eq(schema.members.userId, userId))
-      .orderBy(desc(schema.members.createdAt))
-      .limit(1);
+// Public sign-up is closed by `disableSignUp: true`; an invitation-token gate
+// will be added once invitation flows land.
+function applyDefaultUserClaims<U>(user: U): U & {
+  roleSlugs: string[];
+  status: "active";
+  failedLoginAttempts: number;
+  twoFactorEnabled: boolean;
+} {
+  return {
+    ...user,
+    roleSlugs: [SYSTEM_ROLES.USER.slug],
+    status: "active",
+    failedLoginAttempts: 0,
+    twoFactorEnabled: false,
+  };
+}
 
-    if (!firstMembership) {
-      return null;
+export type CreateAuthDeps = Readonly<{
+  db: DrizzleClient;
+  tenant: Tenant | null;
+  tenantConfig: HostConfig;
+  allowedHostsSnapshot: AllowedHostsSnapshot;
+  logger: Logger;
+  /**
+   * Kill-list for revoked JWT jtis. Memory adapter in dev/tests; Redis
+   * adapter in production. Wired into the session-delete-after hook so
+   * logout fans the current jti into the kill-list.
+   */
+  killList: JtiKillList;
+  /** Extra origins accepted regardless of the resolved tenant. */
+  extraTrustedOrigins?: readonly string[];
+}>;
+
+type SessionCreateBeforeDeps = Readonly<{
+  db: DrizzleClient;
+  logger: Logger;
+}>;
+
+type SessionCreateBeforeInput = Readonly<{
+  userId: string;
+  // Allow any additional BA fields to pass through unchanged.
+  [key: string]: unknown;
+}>;
+
+type SessionCreateBeforeContext = Readonly<{
+  headers?: Headers | undefined;
+  path?: string | undefined;
+}>;
+
+type SessionCreateBeforeResult = {
+  data: Record<string, unknown>;
+};
+
+/**
+ * Order is load-bearing: org resolution → provider classification → SSO
+ * enforcement runs BEFORE any platform / session-revocation /
+ * new-device side-effects, so a credentials login into an SSO-enforced
+ * tenant aborts without disturbing existing sessions or queuing alerts.
+ */
+export async function runSessionCreateBefore(
+  session: SessionCreateBeforeInput,
+  context: SessionCreateBeforeContext | undefined,
+  deps: SessionCreateBeforeDeps,
+  helpers: Readonly<{
+    resolveInitialOrganizationContext: (userId: string) => Promise<{
+      activeOrganizationId: string;
+      activeOrgRole: string;
+    } | null>;
+    queueNewDeviceNotification: (params: {
+      userId: string;
+      ipAddress: string | null;
+      userAgent: string | null;
+      platform: Platform;
+    }) => void;
+  }>
+): Promise<SessionCreateBeforeResult> {
+  const orgContext = await helpers.resolveInitialOrganizationContext(
+    session.userId
+  );
+
+  // The session payload doesn't carry `provider` (that lives on `account`),
+  // so we infer it from the BA endpoint path.
+  const provider = inferAuthProvider(context);
+
+  // Enforcement happens BEFORE side-effects so a denied login leaves no
+  // observable trace. Short-circuits when there's no active org or the
+  // provider isn't credentials.
+  await enforceSsoIfRequired(
+    {
+      activeOrganizationId: orgContext?.activeOrganizationId ?? null,
+      provider,
+    },
+    context,
+    deps.db
+  );
+
+  const userAgent = context?.headers?.get("user-agent") ?? null;
+  const ipAddress = resolveClientIp(context?.headers);
+  const platform = detectPlatform(userAgent);
+  const platformCfg = SESSION_CONFIG[platform];
+
+  const [previousSession] = await deps.db
+    .select({
+      userAgent: schema.sessions.userAgent,
+      ipAddress: schema.sessions.ipAddress,
+    })
+    .from(schema.sessions)
+    .where(eq(schema.sessions.userId, session.userId))
+    .limit(1);
+
+  // Single session per user.
+  await deps.db
+    .delete(schema.sessions)
+    .where(eq(schema.sessions.userId, session.userId));
+
+  if (previousSession) {
+    const isNewDevice =
+      previousSession.userAgent !== userAgent ||
+      previousSession.ipAddress !== ipAddress;
+
+    if (isNewDevice) {
+      helpers.queueNewDeviceNotification({
+        userId: session.userId,
+        ipAddress,
+        userAgent,
+        platform,
+      });
+    }
+  }
+
+  const expiresAt = new Date(Date.now() + platformCfg.expiresIn * 1000);
+
+  return {
+    data: {
+      ...session,
+      platform,
+      expiresAt,
+      ...(orgContext ?? {}),
+    },
+  };
+}
+
+type ProvisionUserGateDeps = Readonly<{
+  db: DrizzleClient;
+  logger: Logger;
+}>;
+
+export type ProvisionUserGateArgs = Readonly<{
+  user: Record<string, unknown>;
+  userInfo: Record<string, unknown>;
+  provider: Record<string, unknown>;
+}>;
+
+/**
+ * SSO auto-link gate. Throws `APIError("FORBIDDEN")` when any of the three
+ * required signals are missing: IdP-confirmed `emailVerified`, an existing
+ * live-org membership row, and a verified email domain. Membership is
+ * checked via `liveOrganizations` so a tombstoned org cannot auto-link
+ * even if a stale `members` row survives the cascade window.
+ */
+export async function runProvisionUserGate(
+  args: ProvisionUserGateArgs,
+  deps: ProvisionUserGateDeps
+): Promise<void> {
+  // boundary: BA's SSOOptions types `user`/`userInfo`/`provider` with
+  // `Record<string, any>` index signatures, so per-field shape is not
+  // statically known. Each field is narrowed with a runtime guard.
+  const { user, userInfo, provider } = args;
+
+  const emailVerifiedRaw = userInfo.emailVerified ?? user.emailVerified;
+  const emailVerified = emailVerifiedRaw === true;
+
+  const domainVerified =
+    "domainVerified" in provider && provider.domainVerified === true;
+
+  const organizationIdRaw = provider.organizationId;
+  const organizationId =
+    typeof organizationIdRaw === "string" ? organizationIdRaw : null;
+
+  const userIdRaw = user.id;
+  const userId = typeof userIdRaw === "string" ? userIdRaw : null;
+
+  let hasMembership = false;
+  if (organizationId && userId) {
+    // `liveOrganizations` carries the soft-delete predicate so a
+    // tombstoned tenant cannot pass the gate.
+    const liveOrgRows = await liveOrganizations(deps.db).selectById(
+      { id: organizations.id },
+      organizationId
+    );
+    if (liveOrgRows[0]) {
+      const [member] = await deps.db
+        .select({ id: schema.members.id })
+        .from(schema.members)
+        .where(
+          and(
+            eq(schema.members.userId, userId),
+            eq(schema.members.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+      hasMembership = Boolean(member);
+    }
+  }
+
+  if (!shouldAutoLink({ emailVerified, hasMembership, domainVerified })) {
+    const providerIdRaw = provider.providerId;
+    deps.logger.warn("SSO auto-link rejected by D8 gate", {
+      emailVerified,
+      hasMembership,
+      domainVerified,
+      organizationId,
+      providerId: typeof providerIdRaw === "string" ? providerIdRaw : null,
+    });
+    throw new APIError("FORBIDDEN", {
+      message: "SSO auto-link denied for this organization",
+    });
+  }
+}
+
+type SessionUpdateBeforeContext = Readonly<{
+  headers?: Headers | undefined;
+}>;
+
+type SessionUpdateBeforeResult = {
+  data: Record<string, unknown>;
+};
+
+export async function runSessionUpdateBefore(
+  session: Record<string, unknown>,
+  context: SessionUpdateBeforeContext | undefined,
+  helpers: Readonly<{
+    resolveActiveOrganizationRole: (
+      userId: string,
+      organizationId: string
+    ) => Promise<string | null | undefined>;
+  }>
+): Promise<SessionUpdateBeforeResult> {
+  const activeOrganizationId = readSessionUpdateActiveOrgId(session);
+
+  if (activeOrganizationId !== undefined) {
+    const newOrgId = activeOrganizationId;
+
+    if (!newOrgId) {
+      return {
+        data: { ...session, activeOrgRole: null },
+      };
     }
 
+    const userId = getSessionUserId(context);
+
+    if (userId) {
+      const activeOrgRole = await helpers.resolveActiveOrganizationRole(
+        userId,
+        newOrgId
+      );
+
+      if (activeOrgRole === undefined) {
+        return { data: session };
+      }
+
+      return {
+        data: {
+          ...session,
+          activeOrgRole,
+        },
+      };
+    }
+
+    return { data: session };
+  }
+
+  // Only intervene when Better Auth is refreshing the session expiry; other
+  // updates pass through.
+  if (!session.expiresAt) {
+    return { data: session };
+  }
+
+  // The update hook only receives the update payload (no session id/token),
+  // so platform is detected from the same user-agent that triggered the
+  // refresh.
+  const userAgent = context?.headers?.get("user-agent") ?? null;
+  const platform = detectPlatform(userAgent);
+
+  if (platform === "web") {
     return {
-      activeOrganizationId: firstMembership.organizationId,
-      activeOrgRole: firstMembership.role,
+      data: {
+        ...session,
+        expiresAt: new Date(Date.now() + SESSION_CONFIG.web.expiresIn * 1000),
+      },
     };
-  } catch (error) {
-    logger.warn("Failed to resolve initial organization context", {
-      userId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
   }
+
+  return { data: session };
 }
 
-async function resolveActiveOrganizationRole(
-  userId: string,
-  organizationId: string
-): Promise<string | null | undefined> {
-  try {
-    const [membership] = await db
-      .select({ role: schema.members.role })
-      .from(schema.members)
-      .where(
-        and(
-          eq(schema.members.userId, userId),
-          eq(schema.members.organizationId, organizationId)
-        )
-      )
-      .limit(1);
+export function createAuth(deps: CreateAuthDeps) {
+  const hostPolicy: AuthHostPolicy = buildAuthHostPolicy({
+    snapshot: deps.allowedHostsSnapshot,
+    tenant: deps.tenant,
+    tenantConfig: deps.tenantConfig,
+    extraTrustedOrigins: deps.extraTrustedOrigins,
+  });
 
-    return membership?.role ?? null;
-  } catch (error) {
-    logger.warn("Failed to resolve active organization role", {
-      userId,
-      organizationId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return;
-  }
-}
+  const log = deps.logger;
 
-function queueNewDeviceNotification(params: {
-  userId: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  platform: Platform;
-}) {
-  import("./auth-notifications")
-    .then((module) => module.notifyLoginNewDevice(params))
-    .catch((error) => {
-      logger.warn("Failed to queue new-device notification", {
-        userId: params.userId,
+  async function resolveInitialOrganizationContext(userId: string): Promise<{
+    activeOrganizationId: string;
+    activeOrgRole: string;
+  } | null> {
+    try {
+      const [firstMembership] = await deps.db
+        .select({
+          organizationId: schema.members.organizationId,
+          role: schema.members.role,
+        })
+        .from(schema.members)
+        .where(eq(schema.members.userId, userId))
+        .orderBy(desc(schema.members.createdAt))
+        .limit(1);
+
+      if (!firstMembership) {
+        return null;
+      }
+
+      return {
+        activeOrganizationId: firstMembership.organizationId,
+        activeOrgRole: firstMembership.role,
+      };
+    } catch (error) {
+      log.warn("Failed to resolve initial organization context", {
+        userId,
         error: error instanceof Error ? error.message : String(error),
       });
-    });
-}
+      return null;
+    }
+  }
 
-const authConfig = {
-  appName: env.APP_NAME,
-  secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    usePlural: true,
-    schema,
-  }),
-  // Dynamic trustedOrigins to support both web and mobile clients
-  // Mobile apps don't send Origin headers, so we detect them via user-agent
-  trustedOrigins: (request: Request | undefined) =>
-    resolveTrustedOrigins(request),
+  async function resolveActiveOrganizationRole(
+    userId: string,
+    organizationId: string
+  ): Promise<string | null | undefined> {
+    try {
+      const [membership] = await deps.db
+        .select({ role: schema.members.role })
+        .from(schema.members)
+        .where(
+          and(
+            eq(schema.members.userId, userId),
+            eq(schema.members.organizationId, organizationId)
+          )
+        )
+        .limit(1);
 
-  // Rate limiting - set higher than lockout to ensure our custom lockout kicks in first
-  rateLimit: {
-    enabled: true,
-    window: RATE_LIMIT_CONFIG.global.window,
-    max: RATE_LIMIT_CONFIG.global.max,
-    storage: "memory",
-    customRules: {
-      "/sign-in/email": {
-        window: RATE_LIMIT_CONFIG.signIn.window,
-        max: RATE_LIMIT_CONFIG.signIn.max,
-      },
+      return membership?.role ?? null;
+    } catch (error) {
+      log.warn("Failed to resolve active organization role", {
+        userId,
+        organizationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+  }
+
+  function queueNewDeviceNotification(params: {
+    userId: string;
+    ipAddress: string | null;
+    userAgent: string | null;
+    platform: Platform;
+  }) {
+    import("./auth-notifications")
+      .then((module) => module.notifyLoginNewDevice(params))
+      .catch((error) => {
+        log.warn("Failed to queue new-device notification", {
+          userId: params.userId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+  }
+
+  const base = createAuthBase({
+    db: deps.db,
+    appName: env.APP_NAME,
+    secret: env.BETTER_AUTH_SECRET,
+    logger: log,
+  });
+
+  const authConfig = {
+    ...base,
+    // Object-form baseURL: BA validates the request host against
+    // `allowedHosts` and derives the baseURL from the request. We deliberately
+    // omit `fallback` so an unknown host fails closed. For request-less paths
+    // (init, email templates) BA falls back to BETTER_AUTH_URL via the env
+    // loader.
+    baseURL: {
+      allowedHosts: [...hostPolicy.allowedHosts],
+      protocol: "auto",
     },
-  },
+    basePath: "/api/auth",
+    // BA's `/sso/register` endpoint writes `oidcConfig` to a single text
+    // column via the raw adapter. Our schema stores the config across three
+    // encrypted columns, so the plugin's insert would fail at the DB level.
+    // Block the route here until a tenant-aware replacement ships.
+    disabledPaths: ["/sso/register"],
+    trustedOrigins: (req: Request | undefined) =>
+      hostPolicy.trustedOrigins(req).then((origins) => [...origins]),
 
-  emailAndPassword: {
-    enabled: true,
-    // Self-signup enabled for mobile onboarding flow
-    disableSignUp: false,
-    requireEmailVerification: true,
-    // Password reset is handled via emailOTP plugin instead of magic links
-    password: {
-      hash: async (password: string) => await hashPassword(password),
-      verify: async ({ hash, password }: { hash: string; password: string }) =>
-        verifyPasswordHash(hash, password),
-    },
-  },
-
-  session: {
-    // Use mobile defaults so cookie Max-Age matches 7-day mobile sessions.
-    // Web sessions are shortened in database hooks.
-    expiresIn: SESSION_CONFIG.mobile.expiresIn,
-    updateAge: SESSION_CONFIG.mobile.updateAge,
-    additionalFields: {
-      platform: {
-        type: [...platformSchema.options],
-        required: false,
-        defaultValue: "web",
-      },
-      activeOrgRole: {
-        type: "string",
-        required: false,
-      },
-    },
-  },
-
-  advanced: {
-    // secure flag is auto-detected from baseURL (https = secure, http = not)
-    defaultCookieAttributes: {
-      sameSite: "lax",
-      httpOnly: true,
-    },
-    cookies: {
-      session_token: {
-        name: "session_token_v1",
-        attributes: {
-          httpOnly: true,
+    rateLimit: {
+      enabled: true,
+      window: RATE_LIMIT_CONFIG.global.window,
+      max: RATE_LIMIT_CONFIG.global.max,
+      storage: "memory",
+      customRules: {
+        "/sign-in/email": {
+          window: RATE_LIMIT_CONFIG.signIn.window,
+          max: RATE_LIMIT_CONFIG.signIn.max,
         },
       },
     },
-    database: {
-      generateId: (options) => generateIdForModel(options.model),
+
+    emailAndPassword: {
+      ...base.emailAndPassword,
+      enabled: true,
+      // Only invited users may create accounts on tenant hosts; public
+      // sign-up is closed.
+      disableSignUp: true,
+      requireEmailVerification: true,
     },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        // Assign default role, status, and force 2FA on user creation
-        before: async (user) => ({
-          data: {
-            ...user,
-            roleSlugs: [SYSTEM_ROLES.USER.slug],
-            status: "active",
-            failedLoginAttempts: 0,
-            twoFactorEnabled: false,
-          },
-        }),
+
+    session: {
+      // Default to mobile windows so cookie Max-Age matches 7-day mobile
+      // sessions. Web sessions are shortened in database hooks.
+      expiresIn: SESSION_CONFIG.mobile.expiresIn,
+      updateAge: SESSION_CONFIG.mobile.updateAge,
+      cookieCache: { enabled: true, maxAge: 60 },
+      additionalFields: {
+        platform: {
+          type: [...platformSchema.options],
+          required: false,
+          defaultValue: "web",
+        },
+        activeOrgRole: {
+          type: "string",
+          required: false,
+        },
       },
     },
-    session: {
-      create: {
-        before: async (session, context) => {
-          // Note: User status checks (deleted, inactive, locked) are handled by loginSecurityPlugin
-          // This hook handles platform detection and session configuration
 
-          // Platform detection and session configuration
-          const userAgent = context?.headers?.get("user-agent") ?? null;
-          const ipAddress = resolveClientIp(context?.headers);
-          const platform = detectPlatform(userAgent);
-          const config = SESSION_CONFIG[platform];
+    advanced: {
+      ...base.advanced,
+      // Do not trust proxy headers by default — BA uses x-forwarded-* only
+      // when this is true. Re-enable behind a verified reverse proxy.
+      trustedProxyHeaders: false,
+      defaultCookieAttributes: {
+        sameSite: "lax",
+        httpOnly: true,
+      },
+      cookies: {
+        session_token: {
+          name: "session_token_v1",
+          attributes: {
+            httpOnly: true,
+          },
+        },
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => ({
+            data: applyDefaultUserClaims(user),
+          }),
+        },
+      },
+      session: {
+        create: {
+          // BA passes `null` when the hook fires outside an endpoint context
+          // (e.g. impersonation); narrow to `undefined` for the helper.
+          before: async (session, context) =>
+            runSessionCreateBefore(
+              session,
+              context ?? undefined,
+              { db: deps.db, logger: log },
+              {
+                resolveInitialOrganizationContext,
+                queueNewDeviceNotification,
+              }
+            ),
+        },
+        update: {
+          before: async (session, context) =>
+            runSessionUpdateBefore(session, context ?? undefined, {
+              resolveActiveOrganizationRole,
+            }),
+        },
+        delete: {
+          // boundary: BA's delete-hook session shape is the row, but the
+          // generated type is `Session & AdditionalFields` which widens
+          // through plugin augmentation. `runSessionDeleteAfter` accepts a
+          // permissive shape and narrows `id` at runtime.
+          after: async (session) =>
+            runSessionDeleteAfter(session, {
+              db: deps.db,
+              killList: deps.killList,
+              logger: log,
+            }),
+        },
+      },
+    },
 
-          // Query existing session for new-device detection
-          const [previousSession] = await db
-            .select({
-              userAgent: schema.sessions.userAgent,
-              ipAddress: schema.sessions.ipAddress,
-            })
-            .from(schema.sessions)
-            .where(eq(schema.sessions.userId, session.userId))
-            .limit(1);
-
-          // Revoke existing sessions for this user (single session per user)
-          await db
-            .delete(schema.sessions)
-            .where(eq(schema.sessions.userId, session.userId));
-
-          // Detect new device and send notification
-          if (previousSession) {
-            const isNewDevice =
-              previousSession.userAgent !== userAgent ||
-              previousSession.ipAddress !== ipAddress;
-
-            if (isNewDevice) {
-              queueNewDeviceNotification({
-                userId: session.userId,
-                ipAddress,
-                userAgent,
-                platform,
-              });
-            }
-          }
-
-          // Calculate expiration based on platform
-          const expiresAt = new Date(Date.now() + config.expiresIn * 1000);
-
-          const orgContext = await resolveInitialOrganizationContext(
-            session.userId
-          );
-
-          return {
-            data: {
-              ...session,
-              platform,
-              expiresAt,
-              ...(orgContext ?? {}),
+    plugins: [
+      ...(base.plugins ?? []),
+      // SSO auto-link requires THREE signals together: IdP `email_verified`,
+      // an existing membership row in the matched org, and a verified
+      // domain. BA covers (1) and (3) natively; the membership check lives
+      // in `runProvisionUserGate`, re-run on every login.
+      sso({
+        trustEmailVerified: true,
+        provisionUserOnEveryLogin: true,
+        domainVerification: { enabled: true },
+        organizationProvisioning: {
+          disabled: false,
+          defaultRole: "member",
+          // Always provision as "member"; org-admin promotion happens via
+          // the invitation/role-management flows, never silently on SSO.
+          getRole: () => Promise.resolve("member"),
+        },
+        provisionUser: async ({ user, userInfo, provider }) =>
+          runProvisionUserGate(
+            {
+              user,
+              userInfo,
+              // boundary: BA's `provider` is typed `SSOProvider<SSOOptions>`,
+              // a struct with optional fields plus an index signature in
+              // practice. Re-shape as `Record<string, unknown>` for the
+              // gate's runtime field reads.
+              provider: provider as unknown as Record<string, unknown>,
             },
+            { db: deps.db, logger: log }
+          ),
+      }),
+      jwt({
+        // Pin EdDSA explicitly so a future BA default change cannot silently
+        // rotate us onto a different alg.
+        jwks: {
+          keyPairConfig: { alg: "EdDSA" },
+        },
+        jwt: {
+          expirationTime: "15m",
+          // `definePayload` side-effect is deliberate: BA's jwt plugin
+          // (1.6.10) exposes no `onTokenIssued`-style hook, and the payload
+          // built here already carries the canonical `jti` (from
+          // @repo/auth-tokens). We pin `exp` in the returned payload so the
+          // value stamped on the sessions row exactly matches what BA signs.
+          // The kill-list write is fire-and-forget — token issuance must not
+          // block on session-row bookkeeping.
+          definePayload: (ctx) => {
+            const claims = buildTenantJwtPayload(ctx, deps.tenant);
+            const expSeconds = Math.floor(Date.now() / 1000) + JWT_TTL_SECONDS;
+            const jtiRaw = claims.jti;
+            const sessionId =
+              typeof ctx.session?.id === "string" ? ctx.session.id : null;
+            if (typeof jtiRaw === "string" && sessionId !== null) {
+              const expDate = new Date(expSeconds * 1000);
+              activeSessionJwt
+                .recordMint(
+                  { db: deps.db },
+                  { sessionId, jti: jtiRaw, exp: expDate }
+                )
+                .catch((error) => {
+                  log.warn("Failed to record JWT mint on session row", {
+                    sessionId,
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  });
+                });
+            }
+            return { ...claims, exp: expSeconds };
+          },
+        },
+      }),
+      disableOrgCreatePlugin(),
+      {
+        id: "override-type",
+        $Infer: {} as {
+          Session: {
+            user: User & UserWithStatusFields;
+            session: Session & SessionWithAdditionalFields;
           };
         },
       },
-      update: {
-        before: async (session, context) => {
-          const parsedUpdate = sessionUpdateInputSchema.safeParse(session);
-          const activeOrganizationId = parsedUpdate.success
-            ? parsedUpdate.data.activeOrganizationId
-            : undefined;
+    ],
+  } satisfies BetterAuthOptions;
 
-          if (activeOrganizationId !== undefined) {
-            const newOrgId = activeOrganizationId;
+  return betterAuth(authConfig);
+}
 
-            if (!newOrgId) {
-              return {
-                data: { ...session, activeOrgRole: null },
-              };
-            }
-
-            const userId = getSessionUserId(context);
-
-            if (userId) {
-              const activeOrgRole = await resolveActiveOrganizationRole(
-                userId,
-                newOrgId
-              );
-
-              if (activeOrgRole === undefined) {
-                return { data: session };
-              }
-
-              return {
-                data: {
-                  ...session,
-                  activeOrgRole,
-                },
-              };
-            }
-
-            return { data: session };
-          }
-
-          // Only intervene when Better Auth is refreshing the session expiry.
-          // Other updates (e.g. updatedAt, ipAddress) should pass through.
-          if (!session.expiresAt) {
-            return { data: session };
-          }
-
-          // Detect platform from the request user-agent. The update hook only
-          // receives the update payload (expiresAt, updatedAt) without the
-          // session id or token, so we cannot look up the session row. Instead,
-          // use the same user-agent detection as the create hook -- the request
-          // that triggered the refresh carries the mobile client's user-agent.
-          const userAgent = context?.headers?.get("user-agent") ?? null;
-          const platform = detectPlatform(userAgent);
-
-          // Web sessions get shorter expiry; mobile uses the global default (7 days)
-          if (platform === "web") {
-            return {
-              data: {
-                ...session,
-                expiresAt: new Date(
-                  Date.now() + SESSION_CONFIG.web.expiresIn * 1000
-                ),
-              },
-            };
-          }
-
-          return { data: session };
-        },
-      },
-    },
-  },
-
-  plugins: [
-    enhancedUserPlugin(),
-    loginSecurityPlugin(),
-    adminPlugin(),
-    // Email OTP plugin for password reset via OTP (not magic links)
-    emailOTP({
-      otpLength: TWO_FACTOR_CONFIG.otpLength,
-      expiresIn: TWO_FACTOR_CONFIG.emailOtpExpiresIn,
-      sendVerificationOnSignUp: true,
-      async sendVerificationOTP({ email, otp, type }) {
-        const user = await db.query.users.findFirst({
-          where: { email: { eq: email } },
-          columns: { name: true },
-        });
-
-        const typeLabels: Record<typeof type, string> = {
-          "sign-in": "sign-in",
-          "email-verification": "email verification",
-          "forget-password": "password reset",
-          "change-email": "email change",
-        };
-
-        const subjectByType: Record<typeof type, string> = {
-          "forget-password": "Reset Your Password",
-          "email-verification": "Verify Your Email",
-          "sign-in": "Sign In Verification",
-          "change-email": "Confirm Email Change",
-        };
-
-        logger.info(`Sending ${typeLabels[type]} OTP to ${email}`);
-
-        // Map change-email to email-verification for the template
-        const templateType =
-          type === "change-email" ? "email-verification" : type;
-
-        // Send email without awaiting to prevent timing attacks
-        sendEmail({
-          to: email,
-          subject: subjectByType[type],
-          template: VerificationOtpEmail,
-          props: {
-            userName: user?.name ?? "User",
-            otp,
-            type: templateType,
-            expiresIn: `${Math.floor(TWO_FACTOR_CONFIG.emailOtpExpiresIn / 60)} minutes`,
-          },
-        }).catch((error) => {
-          logger.error("Failed to send verification OTP email", {
-            email,
-            type,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        });
-      },
-    }),
-    // Two-factor authentication plugin (email OTP only, no TOTP)
-    twoFactor({
-      // Use our custom twoFactor table
-      twoFactorTable: "twoFactors",
-      // Skip TOTP verification since we only use email OTP
-      skipVerificationOnEnable: true,
-      // OTP configuration for 2FA verification
-      otpOptions: {
-        // OTP expires in 3 minutes
-        period: TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes,
-        async sendOTP({ user, otp }, ctx) {
-          logger.info(`Sending 2FA OTP to ${user.email}`);
-
-          // Extract device info from context if available
-          const ipAddress = ctx?.headers?.get("x-forwarded-for") ?? undefined;
-          const userAgent = ctx?.headers?.get("user-agent") ?? undefined;
-
-          // Send email without awaiting to prevent timing attacks
-          sendEmail({
-            to: user.email,
-            subject: "Your Two-Factor Authentication Code",
-            template: TwoFactorOtpEmail,
-            props: {
-              userName: user.name,
-              otp,
-              expiresIn: `${TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes} minutes`,
-              ipAddress,
-              userAgent,
-            },
-          }).catch((error) => {
-            logger.error("Failed to send 2FA OTP email", {
-              userId: user.id,
-              email: user.email,
-              error: error instanceof Error ? error.message : String(error),
-            });
-          });
-        },
-      },
-    }),
-    openAPI({
-      disableDefaultReference: true,
-    }),
-    // override type
-    {
-      id: "override-type",
-      $Infer: {} as {
-        Session: {
-          user: User & UserWithStatusFields;
-          session: Session & SessionWithAdditionalFields;
-        };
-      },
-    },
-  ],
-} satisfies BetterAuthOptions;
-
-export const auth = betterAuth(authConfig);
+export type AuthInstance = ReturnType<typeof createAuth>;
+export type AuthSession = AuthInstance["$Infer"]["Session"];

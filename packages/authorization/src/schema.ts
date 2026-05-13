@@ -1,4 +1,3 @@
-// packages/authorization/src/schema.ts
 import { buildRegistryInstance, type RegistryInstance } from "./registry";
 import {
   createResourceDefinition,
@@ -7,21 +6,18 @@ import {
 } from "./resource";
 import type { Condition, PolicyRule } from "./types";
 
-// Re-export for downstream consumers; the canonical declarations live in
-// resource.ts next to the PolicyBuilder/PolicyRuleBuilder classes.
+// Canonical declarations live in resource.ts.
 export type { ResourceConfig, ResourceDef } from "./resource";
 
-// Type-level marker for principal attributes
 export function principalAttribute<T>(): { __type: T } {
   return {} as { __type: T };
 }
 
-// Extract attribute types from the principal config
 type ExtractAttributes<T extends Record<string, { __type: unknown }>> = {
   [K in keyof T]: T[K]["__type"];
 };
 
-// Global policy builder (no resource conditions - only principal-level conditions)
+// Global policies are principal-only — they may not reference resources.
 class GlobalPolicyRuleBuilder<TRole extends string> {
   private readonly rule: Partial<PolicyRule>;
 
@@ -72,7 +68,6 @@ class GlobalPolicyBuilder<TRole extends string> {
   }
 }
 
-// Schema type returned by createAuthSchema
 export interface AuthSchema<
   TRole extends string,
   TRelation extends string,
@@ -104,18 +99,11 @@ export interface AuthSchema<
   readonly systemAdminRoles: readonly TRole[];
 }
 
-// Covariant-safe bound for buildRegistry/RegistryInstance constraints.
-// Function parameters use `never` so that ResourceDef<Concrete, Role> satisfies
-// this bound (since (arg: Concrete) => R is assignable to (arg: never) => R).
-// `TAction` defaults to `string` so legacy specs continue to assign; concrete
-// ResourceDef<R, Role, "list" | "view"> still satisfies because the wider
-// `string` upper bound is covariant in this position.
-//
-// Note: the phantom `__resource` marker on `ResourceDef` is intentionally
-// omitted here so concrete ResourceDef<TResource, ...> values remain
-// assignable to AnyResourceDef without a structural conflict on that field.
-// Adapters should recover the resource type via `ResourceTypeFor<TR>` against
-// the concrete `TResources[K]`, which still carries the phantom.
+// Covariant-safe bound. Function params use `never` so a concrete
+// `(r: TResource) => ...` resolver assigns into `(r: never) => ...`.
+// `__resource` phantom is omitted here so concrete ResourceDef values
+// still assign without a structural conflict on that field; adapters
+// recover the resource type via `ResourceTypeFor` against `TResources[K]`.
 export type AnyResourceDef<
   TRole extends string = string,
   TAction extends string = string,
@@ -128,7 +116,6 @@ export type AnyResourceDef<
   readonly resolveOwner?: (resource: never) => string;
 };
 
-// Re-export RegistryInstance for consumers
 export type { RegistryInstance } from "./registry";
 
 export function createAuthSchema<

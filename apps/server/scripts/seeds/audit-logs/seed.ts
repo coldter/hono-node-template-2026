@@ -102,7 +102,7 @@ export const auditLogsSeed = async () => {
       id: faker.string.uuid(),
       event,
       actorId:
-        actorType === "user" && userIds.length > 0
+        actorType === "USER" && userIds.length > 0
           ? faker.helpers.arrayElement(userIds)
           : null,
       actorType,

@@ -7,10 +7,6 @@ import {
 
 import { NOTIFICATIONS_SORT_COLUMN_VALUES } from "./constants";
 
-// ============================================================
-// CONSTANTS FOR SCHEMAS
-// ============================================================
-
 const NOTIFICATION_STATUS_VALUES = [
   "pending",
   "sent",
@@ -29,10 +25,6 @@ const NOTIFICATION_PRIORITY_VALUES = [
 ] as const;
 
 const PUSH_PLATFORM_VALUES = ["ios", "android", "web"] as const;
-
-// ============================================================
-// PARAMS
-// ============================================================
 
 export const notificationParamsSchema = z.object({
   notificationId: z
@@ -55,10 +47,6 @@ export const pushTokenParamsSchema = z.object({
       example: "ptk_xyz789",
     }),
 });
-
-// ============================================================
-// QUERY
-// ============================================================
 
 export const listNotificationsQuerySchema = z
   .object({
@@ -84,10 +72,6 @@ export const listNotificationsQuerySchema = z
     }),
   })
   .extend(paginationQuerySchema.omit({ sort: true }).shape);
-
-// ============================================================
-// RESPONSE SCHEMAS
-// ============================================================
 
 export const notificationSummarySchema = z.object({
   id: z.string().openapi({ description: "Notification ID" }),
@@ -147,10 +131,6 @@ export const unreadCountResponseSchema = z.object({
   }),
 });
 
-// ============================================================
-// PUSH TOKEN SCHEMAS
-// ============================================================
-
 export const pushTokenSummarySchema = z.object({
   id: z.string().openapi({ description: "Push token ID" }),
   platform: z.enum(PUSH_PLATFORM_VALUES).openapi({
@@ -198,10 +178,6 @@ export const registerPushTokenBodySchema = z.object({
 export const registerPushTokenResponseSchema = z.object({
   token: pushTokenSummarySchema,
 });
-
-// ============================================================
-// PREFERENCES SCHEMAS
-// ============================================================
 
 export const preferencesSummarySchema = z.object({
   emailEnabled: z.boolean().openapi({
@@ -258,10 +234,6 @@ export const updatePreferencesBodySchema = z.object({
 export const updatePreferencesResponseSchema = z.object({
   preferences: preferencesSummarySchema,
 });
-
-// ============================================================
-// SUCCESS RESPONSE
-// ============================================================
 
 export const successResponseSchema = z.object({
   success: z.boolean().openapi({ description: "Operation success status" }),

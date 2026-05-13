@@ -27,24 +27,14 @@ export type UserWithStatusFields = {
   twoFactorEnabled: boolean;
 };
 
-/**
- * User Status Plugin
- *
- * Extends the user schema with:
- * - Status tracking (active, inactive, locked, deleted)
- * - Deactivation tracking (who, when, why)
- * - Lockout tracking (failed attempts, lockout expiry)
- * - Role assignment (roleSlugs array)
- *
- * !important: fieldName must match the column name in the database adapter schema not necessarily the column name in the database schema
- */
+// !important: fieldName must match the column name in the database adapter
+// schema, not necessarily the column name in the database schema.
 export const enhancedUserPlugin = () => {
   return {
     id: "user-status",
     schema: {
       user: {
         fields: {
-          // Status field - determines if user can login
           status: {
             type: "string",
             fieldName: "status",
@@ -52,7 +42,6 @@ export const enhancedUserPlugin = () => {
             defaultValue: "active",
             input: false,
           },
-          // Deactivation tracking - when admin deactivates a user
           deactivatedAt: {
             type: "date",
             fieldName: "deactivatedAt",
@@ -71,7 +60,6 @@ export const enhancedUserPlugin = () => {
             required: false,
             input: false,
           },
-          // Lockout tracking - for failed login attempts
           failedLoginAttempts: {
             type: "number",
             fieldName: "failedLoginAttempts",
@@ -85,7 +73,6 @@ export const enhancedUserPlugin = () => {
             required: false,
             input: false,
           },
-          // Role assignment - array of role slugs
           roleSlugs: {
             type: "string[]",
             fieldName: "roleSlugs",
@@ -93,14 +80,13 @@ export const enhancedUserPlugin = () => {
             defaultValue: [],
             input: false,
           },
-          // Onboarding tracking - when user completed onboarding
           onboardingCompletedAt: {
             type: "date",
             fieldName: "onboardingCompletedAt",
             required: false,
             input: false,
           },
-          // Two-factor authentication status (managed by twoFactor plugin)
+          // Managed by the twoFactor plugin.
           twoFactorEnabled: {
             type: "boolean",
             fieldName: "twoFactorEnabled",

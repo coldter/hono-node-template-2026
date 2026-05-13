@@ -20,9 +20,6 @@ import {
 } from "./schema";
 
 const notificationsRoutes = {
-  // ─────────────────────────────────────────────────────────────
-  // LIST NOTIFICATIONS
-  // ─────────────────────────────────────────────────────────────
   listNotifications: createRouteConfig({
     operationId: "listNotifications",
     method: "get",
@@ -46,9 +43,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // GET NOTIFICATION
-  // ─────────────────────────────────────────────────────────────
   getNotification: createRouteConfig({
     operationId: "getNotification",
     method: "get",
@@ -71,9 +65,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // GET UNREAD COUNT
-  // ─────────────────────────────────────────────────────────────
   getUnreadCount: createRouteConfig({
     operationId: "getUnreadNotificationCount",
     method: "get",
@@ -93,9 +84,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // MARK AS READ
-  // ─────────────────────────────────────────────────────────────
   markAsRead: createRouteConfig({
     operationId: "markNotificationAsRead",
     method: "post",
@@ -118,9 +106,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // MARK ALL AS READ
-  // ─────────────────────────────────────────────────────────────
   markAllAsRead: createRouteConfig({
     operationId: "markAllNotificationsAsRead",
     method: "post",
@@ -140,9 +125,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // GET PREFERENCES
-  // ─────────────────────────────────────────────────────────────
   getPreferences: createRouteConfig({
     operationId: "getNotificationPreferences",
     method: "get",
@@ -162,9 +144,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // UPDATE PREFERENCES
-  // ─────────────────────────────────────────────────────────────
   updatePreferences: createRouteConfig({
     operationId: "updateNotificationPreferences",
     method: "patch",
@@ -191,9 +170,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // LIST PUSH TOKENS
-  // ─────────────────────────────────────────────────────────────
   listPushTokens: createRouteConfig({
     operationId: "listPushTokens",
     method: "get",
@@ -214,9 +190,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // REGISTER PUSH TOKEN
-  // ─────────────────────────────────────────────────────────────
   registerPushToken: createRouteConfig({
     operationId: "registerPushToken",
     method: "post",
@@ -244,9 +217,6 @@ const notificationsRoutes = {
     },
   }),
 
-  // ─────────────────────────────────────────────────────────────
-  // DELETE PUSH TOKEN
-  // ─────────────────────────────────────────────────────────────
   deletePushToken: createRouteConfig({
     operationId: "deletePushToken",
     method: "delete",

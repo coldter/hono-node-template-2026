@@ -7,6 +7,7 @@ import {
   type EncryptedEnvelope,
   type EncryptionProvider,
   isValidEnvelope,
+  type KekWrapper,
   type ProviderConfig,
   type SerializedEnvelope,
   type VaultDecryptResult,
@@ -35,7 +36,12 @@ export class VaultError extends Error {
   }
 }
 
-export class Vault {
+/**
+ * Production Vault. Implements `KekWrapper` explicitly so a future rename of
+ * `wrap`/`unwrap` breaks `fakeKekWrapper` consumers at compile time rather
+ * than at runtime via structural-typing drift.
+ */
+export class Vault implements KekWrapper {
   private readonly provider: EncryptionProvider;
   private readonly schemas = new Map<string, VaultSchema<unknown>>();
 
@@ -122,13 +128,13 @@ export class Vault {
     }
   }
 
-  async encryptRaw(data: string | Buffer): Promise<SerializedEnvelope> {
+  async wrap(data: string | Buffer): Promise<SerializedEnvelope> {
     const buffer = typeof data === "string" ? Buffer.from(data, "utf8") : data;
     const envelope = await this.provider.encrypt(buffer);
     return JSON.stringify(envelope);
   }
 
-  async decryptRaw(encrypted: SerializedEnvelope): Promise<Buffer> {
+  async unwrap(encrypted: SerializedEnvelope): Promise<Buffer> {
     const envelope = this.parseEnvelope(encrypted);
     return this.provider.decrypt(envelope);
   }
@@ -154,24 +160,20 @@ export class Vault {
   }
 
   private createProvider(config: ProviderConfig): EncryptionProvider {
-    switch (config.provider) {
-      case "local":
-        return new LocalEncryptionProvider(config.masterKey, config.keyId);
-
-      case "aws-kms":
-        throw new Error("AWS KMS provider not yet implemented");
-
-      case "gcp-kms":
-        throw new Error("GCP KMS provider not yet implemented");
-
-      case "azure-keyvault":
-        throw new Error("Azure Key Vault provider not yet implemented");
-
-      default: {
-        const exhaustiveCheck: never = config;
-        throw new Error(`Unknown provider: ${JSON.stringify(exhaustiveCheck)}`);
-      }
+    // Only the `local` adapter is wired today. The full switch (with
+    // `aws-kms`, `gcp-kms`, `azure-keyvault` branches and an exhaustive
+    // `never` check) returns when a second adapter actually arrives —
+    // until then, demoting to a single guarded branch keeps the seam from
+    // pretending to support backends it cannot construct.
+    // TODO(vault): re-expand to a discriminated switch when adding the
+    // first cloud KMS adapter; mirror the `ProviderConfig` union.
+    if (config.provider === "local") {
+      return new LocalEncryptionProvider(config.masterKey, config.keyId);
     }
+
+    throw new Error(
+      `Vault provider '${config.provider}' is not yet implemented`
+    );
   }
 
   private parseEnvelope(encrypted: SerializedEnvelope): EncryptedEnvelope {

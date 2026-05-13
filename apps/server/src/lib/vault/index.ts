@@ -1,15 +1,11 @@
 export { getVault, vault } from "./instance";
-export {
-  generateMasterKey,
-  hashData,
-  LocalEncryptionProvider,
-  timingSafeHashCompare,
-} from "./local-provider";
+export { generateMasterKey, LocalEncryptionProvider } from "./local-provider";
 export type { ApiKeyData, SecretData } from "./schemas";
 export { apiKeySchema, createSchema, secretSchema } from "./schemas";
 export type {
   EncryptedEnvelope,
   EncryptionProvider,
+  KekWrapper,
   LocalProviderConfig,
   ProviderConfig,
   SerializedEnvelope,

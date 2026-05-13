@@ -1,3 +1,4 @@
+import type { EmailConfig } from "../lib/config";
 import { ConsoleTransport } from "./console";
 import { NodemailerTransport } from "./nodemailer";
 import type { EmailTransport } from "./types";
@@ -8,36 +9,19 @@ export type {
   SendEmailResult,
 } from "./types";
 
-export function createTransport(config: {
-  provider?: "nodemailer" | "console";
-  smtp?: {
-    host: string;
-    port: number;
-    secure?: boolean;
-    auth: {
-      user: string;
-      pass: string;
-    };
-  };
-}): EmailTransport {
-  const isExplicitConsole = config.provider === "console";
-  if (isExplicitConsole) {
-    return new ConsoleTransport();
+/**
+ * Adapter selector. Discriminated on `config.kind` — O(1) dispatch with
+ * exhaustiveness enforced by the `never` branch.
+ */
+export function createTransport(config: EmailConfig): EmailTransport {
+  switch (config.kind) {
+    case "console":
+      return new ConsoleTransport();
+    case "smtp":
+      return new NodemailerTransport(config.smtp);
+    default: {
+      const exhaustive: never = config;
+      throw new Error(`Unknown email config: ${JSON.stringify(exhaustive)}`);
+    }
   }
-
-  const hasSmtpConfig = config.smtp?.host && config.smtp?.auth?.user;
-  const isExplicitNodemailer =
-    config.provider === "nodemailer" && hasSmtpConfig;
-
-  if (
-    (isExplicitNodemailer || (!config.provider && hasSmtpConfig)) &&
-    config.smtp
-  ) {
-    return new NodemailerTransport(config.smtp);
-  }
-
-  console.warn(
-    "[warn] No valid email transport configuration found. Falling back to ConsoleTransport."
-  );
-  return new ConsoleTransport();
 }

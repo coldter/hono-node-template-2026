@@ -101,6 +101,47 @@
           }
         }
       }
+    },
+    {
+      "includes": [
+        "apps/server/src/**/*.ts",
+        "!apps/server/src/**/__tests__/**",
+        "!apps/server/src/**/*.test.ts",
+        "!apps/server/src/**/*.spec.ts",
+        "apps/admin-server/src/**/*.ts",
+        "!apps/admin-server/src/**/__tests__/**",
+        "!apps/admin-server/src/**/*.test.ts",
+        "!apps/admin-server/src/**/*.spec.ts",
+        "packages/auth-tokens/src/**/*.ts",
+        "!packages/auth-tokens/src/**/__tests__/**",
+        "packages/authorization/src/**/*.ts",
+        "!packages/authorization/src/**/__tests__/**",
+        "packages/db/src/**/*.ts",
+        "!packages/db/src/**/__tests__/**",
+        "packages/email/src/**/*.{ts,tsx}",
+        "!packages/email/src/**/__tests__/**",
+        "packages/shared/src/**/*.ts",
+        "!packages/shared/src/**/__tests__/**",
+        "packages/tenancy/src/**/*.ts",
+        "!packages/tenancy/src/**/__tests__/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@repo/test-harness": "Production code must not import @repo/test-harness; it is a dev-only fixtures package.",
+                  "@repo/test-harness/seed-tenant": "Production code must not import @repo/test-harness; it is a dev-only fixtures package.",
+                  "@repo/test-harness/oidc/fake-idp": "Production code must not import @repo/test-harness; it is a dev-only fixtures package.",
+                  "@repo/test-harness/caddy-stub": "Production code must not import @repo/test-harness; it is a dev-only fixtures package."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

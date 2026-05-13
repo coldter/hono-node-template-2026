@@ -11,20 +11,9 @@ import { createdAt, updatedAt } from "../helpers";
 import { generatePrefixedCuid, ID_PREFIXES } from "../ids";
 import { sessions, users } from "./auth";
 
-// ============================================================
-// CONSTANTS
-// ============================================================
-
 export const PUSH_PLATFORM = ["ios", "android", "web"] as const;
 export type PushPlatform = (typeof PUSH_PLATFORM)[number];
 
-// ============================================================
-// PUSH TOKENS TABLE
-// ============================================================
-
-/**
- * Push notification tokens for user devices.
- */
 export const pushTokens = pgTable(
   "push_tokens",
   {
@@ -40,19 +29,15 @@ export const pushTokens = pgTable(
       .notNull()
       .references(() => sessions.id, { onDelete: "cascade" }),
 
-    // Token from FCM/APNs
     token: text("token").notNull(),
 
-    // Device info
     platform: text("platform", { enum: PUSH_PLATFORM }).notNull(),
     deviceId: varchar("device_id", { length: 255 }),
     deviceName: varchar("device_name", { length: 100 }),
 
-    // Validity
     isActive: boolean("is_active").notNull().default(true),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
 
-    // Timestamps
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

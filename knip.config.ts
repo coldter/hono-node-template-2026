@@ -4,8 +4,26 @@ const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
   tags: ["-lintignore"],
   ignoreIssues: {
-    "apps/web/src/modules/ui/**": ["exports"],
+    "apps/admin-ui/src/modules/ui/**": ["exports"],
     "packages/authorization/package.json": ["optionalPeerDependencies"],
+    // Scaffolding reserved for upcoming admin-ui features:
+    //   - `useTableUrlState` will back the operator-facing tenants/audit
+    //     listing pages (URL-driven pagination/sorting) once those routes
+    //     land in admin-ui. Stories already reference it in documentation.
+    //   - The `data-table` and `permissions` barrels exist so feature
+    //     modules can `import { ... } from "@/modules/data-table"` without
+    //     reaching into individual files. Currently only the stories
+    //     consume the underlying components directly.
+    "apps/admin-ui/src/hooks/use-table-url-state.ts": ["files"],
+    "apps/admin-ui/src/modules/data-table/index.ts": ["files"],
+    "apps/admin-ui/src/modules/permissions/index.ts": ["files"],
+    // Wire-shape mirrors: each `z.infer<typeof X>` type lives next to its
+    // schema so the route handlers and the admin-ui codegen consumer agree
+    // on the same TS shape. Knip flags them because consumers reference
+    // the schema (validation seam) rather than the mirror type, but
+    // removing them would drop the documentation pairing.
+    "apps/admin-server/src/modules/enroll/schema.ts": ["types"],
+    "apps/admin-server/src/modules/tenants/schema.ts": ["types"],
   },
   rules: {
     exports: "warn",
@@ -15,7 +33,7 @@ const config: KnipConfig = {
     ".": {
       ignoreDependencies: ["tsx"],
     },
-    "apps/web": {
+    "apps/admin-ui": {
       entry: ["src/routes/**/*.tsx", "src/api-config.ts"],
       project: ["src/**/*.{ts,tsx}", "*.{ts,tsx}"],
       ignore: ["src/api.gen/**"],
@@ -49,6 +67,12 @@ const config: KnipConfig = {
     },
     "packages/email": {
       ignoreDependencies: ["@react-email/ui"],
+    },
+    "packages/test-harness": {
+      // Reserved for upcoming contract-test fixtures (A7.5-A7.8):
+      // `@repo/tenancy` will back request-context test helpers and
+      // `@repo/auth-tokens` will back JWT-claim-builder helpers.
+      ignoreDependencies: ["@repo/tenancy", "@repo/auth-tokens"],
     },
   },
 };

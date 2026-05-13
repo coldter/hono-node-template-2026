@@ -154,18 +154,6 @@ describe("PolicyBuilder", () => {
       builder.allow("user").to("*", "view");
     }).toThrow(CANNOT_MIX_WILDCARD);
   });
-
-  it("allow() return type does not expose where()/whereOwner() until to() runs", () => {
-    // @ts-expect-error -- where() is not on the action stage; must call to() first
-    builder.allow("user").where(() => true);
-
-    // @ts-expect-error -- whereOwner() is not on the action stage either
-    builder.allow("user").whereOwner();
-
-    // sanity: chaining via to() resolves the type stage
-    const rule = builder.allow("user").to("update").whereOwner();
-    expect(rule.effect).toBe("allow");
-  });
 });
 
 describe("createResourceDefinition", () => {

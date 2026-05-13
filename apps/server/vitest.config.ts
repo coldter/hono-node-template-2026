@@ -14,7 +14,11 @@ export default defineConfig({
       SKIP_ENV_VALIDATION: "true",
       SKIP_DB: "true",
     },
-    include: ["tests/**/*.test.ts"],
+    include: [
+      "tests/**/*.test.ts",
+      "src/**/__tests__/**/*.test.ts",
+      "scripts/**/__tests__/**/*.test.ts",
+    ],
     exclude: ["node_modules", "dist"],
     setupFiles: ["./tests/setup.ts"],
     testTimeout: 10_000,

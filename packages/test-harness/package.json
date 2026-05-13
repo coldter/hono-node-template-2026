@@ -1,0 +1,33 @@
+{
+  "name": "@repo/test-harness",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./seed-tenant": "./src/seed-tenant.ts",
+    "./oidc/fake-idp": "./src/oidc/fake-idp.ts",
+    "./caddy-stub": "./src/caddy-stub/run.ts"
+  },
+  "scripts": {
+    "check-types": "tsgo --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.2",
+    "@repo/auth-tokens": "workspace:*",
+    "@repo/db": "workspace:*",
+    "@repo/tenancy": "workspace:*",
+    "drizzle-orm": "^1.0.0-rc.2-e38a2ba",
+    "hono": "^4.12.18",
+    "jose": "^6.2.3",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^11.14.0",
+    "@types/node": "^25.6.2",
+    "@types/pg": "^8.20.0",
+    "@typescript/native-preview": "beta",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

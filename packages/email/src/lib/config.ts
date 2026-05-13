@@ -32,28 +32,50 @@ function parseSmtpPort(value: string | undefined): number | undefined {
   return parsed;
 }
 
-const emailConfigSchema = z.object({
-  provider: z.enum(["nodemailer", "console"]).optional(),
-  from: z.object({
-    default: z.email().default("noreply@example.com"),
-    name: z.string().default(BRAND_DEFAULTS.appName),
+export interface SmtpOptions {
+  auth: {
+    user: string;
+    pass: string;
+  };
+  host: string;
+  port: number;
+  secure: boolean;
+}
+
+export interface EmailFrom {
+  default: string;
+  name: string;
+}
+
+/**
+ * Discriminated transport choice — the single source of truth for which
+ * adapter `createTransport` should pick. Adding a new transport here forces
+ * a new case in `createTransport`'s switch.
+ */
+export type EmailConfig =
+  | { kind: "console"; from: EmailFrom }
+  | { kind: "smtp"; from: EmailFrom; smtp: SmtpOptions };
+
+const smtpSchema = z.object({
+  host: z.string(),
+  port: z.coerce.number().default(587),
+  secure: z.boolean().default(false),
+  auth: z.object({
+    user: z.string(),
+    pass: z.string(),
   }),
-  smtp: z
-    .object({
-      host: z.string(),
-      port: z.coerce.number().default(587),
-      secure: z.boolean().default(false),
-      auth: z.object({
-        user: z.string(),
-        pass: z.string(),
-      }),
-    })
-    .optional(),
 });
 
-export type EmailConfig = z.infer<typeof emailConfigSchema>;
+const fromSchema = z.object({
+  default: z.email().default("noreply@example.com"),
+  name: z.string().default(BRAND_DEFAULTS.appName),
+});
 
-export function getEmailConfig(): EmailConfig {
+type ProviderHint = "nodemailer" | "console" | undefined;
+
+const providerSchema = z.enum(["nodemailer", "console"]).optional();
+
+function resolveSmtp(): SmtpOptions | undefined {
   const smtpPort = parseSmtpPort(process.env.SMTP_PORT);
   const secureFromEnv = parseBooleanString(process.env.SMTP_SECURE);
   const isMailpitHost =
@@ -75,40 +97,82 @@ export function getEmailConfig(): EmailConfig {
     );
   }
 
-  const parsed = emailConfigSchema.safeParse({
-    provider: process.env.EMAIL_PROVIDER,
-    from: {
-      default: process.env.EMAIL_FROM,
-      name: process.env.EMAIL_FROM_NAME,
+  if (!process.env.SMTP_HOST) {
+    return;
+  }
+
+  const parsed = smtpSchema.safeParse({
+    host: process.env.SMTP_HOST,
+    port: smtpPort,
+    secure: isMailpitHost ? false : resolvedSecure,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
-    smtp: process.env.SMTP_HOST
-      ? {
-          host: process.env.SMTP_HOST,
-          port: smtpPort,
-          secure: isMailpitHost ? false : resolvedSecure,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        }
-      : undefined,
   });
 
   if (!parsed.success) {
+    return;
+  }
+  return parsed.data;
+}
+
+function resolveFrom(): EmailFrom {
+  const parsed = fromSchema.safeParse({
+    default: process.env.EMAIL_FROM,
+    name: process.env.EMAIL_FROM_NAME,
+  });
+  if (parsed.success) {
+    return parsed.data;
+  }
+  return {
+    default: "noreply@example.com",
+    name: `${brand.appName} (Dev)`,
+  };
+}
+
+function devFallback(): EmailConfig {
+  return {
+    kind: "console",
+    from: {
+      default: "noreply@example.com",
+      name: `${brand.appName} (Dev)`,
+    },
+  };
+}
+
+export function getEmailConfig(): EmailConfig {
+  const providerParsed = providerSchema.safeParse(process.env.EMAIL_PROVIDER);
+  if (!providerParsed.success) {
     if (process.env.NODE_ENV === "production") {
       console.error(
         "[error] Invalid email environment variables:",
-        z.treeifyError(parsed.error)
+        z.treeifyError(providerParsed.error)
       );
       throw new Error("Invalid email configuration");
     }
-    return {
-      from: {
-        default: "noreply@example.com",
-        name: `${brand.appName} (Dev)`,
-      },
-    } as EmailConfig;
+    return devFallback();
   }
 
-  return parsed.data;
+  const providerHint: ProviderHint = providerParsed.data;
+  const smtp = resolveSmtp();
+  const from = resolveFrom();
+
+  if (providerHint === "console") {
+    return { kind: "console", from };
+  }
+
+  // Default / explicit nodemailer: require SMTP options.
+  if (smtp) {
+    return { kind: "smtp", from, smtp };
+  }
+
+  if (providerHint === "nodemailer" && process.env.NODE_ENV === "production") {
+    console.error(
+      "[error] EMAIL_PROVIDER=nodemailer but SMTP options are missing/invalid."
+    );
+    throw new Error("Invalid email configuration");
+  }
+
+  return { kind: "console", from };
 }

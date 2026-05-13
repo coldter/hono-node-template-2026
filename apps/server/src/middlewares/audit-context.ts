@@ -1,9 +1,9 @@
-import { createMiddleware } from "hono/factory";
+import {
+  buildAuditContextMiddleware,
+  extractAuditContext,
+} from "@repo/hono-app";
 
-import { extractAuditContext } from "@/lib/audit-context";
 import type { Env } from "@/lib/context";
 
-export const auditContextMiddleware = createMiddleware<Env>(async (c, next) => {
-  c.set("auditContext", extractAuditContext(c));
-  await next();
-});
+export const auditContextMiddleware =
+  buildAuditContextMiddleware<Env>(extractAuditContext);

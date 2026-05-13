@@ -24,7 +24,7 @@ A production-ready monorepo template with authentication, RBAC, user management,
 
    ```bash
    cp apps/server/.env.example apps/server/.env
-   cp apps/web/.env.example apps/web/.env
+   cp apps/admin-ui/.env.example apps/admin-ui/.env
    # Generate the auth secret:
    openssl rand -hex 32   # paste into BETTER_AUTH_SECRET
    ```
@@ -44,11 +44,11 @@ A production-ready monorepo template with authentication, RBAC, user management,
    bun run db:seed
    ```
 
-6. Run dev (use split terminals for the API and the web app):
+6. Run dev (use split terminals for the API and the admin UI):
 
    ```bash
-   bun run dev:server   # terminal 1
-   bun run dev:web      # terminal 2
+   bun run dev:server     # terminal 1
+   bun run dev:admin-ui   # terminal 2
    ```
 
 ## Build
@@ -82,8 +82,9 @@ bun run db:studio                    # Open Drizzle Studio
 
 | Path              | Purpose                                       |
 | ----------------- | --------------------------------------------- |
-| `apps/server`     | Main Hono API with OpenAPI + Drizzle/Postgres |
-| `apps/web`        | React SPA (TanStack Router/Query, Zustand)    |
+| `apps/server`       | Tenant-facing Hono API with OpenAPI + Drizzle/Postgres |
+| `apps/admin-server` | Operator-facing admin API (tenant CRUD, enroll)        |
+| `apps/admin-ui`     | Operator admin SPA (TanStack Router/Query, Zustand)    |
 | `packages/shared` | Shared runtime constants, types, and helpers  |
 | `packages/email`  | React Email templates + transport utilities   |
 

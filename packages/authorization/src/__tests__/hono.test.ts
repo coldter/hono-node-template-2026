@@ -8,7 +8,6 @@ import type { Principal } from "../types";
 const NO_RESOURCE_LOADED = /no resource was loaded/;
 const NOT_IN_ALLOWED_BYPASS = /not in allowedBypassLabels/;
 
-// Set up a test schema and registry
 const auth = createAuthSchema({
   roles: ["admin", "user"],
   systemAdminRoles: ["admin"],
@@ -34,7 +33,6 @@ const testResource = auth.createResource<TestResource>("test", {
 
 const registry = auth.buildRegistry({ test: testResource });
 
-// Helpers for test principals
 const adminPrincipal: Principal = {
   id: "usr_admin",
   roles: ["admin"],
@@ -47,8 +45,6 @@ const userPrincipal: Principal = {
 };
 
 describe("createAuthorize", () => {
-  // Create the authorize function
-  // resolvePrincipal reads from a custom header for testing
   const authorize = createAuthorize(registry, {
     resolvePrincipal: (c) => {
       const principalHeader = c.req.header("x-test-principal");

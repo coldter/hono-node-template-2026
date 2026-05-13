@@ -70,11 +70,11 @@
             }
         },
         {
-            "name": "[WEB] Debug Web (Brave)",
+            "name": "[ADMIN-UI] Debug Admin UI (Brave)",
             "type": "chrome",
             "request": "launch",
             "url": "http://localhost:3001",
-            "webRoot": "${workspaceFolder}/apps/web",
+            "webRoot": "${workspaceFolder}/apps/admin-ui",
             "runtimeExecutable": "/usr/bin/brave-browser"
         }
     ]

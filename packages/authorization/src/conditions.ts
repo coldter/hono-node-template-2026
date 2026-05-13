@@ -49,9 +49,8 @@ export function createSelfTargetCondition<
       if (!ctx.resource) {
         return false;
       }
-      // Resource shape is widened so condition factories don't force
-      // upstream casts at every call site. At runtime a resource without
-      // an id field naturally fails the equality check (false).
+      // boundary: condition factories accept arbitrary TResource shapes;
+      // runtime resources without `id` fail the equality check naturally.
       const candidate = ctx.resource as { id?: unknown };
       return (
         typeof candidate.id === "string" && candidate.id === ctx.principal.id

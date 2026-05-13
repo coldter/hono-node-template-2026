@@ -1,28 +1,17 @@
 import { env } from "@/env";
 
 /**
- * OpenTelemetry Configuration - PCI DSS Compliant
- *
- * Design Principles:
- * - Single env var (OTEL_ENABLED) controls everything
- * - No sensitive data in telemetry by default
- * - Header deny-list (whitelist approach)
- * - Body field redaction
- * - Cookie exclusion (all blocked)
- * - Query param filtering
+ * OpenTelemetry redaction config. Default-deny on headers (only explicit
+ * SAFE patterns are emitted), redaction on body fields and query params,
+ * cookies fully blocked. Keep this aligned with PCI DSS handling: no
+ * sensitive data should reach the exporter.
  */
 
 export const SERVICE_NAME = "server" as const;
 export const SERVICE_VERSION = "1.0.0" as const;
 
-/**
- * Main toggle
- */
 export const OTEL_ENABLED = env.OTEL_ENABLED;
 
-/**
- * Sensitive Header Patterns (BLOCKED by default)
- */
 const SENSITIVE_HEADER_PATTERNS = [
   /^authorization$/i,
   /^cookie$/i,
@@ -39,9 +28,6 @@ const SENSITIVE_HEADER_PATTERNS = [
   /^better-auth.*/i,
 ] as const;
 
-/**
- * Safe Header Patterns (ALLOWED)
- */
 const SAFE_HEADER_PATTERNS = [
   /^content-type$/i,
   /^content-length$/i,
@@ -57,9 +43,6 @@ const SAFE_HEADER_PATTERNS = [
   /^access-control-request-headers$/i,
 ] as const;
 
-/**
- * Sensitive Body Fields (REDACTED)
- */
 const SENSITIVE_BODY_FIELDS = [
   "password",
   "currentPassword",
@@ -84,9 +67,6 @@ const SENSITIVE_BODY_FIELDS = [
   "csrfToken",
 ] as const;
 
-/**
- * Sensitive Query Params (REDACTED)
- */
 const SENSITIVE_QUERY_PARAMS = [
   "token",
   "api_key",
@@ -98,14 +78,8 @@ const SENSITIVE_QUERY_PARAMS = [
   "auth_token",
 ] as const;
 
-/**
- * Cookie Handling (ALL BLOCKED)
- */
 const BLOCK_ALL_COOKIES = true as const;
 
-/**
- * Utility: Check if header is safe to capture
- */
 export function isHeaderSafe(headerName: string): boolean {
   for (const pattern of SENSITIVE_HEADER_PATTERNS) {
     if (pattern.test(headerName)) {
@@ -122,9 +96,6 @@ export function isHeaderSafe(headerName: string): boolean {
   return false;
 }
 
-/**
- * Utility: Redact sensitive fields from object
- */
 export function redactSensitiveFields<T extends Record<string, unknown>>(
   obj: T
 ): T {
@@ -150,9 +121,6 @@ export function redactSensitiveFields<T extends Record<string, unknown>>(
   return result;
 }
 
-/**
- * Utility: Sanitize URL (remove sensitive query params)
- */
 export function sanitizeUrl(url: string): string {
   try {
     const urlObj = new URL(url);
@@ -173,9 +141,6 @@ export function sanitizeUrl(url: string): string {
   }
 }
 
-/**
- * Utility: Check if cookie header should be captured
- */
 export function shouldCaptureCookies(): boolean {
   return !BLOCK_ALL_COOKIES;
 }

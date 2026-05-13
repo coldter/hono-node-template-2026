@@ -10,8 +10,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./hono": "./src/hono.ts",
-    "./drizzle": "./src/drizzle.ts"
+    "./hono": "./src/hono.ts"
   },
   "devDependencies": {
     "@typescript/native-preview": "beta",

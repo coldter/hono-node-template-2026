@@ -1,2 +1,4 @@
 [install]
 linker = "isolated"
+# Configure a minimum age (in seconds) for npm package versions. Package versions published more recently than this threshold will be filtered out during installation. Default is null (disabled) https://bun.com/docs/runtime/bunfig#install-minimumreleaseage
+minimumReleaseAge = 172800 # 2 days in seconds

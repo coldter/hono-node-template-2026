@@ -1,0 +1,24 @@
+{
+  "name": "@repo/tenant-operations",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsgo --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@repo/db": "workspace:*",
+    "@repo/shared": "workspace:*",
+    "@repo/tenancy": "workspace:*",
+    "drizzle-orm": "^1.0.0-rc.2-e38a2ba"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "@typescript/native-preview": "beta",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

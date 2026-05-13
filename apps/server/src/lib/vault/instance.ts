@@ -70,11 +70,9 @@ export const vault = {
     ...args: Parameters<Vault["decrypt"]>
   ): ReturnType<Vault["decrypt"]> => getVault().decrypt(...args),
 
-  encryptRaw: (...args: Parameters<Vault["encryptRaw"]>) =>
-    getVault().encryptRaw(...args),
+  wrap: (...args: Parameters<Vault["wrap"]>) => getVault().wrap(...args),
 
-  decryptRaw: (...args: Parameters<Vault["decryptRaw"]>) =>
-    getVault().decryptRaw(...args),
+  unwrap: (...args: Parameters<Vault["unwrap"]>) => getVault().unwrap(...args),
 
   hash: (...args: Parameters<Vault["hash"]>) => getVault().hash(...args),
 

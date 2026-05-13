@@ -1,4 +1,3 @@
-// Hono middleware adapter for @repo/authorization
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { RegistryInstance } from "./registry";
@@ -8,8 +7,6 @@ import type { DenyReason, PolicyDecision, Principal } from "./types";
 
 const AUTHORIZED_RESOURCE_KEY = "authorizedResource";
 
-// Map a deny decision (or bare reason) to its DenyReason. Avoids nested
-// ternaries in denyResponse so the lint rule against them is satisfied.
 function denyReasonOf(input: PolicyDecision | DenyReason): DenyReason {
   if (typeof input === "string") {
     return input;
@@ -20,10 +17,9 @@ function denyReasonOf(input: PolicyDecision | DenyReason): DenyReason {
   return "NO_MATCHING_POLICY";
 }
 
-// Build the HTTPException for any deny path in this adapter. UNAUTHENTICATED
-// surfaces as 401; everything else collapses to a uniform FORBIDDEN body so
-// the wire intentionally hides the specific deny reason (server logs may
-// still distinguish via decision.reason).
+// UNAUTHENTICATED surfaces as 401; every other deny collapses to a uniform
+// FORBIDDEN body so the wire hides the reason (resource-existence side
+// channel). Server logs can still distinguish via `decision.reason`.
 function denyResponse(
   decisionOrReason: PolicyDecision | DenyReason
 ): HTTPException {
@@ -93,50 +89,39 @@ export function createAuthorize<
 ): AuthorizeFunction<TResources> {
   const allowedBypass = new Set(options.allowedBypassLabels ?? []);
 
-  const authorizeImpl = (
-    resource: string,
-    action: string,
-    opts?: AuthorizeOptions
-  ): MiddlewareHandler => {
-    return async (c, next) => {
+  const authorizeImpl =
+    <K extends keyof TResources & string>(
+      resource: K,
+      action: ActionsOf<TResources[K]>,
+      opts?: AuthorizeOptions<ResourceTypeFor<TResources[K]>>
+    ): MiddlewareHandler =>
+    async (c, next) => {
       const principal = options.resolvePrincipal(c as Context<TEnv>);
 
-      let loadedResource: unknown;
+      let loadedResource: ResourceTypeFor<TResources[K]> | undefined;
       if (opts?.loadResource) {
-        loadedResource = await opts.loadResource(c);
-        if (loadedResource === null || loadedResource === undefined) {
-          // Uniform FORBIDDEN body avoids a resource-existence side channel
-          // (server-side reasoning may still distinguish for logging).
+        const loaded = await opts.loadResource(c);
+        if (loaded === null || loaded === undefined) {
           throw denyResponse("RESOURCE_NOT_FOUND");
         }
+        loadedResource = loaded;
       }
 
-      // boundary: registry.can carries a typed action union per resource;
-      // the impl here is generic over `string` because the public callable
-      // signature on AuthorizeFunction enforces the typed action -- the
-      // narrowing happened at the call site in user code.
-      const decision = await registry.can(
-        principal,
-        resource,
-        action as never,
-        {
-          resource: loadedResource,
-          resolveRelation: opts?.resolveRelation,
-        }
-      );
+      const decision = await registry.can(principal, resource, action, {
+        resource: loadedResource,
+        resolveRelation: opts?.resolveRelation,
+      });
 
       if (!decision.allowed) {
         throw denyResponse(decision);
       }
 
-      // Store loaded resource in context for downstream handlers
       if (loadedResource !== undefined) {
         c.set(AUTHORIZED_RESOURCE_KEY, loadedResource);
       }
 
       await next();
     };
-  };
 
   const unsafeBypassAuthorization = (label: string): MiddlewareHandler => {
     if (!allowedBypass.has(label)) {
@@ -148,8 +133,8 @@ export function createAuthorize<
     }
     return async (c, next) => {
       // Loud signal: production logs/metrics MUST be able to spot bypassed
-      // routes. The package is dependency-free; consumers can intercept
-      // stdout or wrap console if structured logging is required.
+      // routes. Package is dep-free; consumers can intercept stdout or
+      // wrap console for structured logging.
       console.warn(
         JSON.stringify({
           event: "authorization.bypass",
@@ -162,23 +147,18 @@ export function createAuthorize<
     };
   };
 
-  // boundary: the public callable signature on AuthorizeFunction is more
-  // strict than the impl (typed action union per resource). The impl widens
-  // to `string` because narrowing happens at the call site in user code.
-  const authorize = Object.assign(authorizeImpl, {
-    unsafeBypassAuthorization,
-  }) as unknown as AuthorizeFunction<TResources>;
+  const authorize: AuthorizeFunction<TResources> = Object.assign(
+    authorizeImpl,
+    { unsafeBypassAuthorization }
+  ) satisfies AuthorizeFunction<TResources>;
 
   return authorize;
 }
 
 /**
  * Retrieve the resource loaded by authorize() middleware. Throws if the
- * caller invokes this on a route whose middleware did not declare a
- * `loadResource` (or whose loader produced a nullish value that the
- * middleware would have already converted to a 403). After the change,
- * downstream handlers can rely on a non-null `T` instead of casting from
- * `undefined`.
+ * route's middleware did not declare a `loadResource` — handlers can
+ * rely on a non-null `T` instead of casting from `undefined`.
  */
 export function getAuthorizedResource<T>(c: Context): T {
   const value = c.get(AUTHORIZED_RESOURCE_KEY);
@@ -188,14 +168,14 @@ export function getAuthorizedResource<T>(c: Context): T {
         "Ensure the route's authorize(...) middleware passes `loadResource`."
     );
   }
-  // boundary: caller declared T; runtime value originated from loadResource
-  // whose return type was constrained to TResource at the middleware site.
+  // boundary: caller declares T; runtime value came from loadResource whose
+  // return was constrained to TResource at the middleware site.
   return value as T;
 }
 
 /**
- * Hono-specific helper that throws HTTPException(403) on deny.
- * For use in handlers when you need to check authorization after the middleware.
+ * Throws HTTPException(403) on deny. Use in handlers when authorization
+ * must be re-checked after the middleware (e.g. resource loaded later).
  */
 export async function assertCanOrThrow<
   TResources extends Record<string, AnyResourceDef>,

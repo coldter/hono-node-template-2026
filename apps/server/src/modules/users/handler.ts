@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 
 import { isValidRole } from "@/auth/principal";
 import { auth } from "@/auth/schema";
-import type { Env } from "@/lib/context";
+import type { Env, RequestContext } from "@/lib/context";
 import { EVENTS, pushEvent } from "@/lib/events";
 import { notificationService } from "@/modules/notifications";
 import { defaultHook } from "@/utils/default-hook";
@@ -21,8 +21,8 @@ const app = new OpenAPIHono<Env>({ defaultHook });
 
 function requireCurrentUser(
   c: Context<Env>
-): NonNullable<Env["Variables"]["user"]> {
-  const currentUser = c.get("user");
+): NonNullable<NonNullable<RequestContext["principal"]>["user"]> {
+  const currentUser = c.var.requestContext.principal?.user;
   if (!currentUser) {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
@@ -97,7 +97,7 @@ const usersHandler = app
     const user = await userService.create(
       body,
       currentUser.id,
-      c.var.auditContext
+      c.var.requestContext.audit
     );
 
     await pushEvent(EVENTS.USER_CREATED, {
@@ -119,7 +119,7 @@ const usersHandler = app
         userId,
         body,
         currentUser.id,
-        c.var.auditContext
+        c.var.requestContext.audit
       );
       return c.json({ user: toUserSummaryResponse(user) }, 200);
     } catch (error) {
@@ -150,7 +150,7 @@ const usersHandler = app
         userId,
         body,
         currentUser.id,
-        c.var.auditContext
+        c.var.requestContext.audit
       );
       return c.json({ user: toUserSummaryResponse(user) }, 200);
     } catch (error) {
@@ -172,7 +172,7 @@ const usersHandler = app
         userId,
         body.reason ?? null,
         currentUser.id,
-        c.var.auditContext
+        c.var.requestContext.audit
       );
     } catch (error) {
       handleUserNotFound(error);
@@ -186,7 +186,11 @@ const usersHandler = app
     const currentUser = requireCurrentUser(c);
 
     try {
-      await userService.activate(userId, currentUser.id, c.var.auditContext);
+      await userService.activate(
+        userId,
+        currentUser.id,
+        c.var.requestContext.audit
+      );
     } catch (error) {
       handleUserNotFound(error);
     }
@@ -199,7 +203,11 @@ const usersHandler = app
     const currentUser = requireCurrentUser(c);
 
     try {
-      await userService.unlock(userId, currentUser.id, c.var.auditContext);
+      await userService.unlock(
+        userId,
+        currentUser.id,
+        c.var.requestContext.audit
+      );
     } catch (error) {
       handleUserNotFound(error);
     }

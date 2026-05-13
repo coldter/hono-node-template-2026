@@ -65,9 +65,6 @@ export function handleError(err: Error, c: Context<Env>): Response {
     });
   }
 
-  /**
-   * Database Errors
-   */
   if (err instanceof DrizzleQueryError) {
     logger.error("DatabaseError", { error: err });
     if (!(err.cause instanceof pg.DatabaseError)) {

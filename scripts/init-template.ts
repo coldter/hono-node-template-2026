@@ -271,7 +271,7 @@ async function main(): Promise<void> {
 
   console.info("Updating env examples...");
   await updateEnvExample(join(ROOT, "apps/server/.env.example"), answers);
-  await updateEnvExample(join(ROOT, "apps/web/.env.example"), answers);
+  await updateEnvExample(join(ROOT, "apps/admin-ui/.env.example"), answers);
   await updateEnvExample(join(ROOT, ".env.production.example"), answers);
 
   console.info("Updating README...");

@@ -19,7 +19,6 @@ const auditLogsHandler = app.openapi(
         data: result.data.map((log) => ({
           ...log,
           createdAt: log.createdAt.toISOString(),
-          // Cast event to the proper AuditEventKey type (database returns string)
           event: log.event as AuditEventKey,
         })),
         meta: result.meta,

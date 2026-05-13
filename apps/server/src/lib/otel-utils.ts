@@ -10,16 +10,10 @@ import {
   SERVICE_NAME,
 } from "./otel-config";
 
-/**
- * Get tracer for this service
- */
 export function getTracer() {
   return trace.getTracer(SERVICE_NAME);
 }
 
-/**
- * Start a manual span and execute a function
- */
 export async function withSpan<T>(
   name: string,
   fn: (span: Span) => Promise<T>,
@@ -60,9 +54,7 @@ export async function withSpan<T>(
   });
 }
 
-/**
- * Set attributes on current span (SAFE)
- */
+/** Sets sanitized attributes on the current active span. */
 export function setSpanAttributes(attributes: Record<string, unknown>): void {
   if (!OTEL_ENABLED) {
     return;
@@ -77,9 +69,7 @@ export function setSpanAttributes(attributes: Record<string, unknown>): void {
   span.setAttributes(sanitized);
 }
 
-/**
- * Add an event to current span (SAFE)
- */
+/** Adds a sanitized event to the current active span. */
 export function addSpanEvent(
   name: string,
   attributes?: Record<string, unknown>
@@ -99,9 +89,6 @@ export function addSpanEvent(
   span.addEvent(name, sanitized);
 }
 
-/**
- * Record an exception on current span (SAFE)
- */
 export function recordSpanException(error: Error): void {
   if (!OTEL_ENABLED) {
     return;
@@ -120,9 +107,6 @@ export function recordSpanException(error: Error): void {
   });
 }
 
-/**
- * Create a span without starting it as active
- */
 export function startSpan(name: string, options?: SpanOptions): Span {
   if (!OTEL_ENABLED) {
     const tracer = trace.getTracer(SERVICE_NAME);
@@ -141,9 +125,6 @@ export function startSpan(name: string, options?: SpanOptions): Span {
   return tracer.startSpan(name, safeOptions);
 }
 
-/**
- * Get current trace ID (for logging correlation)
- */
 export function getTraceId(): string | undefined {
   if (!OTEL_ENABLED) {
     return;
@@ -157,9 +138,6 @@ export function getTraceId(): string | undefined {
   return span.spanContext().traceId;
 }
 
-/**
- * Get current span ID
- */
 export function getSpanId(): string | undefined {
   if (!OTEL_ENABLED) {
     return;
@@ -173,9 +151,6 @@ export function getSpanId(): string | undefined {
   return span.spanContext().spanId;
 }
 
-/**
- * Get trace ID from Hono context
- */
 export function getTraceIdFromContext(c: {
   get: (key: string) => unknown;
 }): string | null {

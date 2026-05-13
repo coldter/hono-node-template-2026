@@ -8,7 +8,7 @@ describe.skipIf(!canRun)("Smoke Test", () => {
     const { app } = await import("@/routers/main");
     const client = testClient(app);
 
-    // @ts-expect-error - ping is on baseApp but types might be tricky with .route()
+    // @ts-expect-error - ping is on baseApp; .route() loses the type at the client.
     const res = await client.ping.$get();
 
     expect(res.status).toBe(200);

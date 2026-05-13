@@ -8,8 +8,6 @@ import type {
   Principal,
 } from "../types";
 
-// -- Helpers ----------------------------------------------------------------
-
 function allowRule(
   roles: string[] | "*",
   actions: string[] | "*",
@@ -42,8 +40,6 @@ function denyRule(
   };
 }
 
-// -- Principals -------------------------------------------------------------
-
 const activePrincipal: Principal = {
   id: "usr_1",
   roles: ["user"],
@@ -55,8 +51,6 @@ const inactivePrincipal: Principal = {
   roles: ["user"],
   attributes: { status: "inactive" },
 };
-
-// -- Conditions used in tests -----------------------------------------------
 
 function ownerCondition(): Condition {
   return {
@@ -119,8 +113,6 @@ function throwingCondition(): Condition {
   };
 }
 
-// -- Defaults for EvaluateInput ---------------------------------------------
-
 const defaults = {
   action: "read",
   resourceName: "document",
@@ -129,12 +121,7 @@ const defaults = {
   systemAdminRoles: [] as string[],
 } as const;
 
-// ---------------------------------------------------------------------------
-// Test suite
-// ---------------------------------------------------------------------------
-
 describe("evaluate", () => {
-  // 1. No principal -> DENY (UNAUTHENTICATED)
   it("denies with UNAUTHENTICATED when principal is null", async () => {
     const result = await evaluate({ ...defaults, principal: null });
     expect(result).toEqual({ allowed: false, reason: "UNAUTHENTICATED" });
@@ -145,7 +132,6 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "UNAUTHENTICATED" });
   });
 
-  // 2. Global deny matches -> DENY (GLOBAL_DENY)
   it("denies with GLOBAL_DENY when a global deny policy matches", async () => {
     const result = await evaluate({
       ...defaults,
@@ -159,7 +145,6 @@ describe("evaluate", () => {
     });
   });
 
-  // 21. principalNotActive global deny fires for inactive user
   it("principalNotActive global deny fires for inactive user", async () => {
     const result = await evaluate({
       ...defaults,
@@ -183,7 +168,6 @@ describe("evaluate", () => {
     expect(result.allowed).toBe(true);
   });
 
-  // 4. Resource deny matches -> DENY (EXPLICIT_DENY)
   it("denies with EXPLICIT_DENY when a resource deny matches", async () => {
     const result = await evaluate({
       ...defaults,
@@ -197,7 +181,6 @@ describe("evaluate", () => {
     });
   });
 
-  // 5. Resource allow matches -> ALLOW
   it("allows when a resource allow rule matches", async () => {
     const result = await evaluate({
       ...defaults,
@@ -210,7 +193,6 @@ describe("evaluate", () => {
     });
   });
 
-  // 6. Default (no matching policy) -> DENY (NO_MATCHING_POLICY)
   it("denies with NO_MATCHING_POLICY when no policies match", async () => {
     const result = await evaluate({
       ...defaults,
@@ -229,7 +211,6 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  // 7. Deny beats allow -- deny checked before allow for same role/action
   it("deny beats allow when both match the same role and action", async () => {
     const result = await evaluate({
       ...defaults,
@@ -245,7 +226,6 @@ describe("evaluate", () => {
     }
   });
 
-  // 8. Wildcard "*" role matches any principal role
   it("wildcard role matches any principal role", async () => {
     const result = await evaluate({
       ...defaults,
@@ -255,7 +235,6 @@ describe("evaluate", () => {
     expect(result.allowed).toBe(true);
   });
 
-  // 9. Wildcard "*" action matches any requested action
   it("wildcard action matches any requested action", async () => {
     const result = await evaluate({
       ...defaults,
@@ -266,7 +245,6 @@ describe("evaluate", () => {
     expect(result.allowed).toBe(true);
   });
 
-  // 10. Condition requires resource but no resource present -> skip that policy
   it("skips policy with resource condition when no resource provided", async () => {
     const result = await evaluate({
       ...defaults,
@@ -291,7 +269,6 @@ describe("evaluate", () => {
     expect(result.allowed).toBe(true);
   });
 
-  // 11. whereOwner match -- principal owns resource
   it("allows when owner condition matches", async () => {
     const result = await evaluate({
       ...defaults,
@@ -302,7 +279,6 @@ describe("evaluate", () => {
     expect(result.allowed).toBe(true);
   });
 
-  // 12. whereOwner mismatch -- principal does not own resource
   it("denies when owner condition does not match", async () => {
     const result = await evaluate({
       ...defaults,
@@ -313,7 +289,6 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  // 13. whereTargetIsSelf match
   it("allows when target-is-self condition matches", async () => {
     const result = await evaluate({
       ...defaults,
@@ -326,7 +301,6 @@ describe("evaluate", () => {
     expect(result.allowed).toBe(true);
   });
 
-  // 13b. whereTargetIsSelf mismatch
   it("denies when target-is-self condition does not match", async () => {
     const result = await evaluate({
       ...defaults,
@@ -339,7 +313,6 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  // 14. Async where() predicate -- evaluates correctly
   it("resolves async condition that returns true", async () => {
     const result = await evaluate({
       ...defaults,
@@ -362,7 +335,6 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  // 20. Evaluation error -> DENY (EVALUATION_ERROR) - fail-closed
   it("returns EVALUATION_ERROR when a condition throws", async () => {
     const result = await evaluate({
       ...defaults,
@@ -382,7 +354,7 @@ describe("evaluate", () => {
       roles: ["member"],
       attributes: { status: "active" },
       organization: { id: "org_1", role: "editor" },
-    } as unknown as Principal;
+    };
 
     const noOrgPrincipal: Principal = {
       id: "usr_no_org",
@@ -406,7 +378,6 @@ describe("evaluate", () => {
       return r.orgId;
     };
 
-    // 15. Org scoping: principal has matching org -> proceed normally
     it("allows when org IDs match", async () => {
       const result = await evaluate({
         ...defaults,
@@ -419,7 +390,6 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(true);
     });
 
-    // 16. Org scoping: principal has no active org -> DENY (ORG_CONTEXT_MISSING)
     it("denies with ORG_CONTEXT_MISSING when principal has no active org", async () => {
       const result = await evaluate({
         ...defaults,
@@ -435,7 +405,6 @@ describe("evaluate", () => {
       }
     });
 
-    // 17. Org scoping: resolveOrganization returns null -> ORG_RESOLUTION_FAILED
     it("denies with ORG_RESOLUTION_FAILED when resolveOrganization returns null", async () => {
       const result = await evaluate({
         ...defaults,
@@ -451,7 +420,6 @@ describe("evaluate", () => {
       }
     });
 
-    // 18. Org scoping: org ID mismatch -> TENANT_MISMATCH
     it("denies with TENANT_MISMATCH when org IDs do not match", async () => {
       const result = await evaluate({
         ...defaults,
@@ -467,7 +435,6 @@ describe("evaluate", () => {
       }
     });
 
-    // 19. Org scoping: systemAdminRole bypasses org check
     it("system admin bypasses org scoping", async () => {
       const result = await evaluate({
         ...defaults,

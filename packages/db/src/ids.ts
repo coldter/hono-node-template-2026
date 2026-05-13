@@ -8,7 +8,16 @@ export const ID_PREFIXES = {
   notification: "ntf",
   pushToken: "ptk",
   relation: "rel",
+  tenantHostname: "tnh",
+  verificationToken: "vtok",
+  ssoProvider: "ssop",
+  globalAdmin: "ga",
+  organization: "org",
+  member: "mem",
+  invitation: "inv",
 } as const;
+
+export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
 
 declare const __brand: unique symbol;
 export type Brand<T, B extends string> = T & { readonly [__brand]: B };
@@ -17,6 +26,10 @@ export type UserId = Brand<string, "UserId">;
 export type SessionId = Brand<string, "SessionId">;
 export type AccountId = Brand<string, "AccountId">;
 export type VerificationId = Brand<string, "VerificationId">;
+export type RoleId = Brand<string, "RoleId">;
+export type AuditLogId = Brand<string, "AuditLogId">;
+export type NotificationId = Brand<string, "NotificationId">;
+export type PushTokenId = Brand<string, "PushTokenId">;
 
 export function generatePrefixedCuid<P extends string>(
   prefix: P
@@ -46,17 +59,18 @@ export const createAccountId = (): AccountId =>
 export const createVerificationId = (): VerificationId =>
   generatePrefixedCuid(ID_PREFIXES.verification) as VerificationId;
 
-export const generateIdForModel = (model: string): string => {
-  switch (model) {
-    case "user":
-      return createUserId();
-    case "session":
-      return createSessionId();
-    case "account":
-      return createAccountId();
-    case "verification":
-      return createVerificationId();
-    default:
-      return generatePrefixedCuid("ent");
-  }
-};
+export const createRoleId = (): RoleId =>
+  generatePrefixedCuid(ID_PREFIXES.role) as RoleId;
+
+export const createAuditLogId = (): AuditLogId =>
+  generatePrefixedCuid(ID_PREFIXES.auditLog) as AuditLogId;
+
+export const createNotificationId = (): NotificationId =>
+  generatePrefixedCuid(ID_PREFIXES.notification) as NotificationId;
+
+export const createPushTokenId = (): PushTokenId =>
+  generatePrefixedCuid(ID_PREFIXES.pushToken) as PushTokenId;
+
+export function generateIdForModel(model: keyof typeof ID_PREFIXES): string {
+  return generatePrefixedCuid(ID_PREFIXES[model]);
+}

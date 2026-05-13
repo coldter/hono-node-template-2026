@@ -1,10 +1,6 @@
 import { env } from "@/env";
 import { logger } from "@/lib/logger";
 
-// ============================================================
-// TYPES
-// ============================================================
-
 interface PushMessage {
   data: Record<string, string>;
   token: string;
@@ -12,7 +8,7 @@ interface PushMessage {
 
 interface PushSendResult {
   error?: string;
-  /** True if the token is invalid and should be removed */
+  /** True if the token is invalid and should be removed. */
   invalidToken?: boolean;
   messageId?: string;
   success: boolean;
@@ -21,10 +17,6 @@ interface PushSendResult {
 interface PushProvider {
   send(message: PushMessage): Promise<PushSendResult>;
 }
-
-// ============================================================
-// CONSOLE PROVIDER (development)
-// ============================================================
 
 class ConsolePushProvider implements PushProvider {
   async send(message: PushMessage): Promise<PushSendResult> {
@@ -37,10 +29,6 @@ class ConsolePushProvider implements PushProvider {
     return { success: true, messageId: `console_${Date.now()}` };
   }
 }
-
-// ============================================================
-// FIREBASE PROVIDER
-// ============================================================
 
 class FirebasePushProvider implements PushProvider {
   private messagingInstance:
@@ -116,10 +104,6 @@ class FirebasePushProvider implements PushProvider {
     }
   }
 }
-
-// ============================================================
-// SINGLETON
-// ============================================================
 
 let pushProvider: PushProvider | null = null;
 

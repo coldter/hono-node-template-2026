@@ -1,6 +1,6 @@
 # Project Guidelines
 
-Monorepo with a Hono API (`apps/server`), a React web app (`apps/web`), and shared packages (`packages/*`).
+Monorepo with a tenant-facing Hono API (`apps/server`), an operator admin API (`apps/admin-server`), an operator admin SPA (`apps/admin-ui`), and shared packages (`packages/*`).
 
 ## Critical Rules
 - Do not run `bun dev` or start/stop servers (environment managed externally).
@@ -16,7 +16,7 @@ Monorepo with a Hono API (`apps/server`), a React web app (`apps/web`), and shar
 
 ## Scoped Guides
 - [Server](apps/server/AGENTS.md)
-- [Web](apps/web/AGENTS.md)
+- [Admin UI](apps/admin-ui/AGENTS.md)
 - [Email package](packages/email/AGENTS.md)
 - [Shared package](packages/shared/AGENTS.md)
 

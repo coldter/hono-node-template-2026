@@ -32,9 +32,9 @@ export interface Condition<TResource = unknown> {
   effect: ConditionEffect;
   evaluate(ctx: ConditionContext<TResource>): boolean | Promise<boolean>;
   label: string;
-  // Structured metadata used by registry validation. Built-in conditions
-  // (withRelation, withOrgRole) populate this so validateRegistry can
-  // cross-check schema vocabulary without parsing labels.
+  // Built-in conditions (withRelation, withOrgRole) populate this so
+  // validateRegistry can cross-check schema vocabulary without parsing
+  // labels.
   params?: Record<string, unknown>;
   type: string;
 }

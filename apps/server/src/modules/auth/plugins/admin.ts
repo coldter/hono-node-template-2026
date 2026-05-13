@@ -13,34 +13,47 @@ import {
 import { z } from "zod";
 import { UserNotFoundError } from "@/modules/users/errors";
 import { userService } from "@/modules/users/service";
+import type { AuthSession } from "../instance";
+import type { AuthenticatedPrincipal } from "../principal";
+import { buildPrincipal } from "../principal";
 
 type ManageUserStatusAction = "activate" | "deactivate" | "unlock";
-
-type AuthSessionUser = {
-  email?: string;
-  emailVerified?: boolean;
-  id: string;
-  roleSlugs?: string[];
-  status?: string;
-};
 
 const EMPTY_AUDIT_CONTEXT = {
   ipAddress: undefined,
   userAgent: undefined,
 };
 
-function getAuthorizationActor(user: AuthSessionUser) {
-  return {
-    id: user.id,
-    roleSlugs: user.roleSlugs ?? [],
-    status: user.status,
-    email: user.email,
-    emailVerified: user.emailVerified,
-  };
+/**
+ * Read the actor off a Better Auth endpoint context. `sessionMiddleware`
+ * guarantees `ctx.context.session.user` is populated; we re-use the project
+ * Principal Module to narrow it instead of redefining ad-hoc `AuthSessionUser`
+ * shapes in three different endpoint handlers.
+ *
+ * boundary: BA's endpoint `ctx.context.session` carries the plugin-augmented
+ * Session shape but its TS type is widened to `Session<...>` at the SDK
+ * surface. Project-level `AuthSession` carries the literal-typed status enum;
+ * we narrow via the same cast site as `auth-context.ts`.
+ */
+function actorFromCtx(ctx: {
+  context: { session: { user: unknown; session: unknown } };
+}): AuthenticatedPrincipal {
+  // boundary: vendor-SDK generic variance — BA's endpoint session is the
+  // same shape as the request session but typed loosely on the endpoint ctx.
+  const sessionLike = {
+    user: ctx.context.session.user,
+    session: ctx.context.session.session,
+  } as unknown as AuthSession;
+  const principal = buildPrincipal(sessionLike);
+  if (principal.kind !== "authenticated") {
+    // sessionMiddleware would have already rejected this — defensive only.
+    throw new APIError("UNAUTHORIZED", { message: "Authentication required" });
+  }
+  return principal;
 }
 
 async function assertCanManageUserStatusWithApiError(
-  actor: AuthSessionUser,
+  actor: AuthenticatedPrincipal,
   action: ManageUserStatusAction,
   targetUserId: string
 ) {
@@ -67,22 +80,10 @@ async function runUserStatusMutationWithApiError(
   }
 }
 
-/**
- * Admin Plugin
- *
- * Provides endpoints for user management:
- * - Deactivate user (admin sets user to inactive)
- * - Activate user (admin reactivates a user)
- * - Unlock user (admin unlocks a locked user)
- */
-export const adminPlugin = () => {
-  return {
+export const adminPlugin = () =>
+  ({
     id: "admin",
     endpoints: {
-      /**
-       * Deactivate a user - sets status to "inactive"
-       * Revokes all user sessions
-       */
       deactivateUser: createAuthEndpoint(
         "/admin/deactivate-user",
         {
@@ -117,16 +118,15 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user as AuthSessionUser;
+          const actor = actorFromCtx(ctx);
 
           await assertCanManageUserStatusWithApiError(
-            currentUser,
+            actor,
             "deactivate",
             ctx.body.userId
           );
 
-          // Cannot deactivate yourself
-          if (ctx.body.userId === currentUser.id) {
+          if (ctx.body.userId === actor.userId) {
             throw new APIError("BAD_REQUEST", {
               message: "Cannot deactivate yourself",
             });
@@ -136,7 +136,7 @@ export const adminPlugin = () => {
             userService.deactivate(
               ctx.body.userId,
               ctx.body.reason ?? null,
-              currentUser.id,
+              actor.userId,
               EMPTY_AUDIT_CONTEXT
             )
           );
@@ -144,10 +144,6 @@ export const adminPlugin = () => {
         }
       ),
 
-      /**
-       * Activate a user - sets status back to "active"
-       * Clears deactivation fields
-       */
       activateUser: createAuthEndpoint(
         "/admin/activate-user",
         {
@@ -181,10 +177,10 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user as AuthSessionUser;
+          const actor = actorFromCtx(ctx);
 
           await assertCanManageUserStatusWithApiError(
-            currentUser,
+            actor,
             "activate",
             ctx.body.userId
           );
@@ -192,7 +188,7 @@ export const adminPlugin = () => {
           await runUserStatusMutationWithApiError(() =>
             userService.activate(
               ctx.body.userId,
-              currentUser.id,
+              actor.userId,
               EMPTY_AUDIT_CONTEXT
             )
           );
@@ -201,10 +197,6 @@ export const adminPlugin = () => {
         }
       ),
 
-      /**
-       * Unlock a user - resets lockout status
-       * Clears failed login attempts and lockedUntil
-       */
       unlockUser: createAuthEndpoint(
         "/admin/unlock-user",
         {
@@ -237,10 +229,10 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user as AuthSessionUser;
+          const actor = actorFromCtx(ctx);
 
           await assertCanManageUserStatusWithApiError(
-            currentUser,
+            actor,
             "unlock",
             ctx.body.userId
           );
@@ -248,7 +240,7 @@ export const adminPlugin = () => {
           await runUserStatusMutationWithApiError(() =>
             userService.unlock(
               ctx.body.userId,
-              currentUser.id,
+              actor.userId,
               EMPTY_AUDIT_CONTEXT
             )
           );
@@ -257,16 +249,27 @@ export const adminPlugin = () => {
         }
       ),
     },
-  } satisfies BetterAuthPlugin;
-};
+  }) satisfies BetterAuthPlugin;
 
 export async function assertCanManageUserStatus(
-  actor: AuthSessionUser,
+  actor: AuthenticatedPrincipal,
   action: ManageUserStatusAction,
   targetUserId: string
 ) {
-  const principal = buildAuthorizationPrincipal(getAuthorizationActor(actor));
-  const basePrincipal: Principal = toBaseAuthorizationPrincipal(principal);
+  const authzPrincipal = buildAuthorizationPrincipal(
+    {
+      id: actor.userId,
+      email: actor.email,
+      emailVerified: actor.emailVerified,
+      roleSlugs: [...actor.roleSlugs],
+      status: actor.status,
+    },
+    {
+      activeOrganizationId: actor.activeOrganizationId,
+      activeOrgRole: actor.activeOrgRole,
+    }
+  );
+  const basePrincipal: Principal = toBaseAuthorizationPrincipal(authzPrincipal);
 
   await authorization.assertCan(basePrincipal, "user", action, {
     resource: { id: targetUserId },

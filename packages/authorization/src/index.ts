@@ -1,5 +1,3 @@
-// Core authorization engine -- framework-agnostic, zero dependencies
-
 export {
   createOrgRoleCondition,
   createOwnerCondition,
@@ -12,6 +10,19 @@ export {
 export { AuthorizationError } from "./errors";
 export type { EvaluateInput } from "./evaluator";
 export { evaluate } from "./evaluator";
+export type {
+  AuthFailure,
+  OperatorAction,
+  OperatorPrincipal,
+  OperatorSubRole,
+} from "./operator-policy";
+export {
+  assertPermitted,
+  OPERATOR_ACTIONS,
+  OPERATOR_PERMISSIONS,
+  OPERATOR_SUB_ROLES,
+  whereGlobalAdminRole,
+} from "./operator-policy";
 export type {
   CapabilityKey,
   CapabilityMap,

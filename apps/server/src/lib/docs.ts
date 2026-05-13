@@ -2,10 +2,33 @@ import fs from "node:fs/promises";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 import chalk from "chalk";
+import { db } from "@/db";
 import { env } from "@/env";
 import type { Env } from "@/lib/context";
 import { logger } from "@/lib/logger";
-import { auth } from "@/modules/auth/instance";
+import { hostConfig } from "@/lib/tenancy-runtime";
+import { buildAllowedHostsSnapshot } from "@/modules/auth/auth-host-policy";
+import { type AuthInstance, createAuth } from "@/modules/auth/instance";
+import { createMemoryJtiKillList } from "@/modules/auth/jti-kill-list-memory";
+
+// Docs generation runs offline (no real session traffic), so the in-memory
+// kill-list is sufficient — we don't reach into the prod adapter selection
+// (which lives in `chain.ts`) for a one-shot OpenAPI render.
+const docsKillList = createMemoryJtiKillList();
+
+// Tenant-agnostic auth instance used solely for OpenAPI doc generation.
+const docsAuth: AuthInstance = createAuth({
+  db,
+  tenant: null,
+  tenantConfig: hostConfig,
+  allowedHostsSnapshot: buildAllowedHostsSnapshot({
+    hostConfig,
+    customHosts: [],
+    localDevHosts: [],
+  }),
+  logger,
+  killList: docsKillList,
+});
 
 const customCss: string = `
 `;
@@ -34,7 +57,6 @@ export const docs = async (
   }
   const registry = app.openAPIRegistry;
 
-  // Set security schemes
   registry.registerComponent("securitySchemes", "cookieAuth", {
     type: "apiKey",
     in: "cookie",
@@ -45,7 +67,6 @@ export const docs = async (
 
   app.doc31("/openapi.json", openApiConfig);
 
-  // Get JSON doc and save to file
   const openApiDoc = app.getOpenAPI31Document(openApiConfig);
   await fs.writeFile(
     "./openapi.cache.json",
@@ -91,7 +112,7 @@ export const docs = async (
   );
 
   app.get("/docs/auth", async (c) => {
-    const authSchema = await auth.api.generateOpenAPISchema();
+    const authSchema = await docsAuth.api.generateOpenAPISchema();
     return Scalar<Env>({
       content: authSchema,
       theme: "deepSpace",

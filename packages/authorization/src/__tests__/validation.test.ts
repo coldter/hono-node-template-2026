@@ -12,11 +12,10 @@ const UNKNOWN_ROLE_PATTERN = /references role "ghost" not in schema/i;
 const UNKNOWN_RELATION_PATTERN = /references relation "ghost" not in schema/i;
 const UNKNOWN_ORG_ROLE_PATTERN = /references org role "ghost" not in schema/i;
 
+// Builder-time validation catches most mistakes; these tests construct
+// PolicyRule objects directly to exercise the defense-in-depth checks that
+// only fire when callers bypass the fluent builder.
 describe("validateRegistry", () => {
-  // Builder-time validation already catches most mistakes -- these tests
-  // construct PolicyRule objects directly to exercise the defense-in-depth
-  // checks that fire when callers bypass the fluent builder.
-
   it("throws when registry key does not match resource name", () => {
     const auth = createAuthSchema({
       roles: ["admin"],
@@ -75,8 +74,6 @@ describe("validateRegistry", () => {
   });
 
   it("throws when withRelation references a relation not in the schema", () => {
-    // Bypass the builder's same-resource validation by constructing the
-    // condition directly with an unknown relation.
     const badRelation = createRelationCondition<{ id: string }>(
       "ghost",
       "doc",
@@ -134,7 +131,6 @@ describe("validateRegistry", () => {
       name: "doc",
       actions: ["read"],
       policies: [policy],
-      // resolveOrganization intentionally omitted
     };
 
     expect(() =>

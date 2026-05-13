@@ -7,11 +7,15 @@ import { getHatchet } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";
 
 let worker: Worker | null = null;
-// biome-ignore lint/suspicious/noExplicitAny: SDK requires flexible workflow types
+// boundary: vendor-SDK generic variance — Hatchet workflow declaration
+// covariance is workflow-local; input/output types are not unifiable at the
+// registration site, so the SDK's generics force a flexible signature here.
+// biome-ignore lint/suspicious/noExplicitAny: Hatchet workflow generics are workflow-local and not unifiable at the registration site
 const workflowsToRegister: BaseWorkflowDeclaration<any, any>[] = [];
 
 export function registerWorkflow(
-  // biome-ignore lint/suspicious/noExplicitAny: SDK requires flexible workflow types
+  // boundary: vendor-SDK generic variance — see registration array above.
+  // biome-ignore lint/suspicious/noExplicitAny: Hatchet workflow generics are workflow-local and not unifiable at the registration site
   workflow: BaseWorkflowDeclaration<any, any>
 ): void {
   workflowsToRegister.push(workflow);
@@ -53,6 +57,7 @@ export async function startWorker(): Promise<void> {
   await import("@/modules/users/workflow");
   await import("@/modules/notifications/workflows/email-notification.workflow");
   await import("@/modules/notifications/workflows/push-notification.workflow");
+  await import("@/workflows/reconcile-hostnames");
 
   const workerInstance = await createWorker();
 

@@ -13,11 +13,9 @@ import type {
 } from "./types";
 
 /**
- * Configuration for a resource. Authored by package consumers and
- * passed to createResourceDefinition / AuthSchema.createResource.
- *
- * `TActions` is captured as a `const` tuple so each resource carries its
- * action union into the registry (powers typed `can(...)` calls).
+ * Resource configuration. `TActions` is captured as a `const` tuple so
+ * each resource carries its action union into the registry, which is
+ * what powers typed `can(...)` calls.
  */
 export interface ResourceConfig<
   TResource,
@@ -37,16 +35,10 @@ export interface ResourceConfig<
 }
 
 /**
- * Compiled resource definition produced by createResourceDefinition.
- * Stored in the registry and consumed by the evaluator.
- *
- * `TAction` defaults to `string` so legacy callers and the covariant
- * `AnyResourceDef` bound continue to assign without changes; concrete
- * resources produced via `createResource` narrow to a literal union.
- *
- * The optional `__resource` phantom captures the resource payload type
- * so adapters can recover it via `ResourceTypeFor<...>` (used by the
- * Hono `loadResource` / `getAuthorizedResource` typing).
+ * Compiled resource definition. `TAction` defaults to `string` so the
+ * covariant `AnyResourceDef` bound still accepts concrete resources
+ * narrowed to a literal union via `createResource`. The `__resource`
+ * phantom lets adapters recover the resource type via `ResourceTypeFor`.
  */
 export interface ResourceDef<
   TResource,
@@ -66,12 +58,9 @@ export interface ResourceDef<
 }
 
 /**
- * PolicyRuleBuilder chains conditions onto a single rule.
- *
- * The builder itself satisfies the PolicyRule shape -- callers can read
- * `effect`, `roles`, `actions`, `conditions`, and `label` directly from
- * the returned object.  Condition methods (whereOwner, where, etc.)
- * mutate internal state and return `this`, allowing further chaining.
+ * PolicyRuleBuilder chains conditions onto a single rule. The builder
+ * itself satisfies the PolicyRule shape so callers can return it
+ * directly; condition methods mutate and return `this` for chaining.
  */
 export class PolicyRuleBuilder<
   TResource,
@@ -110,7 +99,6 @@ export class PolicyRuleBuilder<
     this._validOrgRoles = opts.validOrgRoles;
   }
 
-  /** Computed label that reflects the current builder state. */
   get label(): string {
     const roleLabel = this.roles === "*" ? "*" : this.roles.join(",");
     const actionLabel =
@@ -195,11 +183,10 @@ export class PolicyRuleBuilder<
 }
 
 /**
- * Type-level view of `allow()` / `deny()` BEFORE `.to(...)` has narrowed
- * the rule. The runtime object is still a full PolicyRuleBuilder, but the
- * exposed surface forces callers to provide actions before chaining
- * conditions or returning a rule. This prevents the silent
- * `p.allow("admin").whereOwner()` (no `.to(...)`) footgun.
+ * Type-level view of `allow()` / `deny()` BEFORE `.to(...)`. Forces
+ * callers to provide actions before chaining conditions — without this
+ * stage, `p.allow("admin").whereOwner()` (no `.to(...)`) compiles to a
+ * rule that silently never matches.
  */
 export interface PolicyActionStage<
   TResource,
@@ -213,13 +200,9 @@ export interface PolicyActionStage<
 }
 
 /**
- * PolicyBuilder creates PolicyRuleBuilders for a given resource type.
- *
- * `allow()` / `deny()` return a `PolicyActionStage` -- only `.to(...)`
- * is callable until actions are bound. `.to(...)` returns the full
- * PolicyRuleBuilder which exposes condition chaining and satisfies
- * PolicyRule<TResource, TRole>. A bare `.to("*")` (single arg) is still
- * a valid one-liner because the builder also implements PolicyRule.
+ * `allow()` / `deny()` return a `PolicyActionStage` so only `.to(...)`
+ * is callable until actions are bound; after `.to(...)`, the full
+ * PolicyRuleBuilder surface (condition chaining) becomes available.
  */
 export class PolicyBuilder<
   TResource,
@@ -258,13 +241,6 @@ export class PolicyBuilder<
   }
 }
 
-/**
- * Creates a ResourceDef from a ResourceConfig.
- *
- * Instantiates a PolicyBuilder scoped to the resource type and passes
- * it to the `policies` callback so consumers can use the fluent
- * `allow() / deny()` API.
- */
 export function createResourceDefinition<
   TResource,
   TRole extends string,
@@ -306,10 +282,8 @@ export function createResourceDefinition<
   };
 }
 
-/** Recover the action union for a given ResourceDef. */
 export type ActionsOf<TR> =
   TR extends ResourceDef<infer _R, infer _Role, infer A> ? A : string;
 
-/** Recover the resource payload type for a given ResourceDef. */
 export type ResourceTypeFor<TR> =
   TR extends ResourceDef<infer R, infer _Role, infer _A> ? R : unknown;

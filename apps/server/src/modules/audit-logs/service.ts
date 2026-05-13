@@ -27,7 +27,7 @@ export const auditLogService = {
       .values({
         event: input.event,
         actorId: input.actorId,
-        actorType: input.actorType ?? "user",
+        actorType: input.actorType ?? "USER",
         targetId: input.targetId,
         targetType: input.targetType,
         ipAddress: input.ipAddress,

@@ -4,6 +4,10 @@ volumes:
   pg_data:
   redis_data:
   hatchet_lite_config:
+  caddy_data:
+  caddy_config:
+  caddy_dev_data:
+  caddy_dev_config:
 
 services:
   db:
@@ -45,6 +49,69 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+
+  # Production-only edge proxy (plan A5.8). Mount the canonical
+  # Caddyfile.prod with on-demand TLS gated by the API server's
+  # `/caddy/ask` endpoint. Local dev typically does not need this service;
+  # bring it up with `docker compose --profile prod up caddy`.
+  caddy:
+    container_name: caddy
+    image: caddy:2-alpine
+    profiles: ["prod"]
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_WILDCARD_HOST=${APP_WILDCARD_HOST}
+      - CUSTOM_HOST_CNAME_TARGET=${CUSTOM_HOST_CNAME_TARGET}
+      - ADMIN_HOST=${ADMIN_HOST}
+      - CLOUDFLARE_DNS_TOKEN=${CLOUDFLARE_DNS_TOKEN}
+    volumes:
+      - ./deploy/Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Local-dev edge proxy (plan A7.4). Uses `tls internal` for any subdomain
+  # under `*.app.localhost` and `admin.localhost`, so multi-tenant hosts
+  # resolve in the browser without a public CA. Bring up with
+  # `docker compose --profile dev up caddy-dev`.
+  caddy-dev:
+    container_name: caddy-dev
+    image: caddy:2-alpine
+    profiles: ["dev"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy_dev_data:/data
+      - caddy_dev_config:/config
+
+  # Operator-facing admin-server (plan B1.1). Tenant-agnostic Hono process
+  # serving the admin perimeter on port 3100. Distinct from `apps/server`
+  # so a leaked tenant secret cannot mint operator sessions and a Caddy
+  # mis-route cannot cross the perimeter. Image build + DATABASE_URL wiring
+  # land alongside B1.6 (tenant CRUD endpoints); the entry exists now so
+  # `docker compose up` shows the planned topology.
+  admin-server:
+    container_name: admin-server
+    profiles: ["admin"]
+    build:
+      context: .
+      dockerfile: apps/admin-server/Dockerfile
+    ports:
+      - "3100:3100"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3100
+      - ADMIN_HOST=${ADMIN_HOST:-admin.localhost}
+      - DATABASE_URL=${DATABASE_URL}
+      - OPERATOR_BETTER_AUTH_SECRET=${OPERATOR_BETTER_AUTH_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
 
   # if we ever go to local first route
   # electric:

@@ -1,0 +1,25 @@
+# Local-dev Caddyfile for the multi-tenant edge (plan A7.4).
+#
+# Local CA via `tls internal` can mint any subdomain — no on-demand TLS gate
+# needed (contrast Caddyfile.prod, which polls `/caddy/ask`). Apex
+# `app.localhost` redirects to the canonical demo tenant so a developer who
+# hits the bare host lands somewhere useful instead of a tenant-not-found.
+
+{
+    local_certs
+}
+
+*.app.localhost {
+    tls internal
+    reverse_proxy apps-server:3000
+}
+
+admin.localhost {
+    tls internal
+    reverse_proxy apps-admin-server:3100
+}
+
+app.localhost {
+    tls internal
+    redir https://acme.app.localhost{uri}
+}

@@ -1,0 +1,67 @@
+# Production Caddyfile for the multi-tenant edge (plan A5.8).
+#
+# Responsibilities
+# ----------------
+# 1. Serve the project's wildcard host and the per-tenant CNAME target
+#    with TLS issued via the Cloudflare DNS challenge.
+# 2. Allow on-demand TLS for tenant-owned custom hostnames, gated by the
+#    internal `/caddy/ask` endpoint on the API server. The gate enforces
+#    that only hostnames whose lifecycle is `awaiting_caddy` or `active`
+#    are issued certificates (see `apps/server/src/modules/tenancy/caddy-ask.ts`).
+# 3. Reverse-proxy `/api/*` paths to the API container and serve the web
+#    SPA static bundle for everything else.
+#
+# Environment variables
+# ---------------------
+#   APP_WILDCARD_HOST           — wildcard host serving tenant subdomains
+#                                 (e.g. `app.example.com`).
+#   CUSTOM_HOST_CNAME_TARGET    — host tenants CNAME custom hostnames to
+#                                 (e.g. `tenants.app.example.com`).
+#   ADMIN_HOST                  — admin/console host (e.g. `admin.example.com`).
+#   CLOUDFLARE_DNS_TOKEN        — API token with DNS:Edit on the relevant zones.
+#
+# The on-demand TLS gate is rate-limited at Caddy (`interval 2m`, `burst 5`)
+# *in addition* to the per-IP limiter in `caddyAskRateLimit`.
+
+{
+    on_demand_tls {
+        permission http http://apps-server:3000/caddy/ask
+        interval 2m
+        burst 5
+    }
+}
+
+*.{$APP_WILDCARD_HOST}, {$CUSTOM_HOST_CNAME_TARGET} {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_DNS_TOKEN}
+        on_demand
+    }
+
+    @api path /api/*
+    handle @api {
+        reverse_proxy apps-server:3000
+    }
+
+    handle {
+        root * /srv/app
+        try_files {path} /index.html
+        file_server
+    }
+}
+
+{$ADMIN_HOST} {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_DNS_TOKEN}
+    }
+
+    @api path /api/*
+    handle @api {
+        reverse_proxy apps-admin-server:3100
+    }
+
+    handle {
+        root * /srv/admin
+        try_files {path} /index.html
+        file_server
+    }
+}

@@ -1,14 +1,40 @@
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { users } from "./auth";
 
-export const organizations = pgTable("organization", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").unique(),
-  logo: text("logo"),
-  metadata: text("metadata"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const organizations = pgTable(
+  "organization",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug"),
+    logo: text("logo"),
+    metadata: text("metadata"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    enforceSSO: boolean("enforce_sso").notNull().default(false),
+    suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    sessionVersion: integer("session_version").notNull().default(0),
+    branding: jsonb("branding")
+      .$type<{ logoVersion: number; primaryColor: string; appName: string }>()
+      .notNull()
+      .default({ logoVersion: 0, primaryColor: "#2563eb", appName: "App" }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("organizations_slug_live_idx")
+      .on(t.slug)
+      .where(sql`${t.deletedAt} IS NULL`),
+  ]
+);
 
 export const members = pgTable(
   "member",

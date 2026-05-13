@@ -9,13 +9,6 @@ import { createdAt, updatedAt } from "../helpers";
 import { generatePrefixedCuid } from "../ids";
 import { users } from "./auth";
 
-// ============================================================
-// NOTIFICATION PREFERENCES TABLE
-// ============================================================
-
-/**
- * User notification preferences per channel and type.
- */
 export const notificationPreferences = pgTable(
   "notification_preferences",
   {
@@ -27,15 +20,13 @@ export const notificationPreferences = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    // Preference type pattern (e.g., "security.*", "user.*", or "*" for global)
+    // Glob-style pattern matched at send time (e.g. "security.*", "*").
     typePattern: varchar("type_pattern", { length: 100 }).notNull(),
 
-    // Channel-specific enables
     emailEnabled: boolean("email_enabled").notNull().default(true),
     smsEnabled: boolean("sms_enabled").notNull().default(false),
     pushEnabled: boolean("push_enabled").notNull().default(true),
 
-    // Timestamps
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

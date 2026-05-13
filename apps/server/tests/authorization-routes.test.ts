@@ -1,4 +1,3 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, Next } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import auditLogsRoutes from "@/modules/audit-logs/routes";
@@ -7,15 +6,28 @@ import notificationsRoutes from "@/modules/notifications/routes";
 import usersRoutes from "@/modules/users/routes";
 
 vi.mock("@/middlewares/auth-context", () => ({
-  authContextMiddleware: async (c: Context, next: Next) => {
-    c.set("user", null);
-    c.set("session", null);
+  buildAuthContextMiddleware: () => async (c: Context, next: Next) => {
+    const current = (c.get("requestContext") ?? {
+      tenant: null,
+      principal: { kind: "anonymous" },
+      otel: null,
+      audit: {},
+    }) as Record<string, unknown>;
+    // The Principal Module replaced `null` with an explicit "anonymous" arm
+    // — `resolvePrincipalFromContext` branches on `kind` and surfaces 401
+    // when unauthenticated.
+    c.set("requestContext", {
+      ...current,
+      principal: { kind: "anonymous" },
+    });
     await next();
   },
 }));
 
-vi.mock("@/modules/auth/handler", () => ({
-  default: new OpenAPIHono(),
+// `/api/auth/*` is served by the auth proxy mounted directly on baseApp.
+// Stub the proxy factory so these tests do not need a real BA instance.
+vi.mock("@/middlewares/auth-proxy", () => ({
+  buildAuthProxyMiddleware: () => async (c: Context) => c.text("ok", 200),
 }));
 
 type RouteWithMiddleware = { middleware?: unknown[] };

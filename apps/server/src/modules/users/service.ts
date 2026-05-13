@@ -1,4 +1,5 @@
 import { accounts, sessions, users } from "@repo/db/schema";
+import type { AuditContext } from "@repo/hono-app";
 import {
   and,
   arrayContains,
@@ -8,9 +9,7 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
-
 import { db, type Executor, firstOrThrow } from "@/db";
-import type { AuditContext } from "@/lib/audit-context";
 import { AUDIT_EVENTS, TARGET_TYPES } from "@/modules/audit-logs/constants";
 import { auditLogService } from "@/modules/audit-logs/service";
 import type { AuditLogMetadata } from "@/modules/audit-logs/types";
@@ -159,7 +158,7 @@ export const userService = {
         {
           event: AUDIT_EVENTS.USER.CREATED.event,
           actorId,
-          actorType: "user",
+          actorType: "USER",
           targetId: user.id,
           targetType: TARGET_TYPES.USER,
           ipAddress: auditContext.ipAddress,
@@ -213,7 +212,7 @@ export const userService = {
           {
             event: AUDIT_EVENTS.USER.UPDATED.event,
             actorId,
-            actorType: "user",
+            actorType: "USER",
             targetId: id,
             targetType: TARGET_TYPES.USER,
             ipAddress: auditContext.ipAddress,
@@ -264,7 +263,7 @@ export const userService = {
         {
           event: AUDIT_EVENTS.ROLE.ASSIGNED.event,
           actorId,
-          actorType: "user",
+          actorType: "USER",
           targetId: id,
           targetType: TARGET_TYPES.USER,
           ipAddress: auditContext.ipAddress,
@@ -312,7 +311,7 @@ export const userService = {
         {
           event: AUDIT_EVENTS.USER.DEACTIVATED.event,
           actorId,
-          actorType: "user",
+          actorType: "USER",
           targetId: id,
           targetType: TARGET_TYPES.USER,
           ipAddress: auditContext.ipAddress,
@@ -362,7 +361,7 @@ export const userService = {
         {
           event: AUDIT_EVENTS.USER.ACTIVATED.event,
           actorId,
-          actorType: "user",
+          actorType: "USER",
           targetId: id,
           targetType: TARGET_TYPES.USER,
           ipAddress: auditContext.ipAddress,
@@ -405,7 +404,7 @@ export const userService = {
         {
           event: AUDIT_EVENTS.USER.UNLOCKED.event,
           actorId,
-          actorType: "user",
+          actorType: "USER",
           targetId: id,
           targetType: TARGET_TYPES.USER,
           ipAddress: auditContext.ipAddress,

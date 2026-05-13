@@ -14,9 +14,8 @@ export interface RegistryOptions {
 }
 
 /**
- * Typed capability map keyed by `${ResourceName}:${ActionName}`. Powers
- * autocomplete on `caps["user:list"]` while still degrading to `boolean`
- * for keys outside the registry's vocabulary at the value-level shape.
+ * Capability map keyed by `${ResourceName}:${ActionName}`. Powers
+ * autocomplete on `caps["user:list"]`; the value is always `boolean`.
  */
 export type CapabilityKey<TResources extends Record<string, AnyResourceDef>> = {
   [K in keyof TResources & string]: `${K}:${ActionsOf<TResources[K]> & string}`;
@@ -75,7 +74,6 @@ export function buildRegistryInstance<
   resources: TResources,
   options: RegistryOptions
 ): RegistryInstance<TResources> {
-  // Validate at construction time
   validateRegistry(
     resources,
     options.schemaRoles,
@@ -117,12 +115,15 @@ export function buildRegistryInstance<
     },
 
     async evaluateCapabilities(principal) {
-      const capabilities: Record<string, boolean> = {};
+      const capabilities = {} as { [K in CapabilityKey<TResources>]: boolean };
 
-      for (const [name, resourceDef] of Object.entries(resources)) {
+      const resourceEntries = Object.entries(resources) as [
+        keyof TResources & string,
+        TResources[keyof TResources & string],
+      ][];
+
+      for (const [name, resourceDef] of resourceEntries) {
         for (const action of resourceDef.actions) {
-          // Evaluate without resource but with ignoreResourceConditions
-          // so that conditionally-allowed actions (e.g. whereOwner) report true
           const decision = await evaluate({
             principal,
             action,
@@ -133,13 +134,15 @@ export function buildRegistryInstance<
             systemAdminRoles: options.systemAdminRoles,
             ignoreResourceConditions: true,
           });
-          capabilities[`${name}:${action}`] = decision.allowed;
+          // Keys are `${name}:${action}` where `name` is `keyof TResources`
+          // and `action` is `ActionsOf<TResources[name]>`, so the composed
+          // key inhabits `CapabilityKey<TResources>` by construction.
+          const key = `${name}:${action}` as CapabilityKey<TResources>;
+          capabilities[key] = decision.allowed;
         }
       }
 
-      // boundary: runtime keys are derived from the registry's own action
-      // tuples, so the typed CapabilityMap shape is correct by construction.
-      return capabilities as unknown as CapabilityMap<TResources>;
+      return capabilities;
     },
   };
 }

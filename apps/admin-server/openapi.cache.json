@@ -1,0 +1,725 @@
+{
+  "servers": [
+    {
+      "url": "http://localhost:3100"
+    }
+  ],
+  "info": {
+    "title": "Admin API Reference",
+    "version": "v1",
+    "description": "Operator-facing admin API documentation."
+  },
+  "openapi": "3.1.0",
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "operator_session_token_v1",
+        "description": "Operator authentication cookie. Distinct from the tenant-side cookie."
+      }
+    },
+    "schemas": {},
+    "parameters": {}
+  },
+  "paths": {
+    "/api/admin/orgs": {
+      "get": {
+        "operationId": "listTenants",
+        "tags": ["admin-tenants"],
+        "summary": "List tenants",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": ["integer", "null"],
+              "minimum": 0
+            },
+            "required": false,
+            "name": "offset",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenants list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": ["string", "null"]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "enforceSSO": {
+                            "type": "boolean"
+                          },
+                          "sessionVersion": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "suspendedAt": {
+                            "type": ["string", "null"]
+                          },
+                          "deletedAt": {
+                            "type": ["string", "null"]
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "slug",
+                          "name",
+                          "enforceSSO",
+                          "sessionVersion",
+                          "suspendedAt",
+                          "deletedAt",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["rows", "total", "limit", "offset"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTenant",
+        "tags": ["admin-tenants"],
+        "summary": "Create tenant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "enforceSSO": {
+                    "type": "boolean"
+                  },
+                  "branding": {
+                    "type": "object",
+                    "properties": {
+                      "logoVersion": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "primaryColor": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "appName": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["logoVersion", "primaryColor", "appName"]
+                  }
+                },
+                "required": ["slug"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tenant created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "row": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": ["string", "null"]
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "enforceSSO": {
+                          "type": "boolean"
+                        },
+                        "sessionVersion": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "suspendedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "deletedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "name",
+                        "enforceSSO",
+                        "sessionVersion",
+                        "suspendedAt",
+                        "deletedAt",
+                        "createdAt"
+                      ]
+                    }
+                  },
+                  "required": ["row"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/orgs/{id}": {
+      "get": {
+        "operationId": "getTenant",
+        "tags": ["admin-tenants"],
+        "summary": "Get tenant by id",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "row": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": ["string", "null"]
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "enforceSSO": {
+                          "type": "boolean"
+                        },
+                        "sessionVersion": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "suspendedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "deletedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "name",
+                        "enforceSSO",
+                        "sessionVersion",
+                        "suspendedAt",
+                        "deletedAt",
+                        "createdAt"
+                      ]
+                    }
+                  },
+                  "required": ["row"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "softDeleteTenant",
+        "tags": ["admin-tenants"],
+        "summary": "Soft-delete tenant",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirm": {
+                    "type": "boolean",
+                    "enum": [true]
+                  }
+                },
+                "required": ["confirm"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tenant tombstoned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tombstoned": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": ["string", "null"]
+                        }
+                      },
+                      "required": ["id", "slug"]
+                    }
+                  },
+                  "required": ["tombstoned"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/orgs/{id}/suspend": {
+      "post": {
+        "operationId": "suspendTenant",
+        "tags": ["admin-tenants"],
+        "summary": "Suspend tenant",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "row": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": ["string", "null"]
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "enforceSSO": {
+                          "type": "boolean"
+                        },
+                        "sessionVersion": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "suspendedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "deletedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "name",
+                        "enforceSSO",
+                        "sessionVersion",
+                        "suspendedAt",
+                        "deletedAt",
+                        "createdAt"
+                      ]
+                    }
+                  },
+                  "required": ["row"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/orgs/{id}/restore": {
+      "post": {
+        "operationId": "restoreTenant",
+        "tags": ["admin-tenants"],
+        "summary": "Restore tenant",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant restored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "row": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": ["string", "null"]
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "enforceSSO": {
+                          "type": "boolean"
+                        },
+                        "sessionVersion": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "suspendedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "deletedAt": {
+                          "type": ["string", "null"]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "name",
+                        "enforceSSO",
+                        "sessionVersion",
+                        "suspendedAt",
+                        "deletedAt",
+                        "createdAt"
+                      ]
+                    }
+                  },
+                  "required": ["row"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/operator-enroll": {
+      "post": {
+        "operationId": "inviteOperator",
+        "tags": ["admin-enroll"],
+        "summary": "Invite operator",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email"
+                  },
+                  "subRole": {
+                    "type": "string",
+                    "enum": ["platform_admin", "support", "read_only"]
+                  },
+                  "ttlDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  }
+                },
+                "required": ["email", "subRole"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invite issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enrollmentId": {
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["enrollmentId", "token", "expiresAt"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listPendingEnrollments",
+        "tags": ["admin-enroll"],
+        "summary": "List pending enrollments",
+        "responses": {
+          "200": {
+            "description": "Pending enrollments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "subRole": {
+                            "type": "string",
+                            "enum": ["platform_admin", "support", "read_only"]
+                          },
+                          "expiresAt": {
+                            "type": ["string", "null"]
+                          },
+                          "invitedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "email",
+                          "subRole",
+                          "expiresAt",
+                          "invitedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["rows"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/operator-enroll/{token}/redeem": {
+      "post": {
+        "operationId": "redeemEnrollment",
+        "tags": ["admin-enroll"],
+        "summary": "Redeem enrollment token",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 256
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "token": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 256
+                  }
+                },
+                "required": ["password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enrollment redeemed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enrollmentId": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "subRole": {
+                      "type": "string",
+                      "enum": ["platform_admin", "support", "read_only"]
+                    }
+                  },
+                  "required": ["enrollmentId", "userId", "email", "subRole"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/operator-enroll/{id}/expire": {
+      "post": {
+        "operationId": "expireEnrollment",
+        "tags": ["admin-enroll"],
+        "summary": "Expire enrollment",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enrollment expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enrollmentId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["enrollmentId"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
