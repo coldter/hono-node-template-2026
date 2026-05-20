@@ -15,14 +15,14 @@
   },
   "dependencies": {
     "@repo/shared": "workspace:*",
-    "drizzle-orm": "^1.0.0-rc.2-e38a2ba",
-    "pg": "^8.20.0"
+    "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
+    "pg": "^8.21.0"
   },
   "devDependencies": {
-    "@testcontainers/postgresql": "^11.14.0",
+    "@testcontainers/postgresql": "^12.0.0",
     "@types/pg": "^8.20.0",
     "@typescript/native-preview": "beta",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.7"
   }
 }

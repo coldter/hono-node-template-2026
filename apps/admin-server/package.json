@@ -14,7 +14,7 @@
     "generate-openapi": "tsx scripts/generate-openapi.ts || true"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.2",
+    "@hono/node-server": "^2.0.3",
     "@hono/zod-openapi": "^1.4.0",
     "@repo/auth-tokens": "workspace:*",
     "@repo/authorization": "workspace:*",
@@ -23,24 +23,24 @@
     "@repo/shared": "workspace:*",
     "@repo/tenancy": "workspace:*",
     "@repo/tenant-operations": "workspace:*",
-    "better-auth": "^1.6.10",
+    "better-auth": "^1.6.11",
     "dotenv": "^17.4.2",
-    "drizzle-orm": "^1.0.0-rc.2-e38a2ba",
-    "hono": "^4.12.18",
+    "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
+    "hono": "^4.12.21",
     "hono-rate-limiter": "^0.5.3",
     "itty-time": "^2.0.2",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@better-auth/memory-adapter": "^1.6.10",
+    "@better-auth/memory-adapter": "^1.6.11",
     "@repo/test-harness": "workspace:*",
-    "@types/node": "^25.6.2",
-    "jose": "^6.2.3",
+    "@types/node": "^25.9.1",
     "@typescript/native-preview": "beta",
-    "@vitest/coverage-v8": "^4.1.5",
-    "tsx": "^4.21.0",
+    "@vitest/coverage-v8": "^4.1.7",
+    "jose": "^6.2.3",
+    "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.7"
   }
 }
