@@ -1,3 +1,4 @@
+import { firstOrThrow } from "@repo/db";
 import { type Notification, notifications } from "@repo/db/schema";
 import { NotificationEmail, sendEmail } from "@repo/email";
 import { eq } from "drizzle-orm";
@@ -50,15 +51,14 @@ function createEmailNotificationWorkflow() {
         notificationId: input.notificationId,
       });
 
-      const [notification] = await db
-        .select()
-        .from(notifications)
-        .where(eq(notifications.id, input.notificationId))
-        .limit(1);
-
-      if (!notification) {
-        throw new Error(`Notification not found: ${input.notificationId}`);
-      }
+      const notification = await firstOrThrow(
+        db
+          .select()
+          .from(notifications)
+          .where(eq(notifications.id, input.notificationId))
+          .limit(1),
+        `Notification not found: ${input.notificationId}`
+      );
 
       if (notification.channel !== "email") {
         throw new Error(

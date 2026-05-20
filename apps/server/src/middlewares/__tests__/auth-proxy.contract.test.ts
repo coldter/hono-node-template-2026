@@ -1,13 +1,3 @@
-/**
- * Contract tests for the sanitized Better Auth proxy boundary. Two
- * surfaces:
- *  - `sanitizedAuthRequest` — strips proxy-supplied origin headers and
- *    pins `Host` to the resolved tenant.
- *  - `buildAuthProxyMiddleware` — closure factory that returns a Hono
- *    middleware which 404s when no tenant is resolved and otherwise
- *    forwards the cleaned request to the captured BA handler.
- */
-
 import type { Tenant } from "@repo/tenancy";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
@@ -20,8 +10,6 @@ import {
   sanitizedAuthRequest,
 } from "../../modules/auth/sanitized-request";
 import { buildAuthProxyMiddleware } from "../auth-proxy";
-
-const APPLICATION_JSON_RE = /application\/json/;
 
 function makeTenant(overrides: Partial<Tenant> & { host: string }): Tenant {
   return {
@@ -39,8 +27,6 @@ function makeTenant(overrides: Partial<Tenant> & { host: string }): Tenant {
 
 describe("STRIPPED_HEADERS", () => {
   it("is an exhaustive, frozen list of the six known proxy-origin headers", () => {
-    // Structural assertion: any addition/removal of a proxy header that BA
-    // could read must consciously update this list. Catches accidental drift.
     expect([...STRIPPED_HEADERS].sort()).toEqual(
       [
         "cf-connecting-ip",
@@ -81,8 +67,6 @@ describe("sanitizedAuthRequest", () => {
   });
 
   it("pins Host even when the inbound name uses mixed case", () => {
-    // Web Headers is case-insensitive per spec, but verify the strip+pin
-    // logic doesn't accidentally leave a duplicate Host slot.
     const dirty = new Request(
       "https://acme.app.example.com/api/auth/get-session",
       { headers: { HoSt: "attacker.example" } }
@@ -150,9 +134,7 @@ describe("sanitizedAuthRequest", () => {
     const dirty = new Request("https://acme.app.example.com/api/auth/sign-in", {
       method: "POST",
       body: stream,
-      // boundary: TS lib.dom RequestInit hasn't grown `duplex` yet; undici 7
-      // / Node 20+ require it whenever `body` is a `ReadableStream`. Widen
-      // the literal locally so the test exercises the streaming-body path.
+      // boundary: lib.dom RequestInit lacks `duplex`; undici 7 / Node 20+ require it whenever `body` is a `ReadableStream`.
       ...({ duplex: "half" } as { duplex: "half" }),
     });
     const clean = sanitizedAuthRequest(
@@ -163,12 +145,7 @@ describe("sanitizedAuthRequest", () => {
   });
 });
 
-/**
- * boundary: vendor-SDK generic variance — tests only exercise the
- * `.handler` surface of `AuthInstance`; constructing a real BA instance
- * would pull in DB/secret machinery unrelated to the proxy contract.
- * Single cast site for the suite.
- */
+// boundary: vendor-SDK generic variance — tests only exercise `.handler`; constructing a real BA instance would pull in unrelated DB/secret machinery.
 function makeFakeAuth(
   handler: (req: Request) => Promise<Response> | Response
 ): AuthInstance {
@@ -186,45 +163,30 @@ describe("buildAuthProxyMiddleware", () => {
     const authFactory = () => fakeAuth;
     const authProxyMiddleware = buildAuthProxyMiddleware(authFactory);
     app.use("*", async (c, next) => {
-      c.set("requestContext", {
-        ...createEmptyRequestContext(),
-        tenant: opts.tenant,
-      });
+      c.set("requestContext", createEmptyRequestContext());
+      if (opts.tenant) {
+        c.set("tenant", opts.tenant);
+      }
       await next();
     });
     app.all("/api/auth/*", authProxyMiddleware);
-    // Match production wiring (see `server.ts`) so 404s flow through the
-    // project's standard JSON error envelope.
     app.onError(handleError);
     return app;
   }
 
-  it("returns a JSON 404 error envelope when no tenant is resolved", async () => {
-    const app = makeApp({ tenant: null });
-    const res = await app.request(
-      "http://acme.app.example.com/api/auth/get-session"
-    );
-    expect(res.status).toBe(404);
-    expect(res.headers.get("content-type")).toMatch(APPLICATION_JSON_RE);
-    const body = (await res.json()) as {
-      error: { code: string; message: string };
-    };
-    expect(body.error.code).toBe("NOT_FOUND");
-    expect(body.error.message).toBe("Not Found");
-  });
-
   it("invokes the captured authFactory with the resolved tenant", async () => {
     const tenant = makeTenant({ host: "acme.app.example.com" });
-    const seenTenants: Array<Tenant | null> = [];
+    const seenTenants: Tenant[] = [];
     const fakeAuth = makeFakeAuth(() => new Response("ok"));
-    const authFactory = (t: Tenant | null) => {
+    const authFactory = (t: Tenant) => {
       seenTenants.push(t);
       return fakeAuth;
     };
     const proxy = buildAuthProxyMiddleware(authFactory);
     const app = new Hono<Env>();
     app.use("*", async (c, next) => {
-      c.set("requestContext", { ...createEmptyRequestContext(), tenant });
+      c.set("requestContext", createEmptyRequestContext());
+      c.set("tenant", tenant);
       await next();
     });
     app.all("/api/auth/*", proxy);
@@ -268,19 +230,15 @@ describe("buildAuthProxyMiddleware", () => {
       }
     );
 
-    // Response is returned verbatim.
     expect(res.status).toBe(201);
     expect(res.headers.get("content-type")).toBe("application/json");
     expect(res.headers.get("x-custom")).toBe("1");
     // Set-Cookie must survive the proxy or BA's session model breaks.
-    // Node ≥19.7 (server runs on 25; see apps/server/package.json) exposes
-    // `getSetCookie()` which returns each Set-Cookie header individually.
     expect(res.headers.getSetCookie()).toContain(
       "ba_session=abc; Path=/; HttpOnly"
     );
     expect(await res.json()).toEqual({ ok: true });
 
-    // BA handler saw a cleaned request.
     expect(observed).not.toBeNull();
     if (observed === null) {
       throw new Error("observed request was not captured");

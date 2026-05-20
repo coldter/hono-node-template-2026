@@ -36,3 +36,4 @@ export type {
   TenantResolution,
   TenantSuspended,
 } from "./types";
+export { useTenant, useTenantMaybe } from "./use-tenant";

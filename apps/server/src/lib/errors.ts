@@ -1,3 +1,4 @@
+import { useTenantMaybe } from "@repo/tenancy";
 import { DrizzleQueryError } from "drizzle-orm";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -24,13 +25,17 @@ function errorResponse(
 export function handleError(err: Error, c: Context<Env>): Response {
   if (err instanceof HTTPException) {
     if (err.status >= 500) {
+      // Handler may fire before tenancy resolution (e.g. hostHeaderGuard rejection); `useTenantMaybe` returns null in that window.
+      // biome-ignore lint/correctness/useHookAtTopLevel: accessor Module from @repo/tenancy is not a React hook
+      const tenant = useTenantMaybe(c);
       logger.error("HTTPException 500", {
         message: err.message,
         status: err.status,
         path: c.req.path,
         method: c.req.method,
-        body: c.req.raw.body,
-        headers: c.req.raw.headers,
+        tenantId: tenant?.organizationId,
+        tenantSlug: tenant?.slug ?? undefined,
+        error: err,
       });
     }
     const causeCode =

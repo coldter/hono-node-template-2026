@@ -1,14 +1,6 @@
-/**
- * Storage adapter for `sso_providers` rows.
- *
- * Owns the encrypt-on-write / decrypt-on-read seam for the OIDC config
- * blob so the cleartext `oidcConfig` never touches the DB. Read returns
- * `{ ...row, oidcConfig }` where `oidcConfig` is the decrypted JSON
- * object (parsed). The raw `oidcConfigEncrypted` / `oidcConfigEdek`
- * buffers are still surfaced on the returned row.
- */
+// Owns the encrypt-on-write / decrypt-on-read seam for the OIDC config blob so cleartext never touches the DB.
 import type { Executor, SsoProvider } from "@repo/db";
-import { ssoProviders } from "@repo/db";
+import { firstOrThrow, ssoProviders } from "@repo/db";
 import { and, eq } from "drizzle-orm";
 
 import type { KekWrapper } from "@/lib/vault/types";
@@ -24,7 +16,6 @@ export interface SsoStorageCreateInput {
 
 export interface SsoStorageDeps {
   db: Executor;
-  /** Optional override; defaults to the singleton vault inside the codec. */
   vault?: KekWrapper;
 }
 
@@ -34,12 +25,7 @@ export type DecryptedSsoProvider = SsoProvider & {
 
 export interface SsoStorage {
   create(input: SsoStorageCreateInput): Promise<SsoProvider>;
-  /**
-   * Scoped lookup. `organizationId` is part of the predicate so a row that
-   * exists under a different tenant is invisible — even row metadata must
-   * not leak across orgs (the encrypted payload would also fail to decrypt
-   * via `unbindDek`, but refusing at the SELECT layer is the primary gate).
-   */
+  // `organizationId` is part of the SELECT predicate so cross-org row metadata cannot leak (DEK unbind is secondary).
   findById(
     id: string,
     organizationId: string
@@ -57,24 +43,21 @@ export function ssoStorageFor(deps: SsoStorageDeps): SsoStorage {
         vault
       );
 
-      const inserted = await db
-        .insert(ssoProviders)
-        .values({
-          organizationId: input.organizationId,
-          providerId: input.providerId,
-          issuer: input.issuer,
-          domain: input.domain,
-          oidcConfigEncrypted: encoded.encrypted,
-          oidcConfigEdek: encoded.edek,
-          kekVersion: encoded.kekVersion,
-        })
-        .returning();
-
-      const row = inserted[0];
-      if (!row) {
-        throw new Error("ssoStorage.create: insert returned no rows");
-      }
-      return row;
+      return await firstOrThrow(
+        db
+          .insert(ssoProviders)
+          .values({
+            organizationId: input.organizationId,
+            providerId: input.providerId,
+            issuer: input.issuer,
+            domain: input.domain,
+            oidcConfigEncrypted: encoded.encrypted,
+            oidcConfigEdek: encoded.edek,
+            kekVersion: encoded.kekVersion,
+          })
+          .returning(),
+        "ssoStorage.create: insert returned no rows"
+      );
     },
 
     async findById(id, organizationId) {
@@ -94,8 +77,7 @@ export function ssoStorageFor(deps: SsoStorageDeps): SsoStorage {
         return null;
       }
 
-      // Defence in depth: the WHERE clause already enforces org scope, but
-      // a stale fixture or mis-stubbed driver could return a foreign row.
+      // Defence in depth against a stale fixture or mis-stubbed driver returning a foreign row.
       if (row.organizationId !== organizationId) {
         return null;
       }

@@ -33,6 +33,7 @@ export {
   liveOrganizations,
 } from "./live-organizations";
 export { relations } from "./relations";
+export { firstOrNull, firstOrThrow } from "./result-narrowing";
 export * from "./schema";
 export {
   bumpTenantCacheVersion,

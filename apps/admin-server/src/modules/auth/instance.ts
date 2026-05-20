@@ -1,22 +1,3 @@
-/**
- * Operator-perimeter Better Auth factory.
- *
- * Distinct from `apps/server`'s tenant-facing `createAuth`:
- *   - single pinned host (`ADMIN_HOST`) — no wildcard, no custom hostnames
- *   - separate BA secret (`OPERATOR_BETTER_AUTH_SECRET`) so a leaked tenant
- *     secret cannot mint operator sessions and vice versa
- *   - no SSO plugin, no organization plugin
- *   - public sign-up closed; operators are invited via `global_admins`
- *   - JWT plugin emits the operator-shaped `OperatorJwtClaims` (no `org`)
- *   - a `session.create.before` hook asserts the BA user_id has a matching
- *     row in `global_admins`; non-operator users cannot sign in here
- *
- * `createAuthBase` is intentionally not reused: the tenant-server plugins
- * it composes (`adminPlugin`, `loginSecurityPlugin`) hard-import the
- * tenant-server `@/db` and `@/modules/users` singletons. Lifting those
- * couplings into a shared `@repo/auth-core` is tracked as a follow-up.
- */
-
 import {
   buildArgon2idHasher,
   buildDrizzleAdapter,
@@ -64,30 +45,14 @@ const operatorHasher = buildArgon2idHasher(env.OPERATOR_BETTER_AUTH_SECRET);
 export type AdminAuthDeps = Readonly<{
   db: DrizzleClient;
   logger: Logger;
-  /**
-   * Pinned admin host. Used both for BA's `allowedHosts` and for the
-   * JWT `aud`/`iss` so tokens minted here cannot be replayed against the
-   * tenant perimeter.
-   */
+  // Used for BA `allowedHosts` and JWT `aud`/`iss` so operator tokens cannot be replayed against the tenant perimeter.
   adminHost: string;
-  /**
-   * Extra allowed hosts for local-dev only. Production must not pass this.
-   */
+  // Local-dev only; production must not pass this.
   extraAllowedHosts?: readonly string[];
-  /**
-   * Resolves a BA user_id to an operator binding (global-admin id +
-   * sub-role) or `null` when the user is not a global-admin. Injected so
-   * tests can stub without a real DB.
-   */
   resolveOperatorBinding?: (userId: string) => Promise<OperatorBinding | null>;
 }>;
 
-/**
- * Default operator binding lookup. Resolves `global_admins.user_id` ->
- * `{ id, subRole }`. Rows with an unbound `user_id` (enrollment-pending)
- * never match here and therefore cannot authenticate — only fully-bound
- * operators can sign in.
- */
+// Rows with an unbound user_id (enrollment-pending) never match here, so only fully-bound operators can sign in.
 async function defaultResolveOperatorBinding(
   db: DrizzleClient,
   userId: string
@@ -107,10 +72,6 @@ async function defaultResolveOperatorBinding(
   return { id: row.id, subRole: row.subRole };
 }
 
-/**
- * Operator-session additional fields. No `platform` (operators use a single
- * web admin UI) and no `activeOrgRole` (operators are not tenant members).
- */
 export type OperatorSessionAdditionalFields = {
   operatorId: string;
   operatorSubRole: OperatorBinding["subRole"];
@@ -127,14 +88,9 @@ export function createAdminAuth(deps: AdminAuthDeps) {
     deps.resolveOperatorBinding ??
     ((userId: string) => defaultResolveOperatorBinding(deps.db, userId));
 
-  // Captured for the JWT `definePayload` callback. BA calls definePayload
-  // synchronously and we cannot await a DB lookup there; the binding has
-  // already been written onto the session row by the session-create hook,
-  // so the JWT mint reads it from the ctx instead of re-querying.
+  // BA calls definePayload synchronously; the binding is stamped onto the session by the session-create hook below, so we read it from ctx rather than re-querying.
   function readBindingFromCtx(ctx: unknown): OperatorBinding | null {
-    // boundary: BA's `jwt.definePayload` ctx type is not exported. The
-    // session's additional fields are stamped by the session-create hook
-    // below, then surfaced on `ctx.session`. We narrow defensively.
+    // boundary: BA's `jwt.definePayload` ctx type is not exported; narrowed defensively to `{ session?: { operatorId?, operatorSubRole? } }`.
     const maybe = ctx as {
       session?: { operatorId?: unknown; operatorSubRole?: unknown };
     };
@@ -158,15 +114,13 @@ export function createAdminAuth(deps: AdminAuthDeps) {
     secret: env.OPERATOR_BETTER_AUTH_SECRET,
     database: buildDrizzleAdapter(deps.db),
 
-    // Single pinned host. No `fallback` so an unknown Host fails closed.
+    // No `fallback` so an unknown Host fails closed.
     baseURL: {
       allowedHosts: [...allowedHosts],
       protocol: "auto" as const,
     },
     basePath: "/api/auth",
-    // BA's `/sso/register` writes oidcConfig via the raw adapter and we
-    // never mount SSO on this perimeter — block the path so it cannot be
-    // hit accidentally.
+    // BA's `/sso/register` writes oidcConfig via the raw adapter; block it since SSO is never mounted here.
     disabledPaths: ["/sso/register"],
 
     rateLimit: {
@@ -184,10 +138,7 @@ export function createAdminAuth(deps: AdminAuthDeps) {
 
     emailAndPassword: {
       enabled: true,
-      // Operators are invited via `global_admins`; public sign-up would
-      // create BA users without any matching operator row, which the
-      // session-create gate would then reject anyway. Close the door
-      // upstream so the failure surface is one layer thinner.
+      // Operators are invited via `global_admins`; the session-create gate would reject self-signups anyway — close upstream.
       disableSignUp: true,
       requireEmailVerification: false,
       password: {
@@ -216,9 +167,7 @@ export function createAdminAuth(deps: AdminAuthDeps) {
       database: {
         generateId: buildIdGenerator(log),
       },
-      // Operator surface is fronted by the same edge as the tenant surface
-      // but tenant-server's policy of not trusting proxy headers applies
-      // here too: don't let forwarded headers influence BA's URL resolver.
+      // Forwarded headers must not influence BA's URL resolver.
       trustedProxyHeaders: false,
       defaultCookieAttributes: {
         sameSite: "lax" as const,
@@ -238,6 +187,7 @@ export function createAdminAuth(deps: AdminAuthDeps) {
       session: {
         create: {
           before: async (session) => {
+            // boundary: BA's `databaseHooks.session.create.before` ctx type is not exported; narrowed to `{ userId?: unknown }` and guarded below.
             const userIdRaw = (session as { userId?: unknown }).userId;
             if (typeof userIdRaw !== "string") {
               throw new APIError("UNAUTHORIZED", {
@@ -246,10 +196,7 @@ export function createAdminAuth(deps: AdminAuthDeps) {
             }
             const binding = await resolveBinding(userIdRaw);
             if (!binding) {
-              // The operator-vs-tenant boundary is enforced here: tenant
-              // users (rows in `users` with no `global_admins` row) cannot
-              // open a session on the admin perimeter, even if they share
-              // an email with an enrolled operator.
+              // Operator-vs-tenant boundary: a BA user without a `global_admins` row cannot open a session on the admin perimeter.
               throw new APIError("FORBIDDEN", {
                 message: "User is not enrolled as an operator",
               });
@@ -270,8 +217,6 @@ export function createAdminAuth(deps: AdminAuthDeps) {
       emailOTP({
         otpLength: OTP_CONFIG.otpLength,
         expiresIn: OTP_CONFIG.emailOtpExpiresIn,
-        // Operators are invited — they never go through self-service
-        // sign-up so this OTP path is only reached on explicit reset.
         sendVerificationOnSignUp: false,
         async sendVerificationOTP({ email, otp, type }) {
           log.info("operator-otp", {
@@ -298,8 +243,7 @@ export function createAdminAuth(deps: AdminAuthDeps) {
         disableDefaultReference: true,
       }),
       jwt({
-        // Pin EdDSA explicitly so a future BA default change cannot
-        // silently rotate operator tokens onto a different alg.
+        // Pin EdDSA so a future BA default change cannot silently rotate operator tokens onto a different alg.
         jwks: {
           keyPairConfig: { alg: "EdDSA" },
         },

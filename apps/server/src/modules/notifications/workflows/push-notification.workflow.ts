@@ -1,3 +1,4 @@
+import { firstOrThrow } from "@repo/db";
 import { notifications, pushTokens } from "@repo/db/schema";
 import { and, eq } from "drizzle-orm";
 
@@ -35,15 +36,14 @@ function createPushNotificationWorkflow() {
         notificationId: input.notificationId,
       });
 
-      const [notification] = await db
-        .select()
-        .from(notifications)
-        .where(eq(notifications.id, input.notificationId))
-        .limit(1);
-
-      if (!notification) {
-        throw new Error(`Notification not found: ${input.notificationId}`);
-      }
+      const notification = await firstOrThrow(
+        db
+          .select()
+          .from(notifications)
+          .where(eq(notifications.id, input.notificationId))
+          .limit(1),
+        `Notification not found: ${input.notificationId}`
+      );
 
       if (notification.channel !== "push") {
         throw new Error(

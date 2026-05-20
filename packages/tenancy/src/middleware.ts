@@ -7,7 +7,7 @@ import type { Tenant } from "./types";
 
 declare module "hono" {
   interface ContextVariableMap {
-    tenant: Tenant | null;
+    tenant: Tenant;
   }
 }
 
@@ -20,12 +20,7 @@ export type TenantMiddlewareOptions = Readonly<{
     info(o: Record<string, unknown>): void;
     warn(o: Record<string, unknown>): void;
   };
-  /**
-   * Optional write-callback fired AFTER `c.var.tenant` is set and BEFORE
-   * `next()` runs. Lets the host app mirror the resolved tenant into a
-   * project-specific envelope (e.g. `c.var.requestContext.tenant`)
-   * without coupling this package to the host's request-context shape.
-   */
+  // fires after c.var.tenant is set and before next(); lets host apps mirror tenant into their own context envelope
   onResolve?: (c: Context, tenant: Tenant) => void;
 }>;
 

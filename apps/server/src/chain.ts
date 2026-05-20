@@ -1,9 +1,3 @@
-/**
- * Order is captured as data: each entry has a `name` and an optional
- * `requires` list, and a boot-time well-formedness check fires if
- * `requires` ever references a later entry.
- */
-
 import { httpInstrumentationMiddleware } from "@hono/otel";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import {
@@ -16,13 +10,14 @@ import {
 import {
   hostHeaderGuard,
   resolveDevTenantHeader,
+  type Tenant,
   tenantMiddleware,
 } from "@repo/tenancy";
 import { sql } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { db, isDbSkipped } from "@/db";
 import { env } from "@/env";
-import type { Env, RequestContext } from "@/lib/context";
+import type { Env } from "@/lib/context";
 import { logger } from "@/lib/logger";
 import { OTEL_ENABLED } from "@/lib/otel-config";
 import { createRedisClient } from "@/lib/redis/client";
@@ -49,14 +44,7 @@ import {
 export type ChainEntry = PackageChainEntry<Env>;
 export type MiddlewareChain = PackageMiddlewareChain<Env>;
 
-/**
- * No-op stand-in for the `pg.Pool` surface `tenantMiddleware` reads. Used
- * when `SKIP_DB=true` so the resolver short-circuits to `not_found` without
- * touching Postgres.
- *
- * boundary: SKIP_DB test stub — runtime guard ensures the real DB is used
- * outside tests.
- */
+// boundary: SKIP_DB test stub for `tenantMiddleware`'s pg.Pool surface — resolver short-circuits to `not_found` without touching Postgres.
 const dbClientOrStub: Pick<import("pg").Pool, "query"> = isDbSkipped
   ? ({
       query: () =>
@@ -98,34 +86,19 @@ const pingHandler: MiddlewareHandler<Env> = async (c) => {
   );
 };
 
-/**
- * Composition-time kill-list adapter selection. The interface (`JtiKillList`)
- * is the seam; this function chooses the adapter from env. Redis when
- * `REDIS_URL` is set, in-memory otherwise. Tests pass their own adapter to
- * `createAuth` directly and never reach this path.
- *
- * Connecting is fire-and-forget: `addKilled`/`isKilled` surface failures to
- * the logout caller, which tolerates them (see `runSessionDeleteAfter`). We
- * deliberately keep the noisy boot-time stack trace out of the path.
- */
 function buildKillList(): JtiKillList {
   if (!env.REDIS_URL) {
     return createMemoryJtiKillList();
   }
   const redis = createRedisClient(env.REDIS_URL);
-  redis.connect().catch(() => {
-    // see comment above — surfaces on use, not on boot.
-  });
+  // Fire-and-forget: connect failures surface on use (logout path tolerates them), not on boot.
+  redis.connect().catch(() => undefined);
   return createRedisJtiKillList(redis);
 }
 
-/**
- * Per-request Better Auth factory. Captured via closure by both the auth
- * proxy and auth-context middleware so `auth` never appears on `c.var`.
- */
 function buildAuthFactory(
   killList: JtiKillList
-): (tenant: RequestContext["tenant"]) => AuthInstance {
+): (tenant: Tenant) => AuthInstance {
   return (tenant) =>
     createAuth({
       db,
@@ -145,14 +118,7 @@ export function buildChain(): MiddlewareChain {
   const authContextMiddleware = buildAuthContextMiddleware(authFactory);
   const authProxyMiddleware = buildAuthProxyMiddleware(authFactory);
 
-  // Shared common entries (init/trim/logger/cors/rateLimit/audit) live in
-  // `@repo/hono-app`. Tenant-server interleaves the tenancy block between
-  // the early and late common entries, so it cherry-picks via name rather
-  // than spreading the full fragment. Audit-context requires
-  // `authContextMiddleware` here (vs. admin-server's `requestContextInit`)
-  // so the chain guarantees principal-aware audit writes downstream; cors
-  // requires `tenantMiddleware` so a non-tenant host short-circuits before
-  // any preflight allowance.
+  // audit-context requires `authContextMiddleware` so audit writes see the principal; cors requires `tenantMiddleware` so non-tenant hosts short-circuit before any preflight allowance.
   const common = commonEntriesByName<Env>({
     requestContextInit: requestContextInitMiddleware,
     httpLoggerSink: (str, ...rest) => {
@@ -196,7 +162,7 @@ export function buildChain(): MiddlewareChain {
   entries.push(common.trimTrailingSlash);
   entries.push(common.httpLogger);
 
-  // /ping is tenant-agnostic — health checks must work without a tenant Host.
+  // /ping is tenant-agnostic so health checks work without a tenant Host.
   entries.push({
     kind: "get",
     name: "ping",
@@ -204,9 +170,7 @@ export function buildChain(): MiddlewareChain {
     handler: pingHandler,
   });
 
-  // /caddy/ask is mounted before tenancy: Caddy polls with the Docker service
-  // name or `localhost`, neither of which resolves to a tenant. Per-source-IP
-  // rate-limited to bound a misconfigured polling loop. Internal network only.
+  // /caddy/ask is mounted before tenancy because Caddy polls with the Docker service name or `localhost`, neither of which resolves to a tenant. Internal network only.
   entries.push({
     kind: "use-path",
     name: "caddyAskRateLimit",
@@ -221,19 +185,14 @@ export function buildChain(): MiddlewareChain {
     requires: ["caddyAskRateLimit"],
   });
 
-  // Tenant resolution short-circuits unknown hosts with a fast 404 before
-  // any CORS or rate-limit work runs. No Postgres session variable is set —
-  // tenancy is enforced in TS by repositories.
+  // Host guard must run before CORS/rate-limit so unknown hosts 404 fast.
   entries.push({
     kind: "use",
     name: "hostHeaderGuard",
     mount: hostHeaderGuard({ config: hostConfig }),
   });
 
-  // Gated at chain-build time so the entry never appears in a production
-  // chain — defense in depth against a mis-set env in prod.
-  // `resolveDevTenantHeader` also enforces the production guard at request
-  // time.
+  // Defense in depth: chain-build gate keeps the entry out of production chains; `resolveDevTenantHeader` also enforces a production guard at request time.
   if (env.ALLOW_DEV_TENANT_HEADER === "1" && env.NODE_ENV !== "production") {
     entries.push({
       kind: "use",
@@ -247,8 +206,7 @@ export function buildChain(): MiddlewareChain {
             env.ALLOW_DEV_TENANT_HEADER
           );
           if (result.kind === "rewrite") {
-            // Rebuild the underlying Request with the rewritten Host so
-            // every downstream consumer sees a consistent view.
+            // Rebuild the Request with the rewritten Host so every downstream consumer sees a consistent view.
             const original = c.req.raw;
             const headers = new Headers(original.headers);
             headers.set("host", result.host);
@@ -277,10 +235,7 @@ export function buildChain(): MiddlewareChain {
     });
   }
 
-  // The `onResolve` write-callback mirrors the resolved tenant into the
-  // app's `requestContext.tenant` envelope. Replaces the deleted
-  // `tenant-bridge` middleware — the package stays free of project-
-  // specific request-context coupling while the host app owns the seam.
+  // `tenantMiddleware` writes `c.var.tenant` — the single seam; downstream reads via `useTenant`/`useTenantMaybe`. No mirror into the request-context envelope.
   entries.push({
     kind: "use",
     name: "tenantMiddleware",
@@ -292,10 +247,6 @@ export function buildChain(): MiddlewareChain {
         p.catch(() => undefined);
       },
       logger,
-      onResolve: (c, tenant) => {
-        const current = c.get("requestContext");
-        c.set("requestContext", { ...current, tenant });
-      },
     }),
     requires: ["hostHeaderGuard", "requestContextInit"],
   });
@@ -311,7 +262,6 @@ export function buildChain(): MiddlewareChain {
   });
   entries.push(common.auditContextMiddleware);
 
-  // Sanitized Better Auth proxy is the sole entry point for `/api/auth/*`.
   // Tenancy must be resolved before the proxy runs — the proxy 404s otherwise.
   entries.push({
     kind: "all",
@@ -335,6 +285,5 @@ export function applyChain(
   packageApplyChain<Env>(chain, app);
 }
 
-/** Production chain — frozen on import; well-formedness checked at boot. */
 export const chain: MiddlewareChain = buildChain();
 assertChainWellFormed(chain);

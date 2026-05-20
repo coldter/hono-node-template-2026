@@ -13,9 +13,6 @@ vi.mock("@/middlewares/auth-context", () => ({
       otel: null,
       audit: {},
     }) as Record<string, unknown>;
-    // The Principal Module replaced `null` with an explicit "anonymous" arm
-    // — `resolvePrincipalFromContext` branches on `kind` and surfaces 401
-    // when unauthenticated.
     c.set("requestContext", {
       ...current,
       principal: { kind: "anonymous" },
@@ -24,8 +21,6 @@ vi.mock("@/middlewares/auth-context", () => ({
   },
 }));
 
-// `/api/auth/*` is served by the auth proxy mounted directly on baseApp.
-// Stub the proxy factory so these tests do not need a real BA instance.
 vi.mock("@/middlewares/auth-proxy", () => ({
   buildAuthProxyMiddleware: () => async (c: Context) => c.text("ok", 200),
 }));

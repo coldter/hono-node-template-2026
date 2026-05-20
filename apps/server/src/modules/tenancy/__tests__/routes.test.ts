@@ -1,9 +1,3 @@
-/**
- * Behavioural tests for `/api/tenancy/hostnames`. The Drizzle layer is
- * mocked at the service boundary — we inject a stub service via
- * `buildCustomHostnameRoutes` and exercise the routes end-to-end.
- */
-
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { TenantCustomHostname } from "@repo/db/schema";
 import type { Tenant } from "@repo/tenancy";
@@ -84,9 +78,11 @@ function makeApp(ctx: AppCtx, service: RouteService = stubService()) {
     );
     c.set("requestContext", {
       ...createEmptyRequestContext(),
-      tenant: ctx.tenant,
       principal,
     });
+    if (ctx.tenant) {
+      c.set("tenant", ctx.tenant);
+    }
     await next();
   });
   app.onError((err, c) => handleError(err, c));
@@ -359,18 +355,6 @@ describe("DELETE /api/tenancy/hostnames/:id", () => {
 });
 
 describe("authn / authz / tenancy guards", () => {
-  it("returns 404 when c.var.tenant is null", async () => {
-    const app = makeApp({
-      tenant: null,
-      user: authedUser,
-      session: authedSession,
-    });
-    const res = await app.request(
-      "http://nope.app.localhost/api/tenancy/hostnames"
-    );
-    expect(res.status).toBe(404);
-  });
-
   it("returns 401 when no user is on c.var", async () => {
     const app = makeApp({
       tenant: tenant(),

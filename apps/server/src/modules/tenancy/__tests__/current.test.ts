@@ -1,9 +1,3 @@
-// Behavioural tests for `/api/tenancy/current`. The handler reads the
-// resolved tenant from `c.var.requestContext.tenant` (including its
-// `branding` projection); branding is no longer fetched from the DB at
-// request time — `resolveTenant` populates the field once and bumps
-// flow through the cache invalidator.
-
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Tenant } from "@repo/tenancy";
 import type { Context, Next } from "hono";
@@ -30,10 +24,10 @@ async function makeApp(tenant: Tenant | null) {
   const { default: currentTenancyRouter } = await import("../current");
   const app = new OpenAPIHono<Env>();
   app.use("*", async (c: Context<Env>, next: Next) => {
-    c.set("requestContext", {
-      ...createEmptyRequestContext(),
-      tenant,
-    });
+    c.set("requestContext", createEmptyRequestContext());
+    if (tenant) {
+      c.set("tenant", tenant);
+    }
     await next();
   });
   app.route("/api/tenancy/current", currentTenancyRouter);
@@ -77,7 +71,6 @@ describe("/api/tenancy/current", () => {
         primaryColor: "#ff0000",
         appName: "Acme",
       },
-      // BRANDING_HOST default is "branding.localhost" per env.ts.
       logoUrl: "https://branding.localhost/org_test_acme/logo.3.webp",
     });
   });
@@ -91,13 +84,5 @@ describe("/api/tenancy/current", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { logoUrl: string | null };
     expect(body.logoUrl).toBeNull();
-  });
-
-  it("returns 404 when c.var.tenant is null", async () => {
-    const app = await makeApp(null);
-    const res = await app.request(
-      "http://unknown.app.example.com/api/tenancy/current"
-    );
-    expect(res.status).toBe(404);
   });
 });

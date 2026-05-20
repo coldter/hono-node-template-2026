@@ -1,20 +1,14 @@
 import type { HostConfig } from "./host-config";
 
-/**
- * 1-63 chars, lowercase alphanumeric with optional internal hyphens. The
- * inner group is wrapped in `(?:...)?` so single-character slugs pass.
- */
+// inner group wrapped in (?:...)? so single-character slugs pass
 export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$/;
 
 const PORT_RE = /:.*$/;
-const TRAILING_DOT_RE = /\.$/;
+const TRAILING_DOT_RE = /\.+$/;
+// applied after .toLowerCase(); uppercase intentionally excluded
 const INVALID_CHAR_RE = /[^a-z0-9.-]/;
 
-/**
- * Reserved slugs. NOT consulted inside parseHostname — the parser only
- * handles host shape. Callers (resolveTenant, dev-header) check the set
- * separately so a reserved slug still parses as a subdomain shape.
- */
+// NOT consulted inside parseHostname; callers check separately so a reserved slug still parses as subdomain shape
 export const BUILTIN_RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "admin",
   "auth",
@@ -79,9 +73,7 @@ export function parseHostname(host: string, config: HostConfig): ParsedHost {
   }
 
   if (stripped.endsWith(config.wildcardSuffix)) {
-    // Reject punycode anywhere in a wildcard host to deny homoglyph
-    // confusables against the platform apex; custom hosts (step below)
-    // still allow xn-- for legitimate IDN tenant apexes.
+    // rejects punycode under wildcard to deny homoglyph confusables against the platform apex
     const labels = stripped.split(".");
     if (labels.some((label) => label.startsWith("xn--"))) {
       return { kind: "rejected", reason: "punycode" };

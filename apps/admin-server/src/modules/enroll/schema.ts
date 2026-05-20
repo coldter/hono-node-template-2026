@@ -1,11 +1,3 @@
-/**
- * Wire schemas for `/api/admin/operator-enroll`. The lifecycle itself
- * (state-machine, audit emission, user/account materialisation) lives in
- * `./lifecycle.ts`; this module only describes the JSON shapes the admin
- * UI exchanges. Validation lives here so a malformed payload fails before
- * the writer transaction opens.
- */
-
 import { z } from "zod";
 
 const SUB_ROLE = z.enum(["platform_admin", "support", "read_only"]);
@@ -18,7 +10,8 @@ export const inviteOperatorBody = z.object({
 export type InviteOperatorBody = z.infer<typeof inviteOperatorBody>;
 
 export const redeemEnrollmentBody = z.object({
-  token: z.string().min(16).max(256),
+  // Optional; the URL token is canonical and the route layer enforces equality when both are present.
+  token: z.string().min(16).max(256).optional(),
   password: z
     .string()
     .min(12, "password must be at least 12 characters")
@@ -37,10 +30,7 @@ export const tokenParam = z.object({
 });
 export type TokenParam = z.infer<typeof tokenParam>;
 
-// Wire-shape mirror of the lifecycle's `InviteResult`. The plaintext token
-// is returned exactly once on invite so the operator can transport it to
-// the invitee through whatever channel they choose. After this response
-// the server never re-emits the token.
+// Plaintext token is returned exactly once; the server never re-emits it after this response.
 export const inviteResponse = z.object({
   enrollmentId: z.string(),
   token: z.string(),

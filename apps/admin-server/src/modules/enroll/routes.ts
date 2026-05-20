@@ -1,14 +1,3 @@
-/**
- * `/api/admin/operator-enroll` — operator-onboarding HTTP perimeter.
- *
- * The lifecycle (`./lifecycle.ts`) is the single writer for `global_admins`
- * enrollment columns; handlers translate the lifecycle's typed errors into
- * HTTP responses. Invite, list, and explicit-expire are gated by
- * `requireOperator(action)`; the redeem path is intentionally unauthenticated
- * because the invitee has no operator session yet — its security envelope
- * is the unguessable enrollment token + the `pending`-row gate.
- */
-
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { DrizzleClient } from "@repo/db";
 import { globalAdmins } from "@repo/db/schema";
@@ -31,6 +20,8 @@ import {
   inviteOperatorBody,
   inviteResponse,
   listPendingResponse,
+  redeemEnrollmentBody,
+  tokenParam,
 } from "./schema";
 
 const DEFAULT_TTL_DAYS = 7;
@@ -40,12 +31,7 @@ export type EnrollRoutesDeps = Readonly<{
   hashPassword: (password: string) => Promise<string>;
 }>;
 
-/**
- * Map enrollment lifecycle-domain error codes to HTTP. `invalid_token` and
- * `expired` carry overridden messages so the wire response never leaks
- * whether a similar pending row exists (a wrong token must look identical
- * to a missing row).
- */
+// `invalid_token` and `expired` use overridden messages so a wrong token looks identical to a missing row on the wire.
 const LIFECYCLE_HTTP_MAP = {
   not_found: { status: 404 },
   invalid_transition: { status: 409 },
@@ -64,18 +50,6 @@ const throwLifecycle: (err: unknown) => never = lifecycleToHttp(
 function throwForLifecycleError(err: unknown): never {
   throwLifecycle(err);
 }
-
-const tokenParam = z.object({ token: z.string().min(1) });
-
-const redeemBodyParam = z.object({
-  password: z
-    .string()
-    .min(12, "password must be at least 12 characters")
-    .max(256),
-  displayName: z.string().min(1).max(120).optional(),
-  // Body-side `token` is optional and, when present, must match the URL one.
-  token: z.string().min(16).max(256).optional(),
-});
 
 const redeemResponse = z.object({
   enrollmentId: z.string(),
@@ -121,7 +95,7 @@ const listPendingRoute = createRoute({
   },
 });
 
-// Redeem is intentionally unauthenticated — the token is the credential.
+// Redeem is unauthenticated: the token is the credential.
 const redeemRoute = createRoute({
   operationId: "redeemEnrollment",
   method: "post",
@@ -131,7 +105,7 @@ const redeemRoute = createRoute({
   request: {
     params: tokenParam,
     body: {
-      content: { "application/json": { schema: redeemBodyParam } },
+      content: { "application/json": { schema: redeemEnrollmentBody } },
     },
   },
   responses: {
@@ -177,7 +151,6 @@ export function buildEnrollRoutes(deps: EnrollRoutesDeps) {
         },
         deps
       );
-      // Narrow on result shape: invite always returns an `InviteResult`.
       if (!("token" in result)) {
         throw new HTTPException(500, {
           message: "invite returned an unexpected result shape",
@@ -234,9 +207,7 @@ export function buildEnrollRoutes(deps: EnrollRoutesDeps) {
   app.openapi(redeemRoute, async (c) => {
     const { token } = c.req.valid("param");
     const body = c.req.valid("json");
-    // When the body carries a token it must match the URL token: the URL
-    // form is canonical, the body form is a future-affordance for a
-    // paste-the-token form UI.
+    // URL token is canonical; body token is optional and must match when present.
     if (body.token && body.token !== token) {
       throw new HTTPException(400, {
         message: "body token does not match URL token",

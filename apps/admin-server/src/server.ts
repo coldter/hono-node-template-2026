@@ -5,6 +5,7 @@ import { env } from "@/env";
 import type { Env } from "@/lib/context";
 import { handleError } from "@/lib/errors";
 
+// boundary: Hono's `basePath` requires a literal-typed string generic; the runtime BASE_PATH env value is narrowed here.
 const baseApp = new OpenAPIHono<Env>().basePath((env.BASE_PATH || "") as "");
 
 applyChain(chain, baseApp);

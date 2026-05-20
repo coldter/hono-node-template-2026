@@ -1,40 +1,8 @@
-/**
- * Unified lifecycle writer for `global_admins` enrollment rows.
- *
- * State-transition table (single source of truth)
- * -----------------------------------------------
- *   null     →  pending   (invite — insert row with hashed token + expiry)
- *   pending  →  bound     (redeem — create BA user + account; mark boundAt)
- *   pending  →  expired   (expire — clear token; row remains for audit)
- *
- * `bound` and `expired` are terminal. Re-applying any transition to a
- * terminal row raises `invalid_transition`. Re-inviting an existing email
- * for which a pending row already lives raises `duplicate_invite`; the
- * caller should expire the live invitation first if they want to rotate
- * the token.
- *
- * Why one module: the HTTP invite endpoint, the redeem endpoint, and the
- * explicit-expire endpoint all touch the same row + the same companion
- * writes (BA user/account on redeem, audit row on every arrow). Without
- * unification, the state machine is duplicated and drift is one branch
- * away.
- *
- * State derivation (no enum column on the table):
- *   pending  := boundAt IS NULL AND enrollmentTokenHash IS NOT NULL
- *               AND enrollmentExpiresAt > now
- *   bound    := boundAt IS NOT NULL
- *   expired  := boundAt IS NULL AND
- *               (enrollmentTokenHash IS NULL OR enrollmentExpiresAt <= now)
- *
- * The "redeem after expiration" arrow falls through to `expire` when the
- * caller invokes redeem on a now-elapsed row: the writer clears the token
- * and raises `expired` rather than silently flipping to `bound`.
- */
-
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { OperatorSubRole } from "@repo/authorization";
 import {
   type DrizzleClient,
+  firstOrThrow,
   generateIdForModel,
   generatePrefixedCuid,
   ID_PREFIXES,
@@ -52,7 +20,7 @@ import {
   LifecycleError,
   type TransitionTable,
 } from "@repo/tenant-operations";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 
 export type EnrollmentLifecycleErrorCode =
   | "invalid_transition"
@@ -153,11 +121,7 @@ function hashToken(token: string): Buffer {
   return createHash("sha256").update(token, "utf8").digest();
 }
 
-/**
- * Generate a fresh enrollment token. Returns the plaintext (handed to the
- * caller exactly once) and its sha256 digest (the column write). The hash
- * is what we store so a DB leak does not expose unredeemed tokens.
- */
+// Plaintext is returned to the caller exactly once; only the sha256 digest is stored so a DB leak cannot expose unredeemed tokens.
 export function generateEnrollmentToken(): {
   token: string;
   digest: Buffer;
@@ -175,13 +139,20 @@ function constantTimeEquals(a: Buffer, b: Buffer): boolean {
 
 async function loadPendingByToken(
   db: DrizzleClient,
-  token: string
+  token: string,
+  now: Date
 ): Promise<GlobalAdmin> {
   const digest = hashToken(token);
   const rows = await db
     .select()
     .from(globalAdmins)
-    .where(and(isNull(globalAdmins.boundAt), isNull(globalAdmins.userId)));
+    .where(
+      and(
+        isNull(globalAdmins.boundAt),
+        isNull(globalAdmins.userId),
+        gt(globalAdmins.enrollmentExpiresAt, now)
+      )
+    );
   for (const row of rows) {
     if (!row.enrollmentTokenHash) {
       continue;
@@ -194,40 +165,13 @@ async function loadPendingByToken(
 }
 
 async function loadById(db: DrizzleClient, id: string): Promise<GlobalAdmin> {
-  const rows = await db
-    .select()
-    .from(globalAdmins)
-    .where(eq(globalAdmins.id, id))
-    .limit(1);
-  const row = rows[0];
-  if (!row) {
-    throw new EnrollmentLifecycleError("not_found");
-  }
-  return row;
+  return await firstOrThrow(
+    db.select().from(globalAdmins).where(eq(globalAdmins.id, id)).limit(1),
+    () => new EnrollmentLifecycleError("not_found")
+  );
 }
 
-/**
- * The only writer for `global_admins.enrollmentTokenHash`,
- * `global_admins.enrollmentExpiresAt`, `global_admins.boundAt`, and the
- * BA user/account rows materialised by `redeem`. Each arrow emits exactly
- * one audit row (`operator.invited` / `operator.redeemed` / `operator.expired`).
- *
- * On `invite`: validates that no pending row already exists for the email,
- * inserts a fresh `global_admins` row with the hashed token + expiry, and
- * returns the plaintext token to the caller. The caller is responsible
- * for transporting the token to the invitee (email integration lands in a
- * later round; admin-server currently logs and returns the token in the
- * response body).
- *
- * On `redeem`: hashes the submitted token, finds the matching pending row,
- * fails closed if the row is expired (and proactively clears the hash so a
- * retry surfaces the same `expired` outcome), creates the BA user +
- * credential account, and flips the row to `bound`.
- *
- * On `expire`: idempotent on a row that is already terminal — the audit
- * row is NOT re-emitted in that case so a double-expire does not bloat the
- * audit feed.
- */
+// Sole writer for `global_admins` enrollment columns and the BA user/account rows materialised by `redeem`; each arrow emits exactly one audit row.
 export async function applyEnrollmentTransition(
   transition: Transition,
   deps: LifecycleDeps,
@@ -267,11 +211,7 @@ async function inviteOperator(
     if (state === "bound") {
       throw new EnrollmentLifecycleError("already_bound");
     }
-    // Expired row: a re-invite would need to either delete the old row or
-    // resurrect it. We treat each invite as fresh-row insert; the unique
-    // constraint on email blocks the resurrection path. The caller's
-    // recourse is to revoke + manually remove the tombstoned row out-of-
-    // band, which is intentional friction.
+    // Re-inviting an expired row requires manual removal first; the unique email constraint blocks resurrection (intentional friction).
     throw new EnrollmentLifecycleError(
       "duplicate_invite",
       "an expired enrollment exists for this email; remove it first"
@@ -315,15 +255,13 @@ async function redeemEnrollment(
   deps: LifecycleDeps,
   now: Date
 ): Promise<RedeemResult> {
-  const row = await loadPendingByToken(deps.db, data.token);
+  const row = await loadPendingByToken(deps.db, data.token, now);
   const state = deriveState(row, now);
   if (state === "bound") {
     throw new EnrollmentLifecycleError("already_bound");
   }
   if (state === "expired") {
-    // Proactively clear the hash so a subsequent redeem surfaces the same
-    // `expired` outcome via `invalid_token` (no row matches) rather than
-    // re-walking the expiry branch.
+    // Clear the hash so a subsequent redeem surfaces `invalid_token` rather than re-walking the expiry branch.
     await deps.db
       .update(globalAdmins)
       .set({ enrollmentTokenHash: null })
@@ -362,9 +300,7 @@ async function redeemEnrollment(
       .where(eq(globalAdmins.id, row.id));
     await tx.insert(auditLogs).values({
       event: "operator.redeemed",
-      // Actor is the invitee themselves; their identity at this point is
-      // the just-created BA user. Audit consumers rely on actorId being
-      // populated for `operator.*` events.
+      // Actor is the invitee themselves; audit consumers rely on actorId being populated for `operator.*` events.
       actorId: userId,
       actorType: ACTOR_TYPES.GLOBAL_ADMIN,
       targetId: row.id,
@@ -398,7 +334,7 @@ async function expireEnrollment(
     );
   }
   if (state === "expired") {
-    // Already terminal: idempotent no-op, no audit re-emission.
+    // Idempotent no-op; no audit re-emission so double-expire does not bloat the feed.
     return { enrollmentId: row.id };
   }
   assertEnrollmentArrow(state, "expired");

@@ -1,24 +1,5 @@
-/**
- * `/api/tenancy/current`
- *
- * Returns the resolved tenant + branding payload the web app needs to render
- * the login screen, header, and theme before the user is authenticated.
- *
- * Tenancy:
- *   `requestContext.tenant` is populated by the chain (tenantMiddleware
- *   `onResolve` write-callback). Unknown hosts produce a 404 BEFORE this
- *   handler runs. Inside the handler we still guard for `null`
- *   defensively — when tenancy is bypassed in tests, the tenant may be
- *   missing.
- *
- * Branding:
- *   Read from `tenant.branding` (projected by `resolveTenant` at the
- *   tenancy package). No per-request DB query — branding mutations bump
- *   `Invalidator.bumpDurable` so cached projections are invalidated.
- */
-
 import { OpenAPIHono, z } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
+import { useTenant } from "@repo/tenancy";
 import { env } from "@/env";
 import type { Env } from "@/lib/context";
 import { createRouteConfig } from "@/lib/route-config";
@@ -66,10 +47,7 @@ const getCurrentTenancyRoute = createRouteConfig({
 const app = new OpenAPIHono<Env>({ defaultHook });
 
 const currentTenancyRouter = app.openapi(getCurrentTenancyRoute, async (c) => {
-  const tenant = c.var.requestContext.tenant;
-  if (!tenant) {
-    throw new HTTPException(404, { message: "Not Found" });
-  }
+  const tenant = useTenant(c);
 
   const { branding } = tenant;
   const logoUrl =

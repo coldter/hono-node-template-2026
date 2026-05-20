@@ -1,33 +1,16 @@
+import { type Tenant, useTenant } from "@repo/tenancy";
 import { createMiddleware } from "hono/factory";
-import { HTTPException } from "hono/http-exception";
 
-import type { Env, RequestContext } from "@/lib/context";
+import type { Env } from "@/lib/context";
 import type { AuthInstance } from "@/modules/auth/instance";
 import { sanitizedAuthRequest } from "@/modules/auth/sanitized-request";
 
-/**
- * Sanitized Better Auth proxy boundary.
- *
- * Security contract:
- * 1. Unknown host (`requestContext.tenant === null`) → 404 via `HTTPException`.
- * 2. Proxy-supplied origin headers are stripped (see STRIPPED_HEADERS).
- * 3. `Host` is pinned to the resolved tenant's host so BA's URL resolver and
- *    cookie/CSRF checks cannot be confused by a spoofed forwarded host.
- * 4. Method, URL, body, redirect, referrer are forwarded verbatim.
- *
- * `authFactory` is captured at construction time — the proxy is the sole
- * consumer of the per-request BA instance, so no other middleware needs to
- * shuttle it through `c.var`.
- */
+// `sanitizedAuthRequest` strips proxy-origin headers and pins Host to tenant.host so BA URL/CSRF checks cannot be spoofed by a forwarded host.
 export function buildAuthProxyMiddleware(
-  authFactory: (tenant: RequestContext["tenant"]) => AuthInstance
+  authFactory: (tenant: Tenant) => AuthInstance
 ) {
   return createMiddleware<Env>(async (c) => {
-    const tenant = c.var.requestContext.tenant;
-    if (!tenant) {
-      throw new HTTPException(404, { message: "Not Found" });
-    }
-
+    const tenant = useTenant(c);
     const auth = authFactory(tenant);
     const cleanReq = sanitizedAuthRequest(c.req.raw, tenant);
     return auth.handler(cleanReq);

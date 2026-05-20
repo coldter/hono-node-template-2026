@@ -28,6 +28,11 @@ describe("parseHostname", () => {
       slug: "acme",
     });
   });
+  it("strips multiple trailing dots so wildcard match still applies", () => {
+    expect(parseHostname("acme.app.example.com..", cfg)).toEqual(
+      parseHostname("acme.app.example.com", cfg)
+    );
+  });
   it("normalizes mixed case", () => {
     expect(parseHostname("Acme.App.Example.COM", cfg)).toEqual({
       kind: "subdomain",
@@ -113,7 +118,6 @@ describe("parseHostname", () => {
 });
 
 describe("SLUG_RE", () => {
-  // Boundary tests cover what parseHostname tests do not exercise on their own.
   it("accepts 63-char max", () =>
     expect(SLUG_RE.test("a".repeat(63))).toBe(true));
   it("rejects 64-char", () => expect(SLUG_RE.test("a".repeat(64))).toBe(false));

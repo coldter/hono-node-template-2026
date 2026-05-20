@@ -1,3 +1,4 @@
+import { firstOrThrow } from "@repo/db";
 import { pushTokens } from "@repo/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -40,24 +41,21 @@ export const notificationPushTokenService = {
       return updated ?? existing;
     }
 
-    const [newToken] = await db
-      .insert(pushTokens)
-      .values({
-        userId,
-        sessionId,
-        token: input.token,
-        platform: input.platform,
-        deviceId: input.deviceId ?? null,
-        deviceName: input.deviceName ?? null,
-        isActive: true,
-      })
-      .returning();
-
-    if (!newToken) {
-      throw new Error("Failed to create push token");
-    }
-
-    return newToken;
+    return await firstOrThrow(
+      db
+        .insert(pushTokens)
+        .values({
+          userId,
+          sessionId,
+          token: input.token,
+          platform: input.platform,
+          deviceId: input.deviceId ?? null,
+          deviceName: input.deviceName ?? null,
+          isActive: true,
+        })
+        .returning(),
+      "Failed to create push token"
+    );
   },
 
   async deactivatePushToken(tokenId: string, userId: string): Promise<boolean> {

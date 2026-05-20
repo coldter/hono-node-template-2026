@@ -5,8 +5,11 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { z } from "zod";
 import { Logo } from "@/assets/logo";
+import {
+  redirectSearchSchema,
+  resolveRedirectTarget,
+} from "@/lib/redirect-target";
 import {
   AuthStepTransition,
   SignInForm,
@@ -21,15 +24,15 @@ import { useLastUserStore } from "@/store";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
-  validateSearch: z.object({
-    redirect: z.string().optional(),
-  }),
+  validateSearch: redirectSearchSchema,
   beforeLoad: ({ context, search }) => {
     const session = context.queryClient.getQueryData(
       sessionQueryOptions.queryKey
     );
     if (session) {
-      throw redirect({ to: search.redirect ?? "/dashboard" });
+      throw redirect({
+        to: resolveRedirectTarget(search.redirect, "/dashboard"),
+      });
     }
   },
   pendingComponent: () => <Skeleton className="h-full w-full" />,
@@ -52,7 +55,7 @@ function RouteComponent() {
   }, [lastUser]);
 
   const handleSuccess = () => {
-    navigate({ to: redirect ?? "/dashboard" });
+    navigate({ to: resolveRedirectTarget(redirect, "/dashboard") });
   };
 
   const handleTwoFactorRequired = (email: string) => {

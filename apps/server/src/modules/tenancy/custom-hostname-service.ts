@@ -1,14 +1,8 @@
-/**
- * `customHostnameService` — request/verify/list/remove for tenant-owned
- * custom hostnames. State-changing writes go through `./lifecycle.ts`;
- * this module owns admission control (rate-limit guards, hostname-shape
- * policy) and the initial row insert.
- */
-
 import type { DrizzleClient } from "@repo/db";
 import { tenantCustomHostnames } from "@repo/db/schema";
 import type { Invalidator } from "@repo/tenancy";
 import { and, eq, gt, sql } from "drizzle-orm";
+import { firstOrThrow } from "@/db";
 import {
   CustomHostnameError,
   type CustomHostnameErrorCode,
@@ -22,26 +16,16 @@ import {
 
 export type CustomHostnameServiceDeps = Readonly<{
   db: DrizzleClient;
-  /** Optional resolver override; defaults to `./doh-resolver.ts`. */
   resolveTxt?: (name: string) => Promise<string[][]>;
-  /** DNS label that hosts the verification token (e.g. `"_app-verify"`). */
   txtLabel: string;
   invalidator: Invalidator;
 }>;
 
 export type CustomHostnameService = ReturnType<typeof customHostnameService>;
 
-/** Maximum number of rows in `pending_txt` per organization. */
 const MAX_PENDING_PER_ORG = 10;
-/** Rolling 24h request-count limit per organization. */
 const MAX_REQUESTS_PER_24H = 50;
 
-/**
- * RFC-1035-ish hostname check + project policy: lowercase only, 1-253
- * total chars, 1-63 chars per label, labels match `[a-z0-9](-?[a-z0-9])*`,
- * no protocol prefix, no path, reject IPv4 literals, reject `localhost`,
- * reject the app's own wildcard apex or any of its subdomains.
- */
 const LABEL_RE = /^[a-z0-9](-?[a-z0-9])*$/;
 const IPV4_RE = /^\d{1,3}(\.\d{1,3}){3}$/;
 
@@ -154,18 +138,17 @@ export function customHostnameService(deps: CustomHostnameServiceDeps) {
 
     const token = generateVerificationToken();
     try {
-      const inserted = await deps.db
-        .insert(tenantCustomHostnames)
-        .values({
-          organizationId: input.orgId,
-          hostname: validation.hostname,
-          verificationToken: token,
-        })
-        .returning();
-      const row = inserted[0];
-      if (!row) {
-        throw new CustomHostnameError("not_found");
-      }
+      const row = await firstOrThrow(
+        deps.db
+          .insert(tenantCustomHostnames)
+          .values({
+            organizationId: input.orgId,
+            hostname: validation.hostname,
+            verificationToken: token,
+          })
+          .returning(),
+        "invariant: insert into tenant_custom_hostnames returned no row"
+      );
       return { row };
     } catch (e) {
       if (isUniqueViolation(e)) {
@@ -262,11 +245,7 @@ function mapVerificationReason(
   return "verify_resolver_error";
 }
 
-/**
- * boundary: drizzle's thrown error is `DrizzleQueryError` wrapping a
- * `pg.DatabaseError`; the lib types this loosely. We narrow with typeof
- * guards before reading `.code` / `.cause.code`.
- */
+// boundary: drizzle's `DrizzleQueryError` wraps `pg.DatabaseError` loosely; we narrow with typeof guards before reading `.code` / `.cause.code`.
 function isUniqueViolation(e: unknown): boolean {
   if (typeof e !== "object" || e === null) {
     return false;

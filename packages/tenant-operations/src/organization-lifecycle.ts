@@ -1,30 +1,6 @@
-/**
- * Unified lifecycle writer for `organization` rows.
- *
- * State-transition table (single source of truth)
- * -----------------------------------------------
- *   null         →  active        (create — insert org row)
- *   active       →  suspended     (set suspendedAt, bump sessionVersion,
- *                                  cascade-delete sessions targeting this org)
- *   suspended    →  active        (clear suspendedAt — forward-only;
- *                                  sessionVersion is NOT decremented)
- *   active       →  soft_deleted  (set deletedAt; tombstone slug)
- *
- * `soft_deleted` is terminal. Re-applying `softDelete` to a tombstoned row
- * raises `invalid_transition`.
- *
- * Why one module: `create`/`suspend`/`restore`/`softDelete` all touch
- * overlapping bookkeeping (audit row, tenant-cache bump, BA-session cascade).
- * Centralising the writer keeps the rules in one place; handlers in admin-
- * server (B1) and any service-layer caller go through `applyOrgTransition`.
- *
- * Audit + invalidator-bump live INSIDE the writer; callers never repeat them.
- * The `tenancy.user.session_revoked_mass` event is emitted alongside
- * `tenancy.org.suspended` to record the dual-scope cascade (per spec).
- */
-
 import {
   type DrizzleClient,
+  firstOrThrow,
   generatePrefixedCuid,
   ID_PREFIXES,
   liveOrganizations,
@@ -56,9 +32,7 @@ export class OrganizationLifecycleError extends LifecycleError<OrganizationLifec
 
 export type OrgState = "active" | "suspended" | "soft_deleted";
 
-// Forward-only arrows; `soft_deleted` is terminal. `suspended → soft_deleted`
-// is forbidden: callers must restore first so soft-delete always runs from
-// the canonical `active` baseline.
+// suspended → soft_deleted is forbidden; callers must restore first so soft-delete always runs from active
 export const TRANSITIONS: TransitionTable<OrgState> = {
   active: new Set(["suspended", "soft_deleted"]),
   suspended: new Set(["active"]),
@@ -113,8 +87,7 @@ export type CreateResult = Readonly<{
   name: string;
 }>;
 
-// Composed via `liveOrganizations(tx).selectById` so soft-deleted rows are
-// filtered by the seam — prevents resurrection of a tombstoned org.
+// loaded via liveOrganizations seam so tombstoned rows are filtered — prevents resurrection
 type LiveOrgSnapshot = Readonly<{
   id: string;
   suspendedAt: Date | null;
@@ -127,21 +100,19 @@ async function loadLive(
   tx: Transaction,
   orgId: string
 ): Promise<LiveOrgSnapshot> {
-  const rows = await liveOrganizations(tx).selectById(
-    {
-      id: organizations.id,
-      suspendedAt: organizations.suspendedAt,
-      deletedAt: organizations.deletedAt,
-      sessionVersion: organizations.sessionVersion,
-      slug: organizations.slug,
-    },
-    orgId
+  return await firstOrThrow(
+    liveOrganizations(tx).selectById(
+      {
+        id: organizations.id,
+        suspendedAt: organizations.suspendedAt,
+        deletedAt: organizations.deletedAt,
+        sessionVersion: organizations.sessionVersion,
+        slug: organizations.slug,
+      },
+      orgId
+    ),
+    () => new OrganizationLifecycleError("not_found")
   );
-  const row = rows[0];
-  if (!row) {
-    throw new OrganizationLifecycleError("not_found");
-  }
-  return row;
 }
 
 function currentState(snapshot: LiveOrgSnapshot): OrgState {
@@ -158,27 +129,7 @@ function assertOrgArrow(from: OrgState, to: OrgState): void {
   assertArrow(TRANSITIONS, from, to, OrganizationLifecycleError);
 }
 
-/**
- * Single-writer for `organizations.suspendedAt`, `organizations.deletedAt`,
- * `organizations.sessionVersion`, and for `sessions` rows scoped to an org-
- * state change. Per-arrow rules:
- *
- *   - suspend: bumps sessionVersion (invalidates in-flight JWTs that pass
- *     their HMAC check but fail the version match) AND cascade-deletes
- *     `sessions` already switched into this org; writes the dual-scope
- *     `tenancy.user.session_revoked_mass` companion event for the cascade.
- *   - restore: NEVER decrements sessionVersion — forward-only so JWTs
- *     stamped before the suspend window stay invalid after restore.
- *   - softDelete: tombstones the slug in `reserved_slugs` so it can't be
- *     reclaimed by a future create; terminal (liveOrganizations filters it
- *     out, so re-applying throws not_found).
- *
- * The durable tenant-cache version is bumped inside the transaction via
- * `deps.invalidator.bumpDurable(tx)` (so it rolls back on transition
- * failure). Post-commit, `deps.invalidator.broadcast(host)` fires the
- * best-effort Hatchet fan-out so peers refresh before their next cache
- * miss.
- */
+// sessionVersion is forward-only (never decremented on restore); bumpDurable runs in-tx, broadcast is post-commit best-effort
 export async function applyOrgTransition(
   transition: Transition,
   deps: LifecycleDeps,
@@ -191,24 +142,23 @@ export async function applyOrgTransition(
       case "create": {
         const id = generatePrefixedCuid(ID_PREFIXES.organization);
         const { slug, name, enforceSSO } = transition.data;
-        const inserted = await tx
-          .insert(organizations)
-          .values({
-            id,
-            slug,
-            name,
-            enforceSSO: enforceSSO ?? false,
-            sessionVersion: 0,
-          })
-          .returning({
-            id: organizations.id,
-            slug: organizations.slug,
-            name: organizations.name,
-          });
-        const row = inserted[0];
-        if (!row) {
-          throw new OrganizationLifecycleError("not_found");
-        }
+        const row = await firstOrThrow(
+          tx
+            .insert(organizations)
+            .values({
+              id,
+              slug,
+              name,
+              enforceSSO: enforceSSO ?? false,
+              sessionVersion: 0,
+            })
+            .returning({
+              id: organizations.id,
+              slug: organizations.slug,
+              name: organizations.name,
+            }),
+          () => new OrganizationLifecycleError("not_found")
+        );
         await tx.insert(auditLogs).values({
           event: "tenancy.org.created",
           actorId: transition.actor.id,
@@ -276,8 +226,6 @@ export async function applyOrgTransition(
           organizationId: snap.id,
           metadata: {
             host: transition.host,
-            // `sessionVersion` survives restore — record it so audit consumers
-            // can reason about which JWTs remained invalid post-restore.
             sessionVersion: snap.sessionVersion,
           },
         });
@@ -292,9 +240,7 @@ export async function applyOrgTransition(
           .set({ deletedAt: now })
           .where(eq(organizations.id, snap.id));
         if (snap.slug) {
-          // Tombstone the slug. The live-partial-unique index already blocks
-          // collisions among LIVE orgs, but a fresh create could otherwise
-          // reclaim a tombstoned slug; reserved_slugs blocks that.
+          // tombstone in reserved_slugs blocks a fresh create from reclaiming the slug after soft-delete
           await tx
             .insert(reservedSlugs)
             .values({

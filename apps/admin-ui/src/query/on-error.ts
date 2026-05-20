@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
+import { toRedirectParam } from "@/lib/redirect-target";
 import { clearSession } from "@/modules/auth";
 import { useAlertStore } from "@/store/alert";
 
@@ -91,7 +92,7 @@ const handleAuthError = async (): Promise<void> => {
   });
 
   if (!window.location.pathname.startsWith("/login")) {
-    const currentPath = window.location.pathname + window.location.search;
+    const currentPath = toRedirectParam(window.location);
     const redirectUrl =
       currentPath && currentPath !== "/"
         ? `/login?redirect=${encodeURIComponent(currentPath)}`

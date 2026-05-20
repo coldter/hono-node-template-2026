@@ -47,11 +47,6 @@ export interface EmailFrom {
   name: string;
 }
 
-/**
- * Discriminated transport choice — the single source of truth for which
- * adapter `createTransport` should pick. Adding a new transport here forces
- * a new case in `createTransport`'s switch.
- */
 export type EmailConfig =
   | { kind: "console"; from: EmailFrom }
   | { kind: "smtp"; from: EmailFrom; smtp: SmtpOptions };
@@ -162,7 +157,6 @@ export function getEmailConfig(): EmailConfig {
     return { kind: "console", from };
   }
 
-  // Default / explicit nodemailer: require SMTP options.
   if (smtp) {
     return { kind: "smtp", from, smtp };
   }
@@ -170,6 +164,13 @@ export function getEmailConfig(): EmailConfig {
   if (providerHint === "nodemailer" && process.env.NODE_ENV === "production") {
     console.error(
       "[error] EMAIL_PROVIDER=nodemailer but SMTP options are missing/invalid."
+    );
+    throw new Error("Invalid email configuration");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "[error] Email configuration is incomplete in production. Set EMAIL_PROVIDER and SMTP_* env vars, or EMAIL_PROVIDER=console to explicitly opt in."
     );
     throw new Error("Invalid email configuration");
   }

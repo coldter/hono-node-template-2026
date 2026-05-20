@@ -20,7 +20,12 @@ type OrgRow = {
   session_version: number;
   suspended_at: Date | null;
   deleted_at: Date | null;
-  branding: { logoVersion: number; primaryColor: string; appName: string };
+  // jsonb defaults to `{}` server-side, so fields may be missing even though the column is NOT NULL
+  branding: Partial<{
+    logoVersion: number;
+    primaryColor: string;
+    appName: string;
+  }> | null;
 };
 
 const BRANDING_DEFAULT = {
@@ -91,7 +96,11 @@ export async function resolveTenant(
     sessionVersion: row.session_version,
     suspendedAt: row.suspended_at,
     deletedAt: row.deleted_at,
-    branding: row.branding ?? BRANDING_DEFAULT,
+    branding: {
+      logoVersion: row.branding?.logoVersion ?? BRANDING_DEFAULT.logoVersion,
+      primaryColor: row.branding?.primaryColor ?? BRANDING_DEFAULT.primaryColor,
+      appName: row.branding?.appName ?? BRANDING_DEFAULT.appName,
+    },
   };
 
   if (row.suspended_at !== null) {

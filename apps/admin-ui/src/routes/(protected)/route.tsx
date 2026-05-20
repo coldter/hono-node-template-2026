@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { toRedirectParam } from "@/lib/redirect-target";
 import { clearSession } from "@/modules/auth";
 import { AuthenticatedLayout } from "@/modules/layout/authenticated-layout";
 import { sessionQueryOptions } from "@/query/session-query";
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/(protected)")({
       throw redirect({
         to: "/login",
         search: {
-          redirect: location.href,
+          redirect: toRedirectParam(location),
         },
       });
     }

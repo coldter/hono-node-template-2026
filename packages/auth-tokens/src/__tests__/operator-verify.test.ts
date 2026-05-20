@@ -1,14 +1,16 @@
 import { generateKeyPair, type JWTHeaderParameters, SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 
-import { buildClaims } from "../claims";
 import type { JwksCache } from "../jwks-cache";
-import { JwtVerificationError, verifyTenantJwt } from "../verify";
+import {
+  OperatorJwtVerificationError,
+  verifyOperatorJwt,
+} from "../operator-verify";
 
 type AnyKey = CryptoKey | Uint8Array;
 
-const TENANT_HOST = "acme.app.example.com";
-const ISSUER = `https://${TENANT_HOST}`;
+const ADMIN_HOST = "admin.example.com";
+const ADMIN_ORIGIN = `https://${ADMIN_HOST}`;
 
 async function makeKeyPair() {
   return generateKeyPair("EdDSA", { crv: "Ed25519", extractable: true });
@@ -33,77 +35,68 @@ function makeJwksCache(publicKey: AnyKey): JwksCache {
   };
 }
 
-function makeTenantClaims() {
-  return buildClaims(
-    { user: { id: "u_1" } },
-    {
-      organizationId: "o_1",
-      slug: "acme",
-      host: TENANT_HOST,
-      kind: "subdomain",
-      enforceSSO: false,
-      sessionVersion: 3,
-      suspendedAt: null,
-      deletedAt: null,
-      branding: { logoVersion: 0, primaryColor: "#2563eb", appName: "App" },
-    }
-  );
+function makeOperatorClaims() {
+  return {
+    sub: "u_op_1",
+    aud: ADMIN_ORIGIN,
+    iss: ADMIN_ORIGIN,
+    op: { id: "ga_1", subRole: "platform_admin" as const },
+    jti: "j_1",
+  };
 }
 
-describe("verifyTenantJwt", () => {
-  it("derives the expected issuer from expectedHost and returns the tenant claim shape", async () => {
+describe("verifyOperatorJwt", () => {
+  it("derives the expected issuer from expectedAdminHost and returns the operator claim shape", async () => {
     const { privateKey, publicKey } = await makeKeyPair();
-    const token = await signToken(privateKey, makeTenantClaims());
+    const token = await signToken(privateKey, makeOperatorClaims());
     const jwks = makeJwksCache(publicKey);
 
-    const result = await verifyTenantJwt(token, {
-      expectedHost: TENANT_HOST,
+    const result = await verifyOperatorJwt(token, {
+      expectedAdminHost: ADMIN_HOST,
       jwks,
     });
 
-    expect(result.iss).toBe(ISSUER);
-    expect(result.aud).toBe(ISSUER);
-    expect(result.org.id).toBe("o_1");
-    expect(result.org.slug).toBe("acme");
-    expect(result.org.host).toBe(TENANT_HOST);
-    expect(result.org.sessionVersion).toBe(3);
+    expect(result.iss).toBe(ADMIN_ORIGIN);
+    expect(result.aud).toBe(ADMIN_ORIGIN);
+    expect(result.op.id).toBe("ga_1");
+    expect(result.op.subRole).toBe("platform_admin");
   });
 
-  it("translates the core error into JwtVerificationError on issuer mismatch", async () => {
+  it("translates the core error into OperatorJwtVerificationError on issuer mismatch", async () => {
     const { privateKey, publicKey } = await makeKeyPair();
     const token = await signToken(privateKey, {
-      ...makeTenantClaims(),
+      ...makeOperatorClaims(),
       iss: "https://attacker.example",
       aud: "https://attacker.example",
     });
     const jwks = makeJwksCache(publicKey);
 
-    const promise = verifyTenantJwt(token, {
-      expectedHost: TENANT_HOST,
+    const promise = verifyOperatorJwt(token, {
+      expectedAdminHost: ADMIN_HOST,
       jwks,
     });
 
-    await expect(promise).rejects.toBeInstanceOf(JwtVerificationError);
+    await expect(promise).rejects.toBeInstanceOf(OperatorJwtVerificationError);
     await expect(promise).rejects.toMatchObject({
-      name: "JwtVerificationError",
+      name: "OperatorJwtVerificationError",
       code: "issuer_mismatch",
     });
   });
 
-  it("rejects a token whose tenant claims fail the schema (missing org)", async () => {
+  it("rejects a token whose operator claims fail the schema (missing op)", async () => {
     const { privateKey, publicKey } = await makeKeyPair();
     const token = await signToken(privateKey, {
-      sub: "u_1",
-      aud: ISSUER,
-      iss: ISSUER,
+      sub: "u_op_1",
+      aud: ADMIN_ORIGIN,
+      iss: ADMIN_ORIGIN,
       jti: "j_1",
     });
     const jwks = makeJwksCache(publicKey);
 
     await expect(
-      verifyTenantJwt(token, { expectedHost: TENANT_HOST, jwks })
+      verifyOperatorJwt(token, { expectedAdminHost: ADMIN_HOST, jwks })
     ).rejects.toMatchObject({
-      name: "JwtVerificationError",
+      name: "OperatorJwtVerificationError",
       code: "schema_mismatch",
     });
   });

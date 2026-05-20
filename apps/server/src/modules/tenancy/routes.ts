@@ -1,15 +1,7 @@
-/**
- * `/api/tenancy/hostnames` — custom-hostname HTTP routes.
- *
- * Authn / authz: `requestContext.tenant` must be set (else 404);
- * `requestContext.principal` must be authenticated (else 401); the session's
- * `activeOrganizationId` must match `tenant.organizationId` (else 403).
- */
-
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { bumpTenantCacheVersion } from "@repo/db";
 import type { TenantCustomHostname } from "@repo/db/schema";
-import type { Invalidator } from "@repo/tenancy";
+import { type Invalidator, useTenant } from "@repo/tenancy";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { db } from "@/db";
@@ -38,11 +30,8 @@ import {
 
 export type CustomHostnameRoutesDeps = Readonly<{
   service: CustomHostnameService;
-  /** Echoed back so the client knows where to point their CNAME. */
   cnameTarget: string;
-  /** Echoed back so the client knows where to publish the TXT record. */
   txtLabel: string;
-  /** Apex / wildcard host the API runs on — used to reject claims on it. */
   appWildcardHost: string;
 }>;
 
@@ -67,10 +56,6 @@ function serializeRow(r: TenantCustomHostname): CustomHostnameRow {
   };
 }
 
-/**
- * Exhaustive mapping from typed service errors to HTTP. Adding a new code
- * to `CustomHostnameErrorCode` forces a compile error here until handled.
- */
 function errorForCode(code: CustomHostnameErrorCode): {
   status: 400 | 404 | 409 | 429;
   errorCode: string;
@@ -110,10 +95,9 @@ function throwForServiceError(err: unknown): never {
 }
 
 function requireTenantAndOrg(c: Context<Env>): { organizationId: string } {
-  const { tenant, principal } = c.var.requestContext;
-  if (!tenant) {
-    throw new HTTPException(404, { message: "Not Found" });
-  }
+  // biome-ignore lint/correctness/useHookAtTopLevel: accessor Module from @repo/tenancy is not a React hook
+  const tenant = useTenant(c);
+  const { principal } = c.var.requestContext;
   if (!isAuthenticatedPrincipal(principal)) {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
@@ -279,13 +263,7 @@ export function buildCustomHostnameRoutes(deps: CustomHostnameRoutesDeps) {
     });
 }
 
-/**
- * Production-wired router. The no-op invalidator is replaced by the
- * Hatchet fan-out invalidator in the worker process; HTTP-initiated writes
- * here still bump the durable counter inside their tx (so live caches
- * miss on the next read) but skip the post-commit Hatchet broadcast and
- * rely on the reconciler's next pass to publish the version bump.
- */
+// Worker process swaps in the Hatchet fan-out invalidator; HTTP writes bump the durable counter and let the reconciler's next pass publish the broadcast.
 const noopInvalidator: Invalidator = {
   bumpDurable: async (tx) => {
     await bumpTenantCacheVersion(tx);
