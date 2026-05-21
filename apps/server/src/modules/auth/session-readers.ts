@@ -93,11 +93,3 @@ export function readSessionUpdateActiveOrgId(
   }
   return parsed.data.activeOrganizationId;
 }
-
-// `readActiveOrganizationId` lived here historically. It is now obsolete:
-// the per-request Principal Module (`@/modules/auth/principal`) carries
-// `activeOrganizationId` as a typed top-level field, so request-side
-// callers no longer reach into the BA-shaped session payload directly.
-// The hook-context readers above (`inferAuthProvider`, `getSessionUserId`,
-// `readSessionUpdateActiveOrgId`) remain because they read BA's database-
-// hook payloads, which are a different boundary than the request session.

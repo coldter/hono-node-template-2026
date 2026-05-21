@@ -119,7 +119,6 @@ describe("runSessionDeleteAfter", () => {
     expect(addKilled).toHaveBeenCalledTimes(1);
     const call = addKilled.mock.calls[0];
     expect(call?.[0]).toBe("jti_live");
-    // Remaining ttl is ~30s; with rounding allow a small range.
     const ttl = call?.[1];
     expect(typeof ttl).toBe("number");
     expect(ttl).toBeGreaterThan(28);

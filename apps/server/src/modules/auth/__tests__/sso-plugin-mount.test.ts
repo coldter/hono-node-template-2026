@@ -1,8 +1,3 @@
-// Proves the BA sso plugin mounts cleanly. `/sso/register` is disabled via
-// `disabledPaths` (our schema is incompatible with BA's `oidcConfig` text
-// column — see the long comment on `sso(...)` in `instance.ts`). Anything
-// < 500 proves the plugin didn't blow up on init.
-
 import type { HostConfig, Tenant } from "@repo/tenancy";
 import { describe, expect, it } from "vitest";
 import { db } from "@/db";
@@ -64,8 +59,7 @@ describe("createAuth: @better-auth/sso plugin mount (A4.3)", () => {
         method: "OPTIONS",
       })
     );
-    // disabledPaths returns a 404 for the path. Anything < 500 proves the
-    // plugin mounted cleanly and didn't blow up on import or init.
+    // disabledPaths returns 404; <500 proves the plugin mounted without crashing.
     expect(res.status).toBeLessThan(500);
   });
 

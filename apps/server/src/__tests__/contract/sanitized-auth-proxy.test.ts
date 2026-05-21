@@ -60,8 +60,6 @@ vi.mock("@/modules/auth/instance", () => ({
   }),
 }));
 
-// Audit-context is a no-op for these tests: it pulls `c.req.raw` for its
-// own purposes and we want the proxy to be the terminal observable handler.
 vi.mock("@/middlewares/audit-context", () => ({
   auditContextMiddleware: async (_c: Context, next: Next) => {
     await next();
@@ -77,9 +75,6 @@ describe("sanitized auth-proxy end-to-end", () => {
     serverModule = await import("@/server");
     appModule = await import("@/routers/main");
 
-    // Two seeded tenants for the cross-tenant case. Pre-seeding the
-    // tenancy cache bypasses the DB while letting the REAL tenant
-    // middleware resolve hosts.
     serverModule.tenancyCache.set("acme.app.localhost", {
       kind: "found",
       tenant: {
@@ -122,12 +117,8 @@ describe("sanitized auth-proxy end-to-end", () => {
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as EchoBody;
-    // BA saw the pinned tenant host, not the attacker's spoofed value.
     expect(body.host).toBe("acme.app.localhost");
     expect(body.xfHost).toBeNull();
-    // The URL itself is unchanged (the sanitizer rebuilds Request with the
-    // same URL); what matters is that no attacker.example.com reference
-    // survives anywhere BA would consult for baseURL derivation.
     expect(body.url).toContain("acme.app.localhost");
     expect(body.url).not.toContain("attacker.example.com");
   });
@@ -144,11 +135,8 @@ describe("sanitized auth-proxy end-to-end", () => {
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as EchoBody;
-    // BA must not see the spoofed proto — its cookie/CSRF logic would key
-    // off it and downgrade Secure cookies. The sanitizer strips it before
-    // BA's handler runs.
+    // BA must not see the spoofed proto — would downgrade Secure cookies via CSRF logic.
     expect(body.xfProto).toBeNull();
-    // URL scheme matches what the request actually arrived as.
     expect(body.url.startsWith("https://")).toBe(true);
   });
 
@@ -167,8 +155,6 @@ describe("sanitized auth-proxy end-to-end", () => {
         },
       }
     );
-    // BA still served the request (not a 421 Misdirected, not a 5xx
-    // from a confused URL resolver). All six STRIPPED_HEADERS are absent.
     expect(res.status).toBe(200);
     const body = (await res.json()) as EchoBody;
     expect(body.xfHost).toBeNull();
@@ -181,18 +167,9 @@ describe("sanitized auth-proxy end-to-end", () => {
   });
 
   it("forwards a session cookie verbatim but tenancy resolution binds it to its target host", async () => {
-    // Cross-tenant isolation: a cookie issued for `acme.app.localhost`
-    // accompanies a request whose Host targets `globex.app.localhost`.
-    // The proxy itself does not interpret cookies (BA does), but the
-    // chain is wired so that `tenantMiddleware` resolves from the
-    // connection-level Host. The cookie reaches BA UNDER THE GLOBEX
-    // tenant — BA's session table is scoped per-organization, so it
-    // would not honor an acme session under globex.
-    //
-    // The contract-level assertion the proxy guarantees: the resolved
-    // host the BA handler sees IS globex, not acme. Authorisation of
-    // the cookie itself is BA's job; here we prove the proxy hands BA
-    // the request bound to the host the connection actually arrived on.
+    // Cross-tenant isolation: an acme-issued cookie sent to a globex-targeted
+    // request must reach BA bound to globex's host (the proxy doesn't interpret
+    // cookies; BA's per-org session table rejects the mismatch).
     const res = await appModule.app.request(
       "https://globex.app.localhost/api/auth/get-session",
       {
@@ -205,8 +182,6 @@ describe("sanitized auth-proxy end-to-end", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as EchoBody;
     expect(body.host).toBe("globex.app.localhost");
-    // Cookie reaches BA verbatim — BA's session lookup will reject it
-    // because the org_test_globex tenant has no matching session row.
     expect(body.cookie).toContain("ba_session=acme-issued-token");
   });
 
@@ -224,9 +199,7 @@ describe("sanitized auth-proxy end-to-end", () => {
         },
       }
     );
-    // Whatever BA / the chain decides for preflight (200, 204, even 401),
-    // it must NOT be a 5xx caused by the proxy mis-handling the request,
-    // and the spoofed X-Forwarded-Host must not have leaked through.
+    // Preflight may return any non-5xx; spoofed X-Forwarded-Host must not leak through.
     expect(res.status).toBeLessThan(500);
     if (res.headers.get("content-type")?.includes("application/json")) {
       const body = (await res.json()) as EchoBody;

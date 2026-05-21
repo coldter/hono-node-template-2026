@@ -48,9 +48,7 @@ describe("middleware chain", () => {
   it("if devTenantHeader is present it sits between hostHeaderGuard and tenantMiddleware", () => {
     const dev = indexOf(chain, "devTenantHeader");
     if (dev === -1) {
-      // Entry is chain-build-gated on ALLOW_DEV_TENANT_HEADER==="1" — absent
-      // by default. The dedicated suite in dev-tenant-header.test.ts stubs
-      // the env and asserts the present case.
+      // Chain-build-gated on ALLOW_DEV_TENANT_HEADER==="1"; dev-tenant-header.test.ts covers the present case.
       return;
     }
     const guard = indexOf(chain, "hostHeaderGuard");

@@ -6,12 +6,6 @@
  * `serializeRow` turns the drizzle row (Dates, nullable slug) into the
  * JSON shape the wire schema expects (ISO strings, slug nullable
  * preserved).
- *
- * These lived inline in `apps/admin-server/src/modules/tenants/routes.ts`
- * — promoting them next to the lifecycle writer keeps every code path
- * that reads from `organizations` for an operator perimeter in one
- * vocabulary. If a future column needs the operator-visible projection,
- * it's added once here and every reader picks it up.
  */
 
 import { organizations } from "@repo/db/schema";

@@ -2,8 +2,6 @@ import { type createRoute, z } from "@hono/zod-openapi";
 
 type ResponseConfig = Parameters<typeof createRoute>[0]["responses"];
 
-// `code` and `message` are always populated by `handleError`; marked
-// optional for forward-compat with custom error handlers.
 const failWithErrorSchema = z.object({
   error: z.object({
     code: z.string().optional(),

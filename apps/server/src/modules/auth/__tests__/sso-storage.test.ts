@@ -4,18 +4,9 @@ import { describe, expect, it } from "vitest";
 import { fakeVault } from "@/lib/vault/fake";
 import { ssoStorageFor } from "../sso-storage";
 
-/**
- * In-memory stub of the Drizzle `Executor` surface used by `ssoStorageFor`.
- *
- * `SKIP_DB=true` keeps the real client a no-op; we mirror only the chains
- * the adapter calls. The select stub introspects the opaque predicate to
- * recover both the `id` and the `organizationId` so we can validate the
- * cross-org refusal without standing up Postgres.
- *
- * boundary: Drizzle's `Executor` carries generics that the structural
- * stub cannot fully express; the cast is acceptable because the adapter
- * only touches the two chains stubbed below.
- */
+// boundary: structural stub for Drizzle's `Executor`. Predicate introspection
+// recovers the `id` + `organizationId` bind params so cross-org refusal can be
+// validated without Postgres.
 type InsertedRow = {
   id: string;
   organizationId: string;
@@ -98,11 +89,8 @@ function makeStubDb(): {
   return { db: makeExecutorStub(stub), rowsById };
 }
 
-/**
- * Walk an opaque Drizzle SQL fragment to recover its string-valued bind
- * params. `and(eq(...), eq(...))` nests `eq` chunks inside `and`'s own
- * `queryChunks`, so the walk has to recurse rather than scanning one level.
- */
+// Walks an opaque Drizzle SQL fragment to recover string-valued bind params.
+// `and(eq(...), eq(...))` nests chunks inside `and.queryChunks`, so recursion is required.
 function extractStringParams(pred: unknown): string[] {
   const out: string[] = [];
   const seen = new Set<unknown>();
@@ -123,8 +111,7 @@ function extractStringParams(pred: unknown): string[] {
       continue;
     }
     seen.add(node);
-    // boundary: opaque Drizzle SQL value; we read only `.queryChunks`,
-    // `.params`, and `.value` defensively and ignore everything else.
+    // boundary: opaque Drizzle SQL value; only documented chunk fields are read.
     const obj = node as {
       queryChunks?: unknown[];
       params?: unknown[];
@@ -175,10 +162,8 @@ describe("ssoStorageFor", () => {
 
     expect(Buffer.isBuffer(persisted.oidcConfigEncrypted)).toBe(true);
     expect(Buffer.isBuffer(persisted.oidcConfigEdek)).toBe(true);
-    // iv (12) + tag (16) + ciphertext payload
     expect(persisted.oidcConfigEncrypted.length).toBeGreaterThan(28);
 
-    // Plaintext must not appear anywhere in the stored ciphertext blob.
     expect(persisted.oidcConfigEncrypted.toString("utf8")).not.toContain(
       "needle-secret-NEVER-IN-CT"
     );
@@ -218,9 +203,6 @@ describe("ssoStorageFor", () => {
   });
 
   it("returns null on cross-org findById even when the row exists", async () => {
-    // Row metadata (issuer, domain) must not leak through a wrong-org
-    // probe; the WHERE-clause scope is the primary defence and the
-    // post-fetch guard backs it up.
     const { db } = makeStubDb();
     const storage = ssoStorageFor({ db, vault: fakeVault() });
 

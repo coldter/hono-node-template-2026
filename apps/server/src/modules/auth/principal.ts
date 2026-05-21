@@ -1,23 +1,7 @@
 /**
- * Principal Module — the typed view of "who is making this request".
- *
- * Better Auth's `getSession()` returns a `{ user, session }` whose shape is
- * the inferred join of the BA core type and every plugin's additional-fields
- * augmentation. Five+ downstream call sites (admin plugin, tenancy routes,
- * authorization middleware, notification helpers, otel) used to re-narrow
- * that shape, each repeating its own runtime guards and string-typed reads.
- *
- * `buildPrincipal` runs that narrowing exactly once and hands callers a
- * discriminated union: `{ kind: "anonymous" }` vs. `{ kind: "authenticated"; ... }`.
- * Callers branch on `kind` and read typed fields; an authenticated principal
- * also exposes its `user` / `session` aliases for legacy consumers that still
- * read those BA-shaped fields, plus a `raw` escape hatch for the rare BA
- * field that has not yet been promoted to a typed top-level slot.
- *
- * Module surface (1-line interfaces):
- *   - Principal: discriminated union "anonymous" | "authenticated".
- *   - buildPrincipal(authSession): builds Principal from a BA session.
- *   - isAuthenticated(p): type guard for the authenticated arm.
+ * Single-narrow view of "who is making this request". `buildPrincipal` runs
+ * Better Auth's `{ user, session }` shape through one set of guards and emits
+ * a discriminated union so callers don't re-narrow at every call site.
  */
 
 import type { AuthSession } from "@/modules/auth/instance";

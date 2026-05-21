@@ -1,6 +1,3 @@
-// Tests for the unified lifecycle writer. The writer is the only
-// state-machine gate; misuse here is a programmer error.
-
 import type { DrizzleClient } from "@repo/db";
 import type {
   CustomHostnameLifecycle,

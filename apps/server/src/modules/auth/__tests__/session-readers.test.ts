@@ -1,9 +1,3 @@
-/**
- * Boundary-reader tests. These exercise the narrowing logic that hides
- * Better Auth's loose hook-payload types so the call sites in `instance.ts`
- * can stay strict.
- */
-
 import { describe, expect, it } from "vitest";
 import {
   getSessionUserId,

@@ -82,8 +82,6 @@ export function getPaginationParams(query: Partial<PaginationQuery>) {
   return { page, perPage, offset, sort, order } as const;
 }
 
-// Overloads: when no formatter is supplied, the return type is PaginatedResponse<T>.
-// When a formatter is supplied, the return type is PaginatedResponse<R>.
 export function createPaginatedResponse<T>(options: {
   data: T[];
   total: number;

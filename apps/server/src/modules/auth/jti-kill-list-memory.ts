@@ -1,14 +1,9 @@
 import type { JtiKillList } from "./jti-kill-list";
 
 /**
- * In-memory adapter for tests and single-node dev. Stores `jti → expiresAtMs`
- * in a `Map` and evicts lazily on read. `now` is injected so tests can advance
- * deterministic clocks without relying on real wall-clock time.
- *
- * Contract note for `ttlSeconds = 0`: we treat it as "already expired" — the
- * jti is recorded but `isKilled` immediately returns false. That matches the
- * Redis adapter's behavior (Redis rejects `EX 0`, and the logout caller is
- * expected to clamp to ≥ 0 anyway).
+ * In-memory adapter for tests / single-node dev. Lazy eviction on read; `now`
+ * is injected for deterministic test clocks. `ttlSeconds = 0` is "already
+ * expired" — matches the Redis adapter's behavior (Redis rejects `EX 0`).
  */
 export function createMemoryJtiKillList(
   now: () => number = Date.now

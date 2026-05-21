@@ -1,16 +1,3 @@
-/**
- * Behavioural tests for the custom-hostname reconciler. The Hatchet shell
- * is too heavy for a unit test, so the business logic lives in
- * `../lib/reconcile-hostnames.ts` and we exercise `reconcileOne` here with
- * a structural Drizzle stub.
- *
- * We assert the state-machine transitions (one row per arrow) plus the
- * bookkeeping invariants: `last_reconciled_at` always bumped;
- * `verification_errors` capped at 10; `invalidator.bumpDurable` +
- * `invalidator.broadcast` each called exactly once per transition and
- * never for bookkeeping.
- */
-
 import type { DrizzleClient } from "@repo/db";
 import type {
   CustomHostnameLifecycle,

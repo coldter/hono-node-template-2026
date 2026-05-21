@@ -47,7 +47,6 @@ describe("createMemoryJtiKillList", () => {
     await kl.addKilled("jti_evict", 5);
     clock.advance(10_000);
     expect(await kl.isKilled("jti_evict")).toBe(false);
-    // Re-read without re-adding: still false.
     expect(await kl.isKilled("jti_evict")).toBe(false);
   });
 
@@ -65,9 +64,7 @@ describe("createMemoryJtiKillList", () => {
   });
 
   it("treats ttlSeconds=0 as already expired", async () => {
-    // Mirror the Redis adapter: non-positive ttl => never observed as killed.
-    // The logout caller is responsible for clamping `exp - now` to >= 0; a
-    // zero arrives when the access token has already expired.
+    // Mirrors the Redis adapter: non-positive ttl is never observed as killed.
     const clock = fixedClock(1_000_000);
     const kl = createMemoryJtiKillList(clock.now);
 

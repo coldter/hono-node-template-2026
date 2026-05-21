@@ -9,10 +9,6 @@ export type {
   SendEmailResult,
 } from "./types";
 
-/**
- * Adapter selector. Discriminated on `config.kind` — O(1) dispatch with
- * exhaustiveness enforced by the `never` branch.
- */
 export function createTransport(config: EmailConfig): EmailTransport {
   switch (config.kind) {
     case "console":

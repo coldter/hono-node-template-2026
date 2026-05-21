@@ -24,7 +24,6 @@ describe("oidc-config-codec", () => {
     expect(encoded.kekVersion).toBe(1);
     expect(Buffer.isBuffer(encoded.encrypted)).toBe(true);
     expect(Buffer.isBuffer(encoded.edek)).toBe(true);
-    // iv (12) + tag (16) + at least some ciphertext
     expect(encoded.encrypted.length).toBeGreaterThan(12 + 16);
 
     const decoded = await decodeOidcConfig(encoded, "org_1", v);
@@ -78,7 +77,6 @@ describe("oidc-config-codec", () => {
       v
     );
 
-    // Flip a byte well inside the ciphertext region (past iv + authTag).
     const tampered = Buffer.from(encoded.encrypted);
     const targetIdx = tampered.length - 1;
     const original = tampered[targetIdx] ?? 0;

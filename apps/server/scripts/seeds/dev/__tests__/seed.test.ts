@@ -1,7 +1,4 @@
-// Real seedTenant DB behaviour is covered by
-// `packages/test-harness/src/__tests__/seed-tenant.test.ts`. Here we mock
-// `seedTenant` and the Drizzle `db` to assert the CLI wires through to the
-// harness, gates on `NODE_ENV === "production"`, and is idempotent.
+// Mocks seedTenant + db to assert CLI wiring; real DB behaviour is covered in the harness tests.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const seedTenantMock = vi.fn();
@@ -24,8 +21,7 @@ vi.mock("@/db", () => {
     }),
     insert: (table: { _: { name?: string } } | unknown) => ({
       values: (row: Record<string, unknown>) => {
-        // boundary: drizzle table objects carry a `_` symbol metadata
-        // bag — we read it only to label the captured insert.
+        // boundary: drizzle table objects carry a `_` symbol metadata bag.
         const meta = (table as { _?: { name?: string } })._?.name ?? "unknown";
         insertedRows.push({ table: meta, ...row });
         return {

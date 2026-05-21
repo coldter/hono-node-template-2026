@@ -85,9 +85,7 @@ describe("/sso/callback route audit", () => {
         { method: "GET" }
       )
     );
-    // The route exists — BA may respond 4xx (e.g., provider not found, state
-    // missing) but not 5xx (which would mean the plugin blew up on import).
-    // A status of 500+ indicates the plugin itself is broken, not the route.
+    // 4xx is acceptable (provider not found, missing state); 500+ means the plugin failed at import.
     expect(res.status).toBeLessThan(500);
   });
 
@@ -98,13 +96,9 @@ describe("/sso/callback route audit", () => {
         method: "GET",
       })
     );
-    // A duplicate alias-without-providerId would respond 200 / 302 (success
-    // or redirect). The canonical route requires `:providerId`, so BA must
-    // reject with a 4xx — either 404 (unknown route) or 400 (missing param).
-    // What matters for the audit: the bare path is not a working endpoint.
+    // Bare path must not be a working endpoint — a duplicate alias would 200/302.
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(res.status).toBeLessThan(500);
-    // Specifically: never a successful response and never a redirect.
     expect([200, 301, 302, 303, 307, 308]).not.toContain(res.status);
   });
 });

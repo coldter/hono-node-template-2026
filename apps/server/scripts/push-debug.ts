@@ -20,14 +20,10 @@ import {
 } from "@/modules/notifications/constants";
 import { notificationService } from "@/modules/notifications/service";
 
-// -- Safety guard --
-
 if (env.NODE_ENV === "production") {
   console.error(chalk.red("push-debug cannot run in production."));
   process.exit(1);
 }
-
-// -- Helpers --
 
 function prettyJson(data: unknown): string {
   const json = JSON.stringify(data, null, 2);
@@ -82,18 +78,14 @@ async function resolveUser(
   return user;
 }
 
-// -- Commands --
-
 async function inspectCommand(identifier: string): Promise<void> {
   const user = await resolveUser(identifier);
 
-  // User info
   console.log(chalk.bold.cyan("\n--- User ---"));
   console.log(chalk.dim(`ID:     ${user.id}`));
   console.log(chalk.dim(`Email:  ${user.email}`));
   console.log(chalk.dim(`Name:   ${user.name}`));
 
-  // Push tokens
   const tokens = await db
     .select()
     .from(pushTokens)
@@ -131,7 +123,6 @@ async function inspectCommand(identifier: string): Promise<void> {
     );
   }
 
-  // Recent notifications
   const recentNotifications = await db
     .select()
     .from(notifications)
@@ -161,7 +152,6 @@ async function inspectCommand(identifier: string): Promise<void> {
     );
   }
 
-  // Preferences
   const preferences = await db
     .select()
     .from(notificationPreferences)
@@ -556,8 +546,6 @@ async function cleanupCommand(identifier: string): Promise<void> {
   );
 }
 
-// -- Interactive menu --
-
 async function interactiveMenu(): Promise<void> {
   printHeader();
 
@@ -645,8 +633,6 @@ async function interactiveMenu(): Promise<void> {
     console.log("");
   }
 }
-
-// -- CLI routing --
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);

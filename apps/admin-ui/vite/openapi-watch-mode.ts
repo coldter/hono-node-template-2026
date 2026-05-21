@@ -86,7 +86,6 @@ export const watchBackendOpenApi = (): Plugin => {
 
       watcher = fs.watch(inputFilePath, (eventType) => {
         if (eventType === "change") {
-          // If a debounce timer exists, clear it
           if (debounceTimer) {
             clearTimeout(debounceTimer);
           }
@@ -102,7 +101,6 @@ export const watchBackendOpenApi = (): Plugin => {
                 const chokidarWatcher = viteServer?.watcher;
                 chokidarWatcher?.unwatch(outputPath);
 
-                // Run regeneration command
                 exec("bun run generate-client", (err, stdout, stderr) => {
                   if (err) {
                     console.error("[openapi-ts] Error:", err);
@@ -114,7 +112,6 @@ export const watchBackendOpenApi = (): Plugin => {
                   }
 
                   chokidarWatcher?.add(outputPath);
-                  // One clean reload
                   viteServer?.ws.send({ type: "full-reload" });
                 });
               }

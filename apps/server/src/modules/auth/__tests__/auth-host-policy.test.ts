@@ -113,7 +113,6 @@ describe("AuthHostPolicy.allowedHosts (snapshot derivation)", () => {
       tenant: null,
       tenantConfig: HOST_CONFIG,
     });
-    // No leading dot to strip — apex equals the suffix itself.
     expect(policy.allowedHosts).toContain("app.example.com");
     expect(policy.allowedHosts).toContain("*app.example.com");
   });

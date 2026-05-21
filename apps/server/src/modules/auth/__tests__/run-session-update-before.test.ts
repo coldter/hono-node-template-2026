@@ -1,16 +1,3 @@
-/**
- * Behavioural tests for `runSessionUpdateBefore` (extracted from
- * `databaseHooks.session.update.before` in `instance.ts`).
- *
- * Two refresh paths exist; this suite exercises both branches:
- *   1. `activeOrganizationId` change — role lookup + stamp, or clear
- *      (`activeOrgRole: null`) when set to null.
- *   2. `expiresAt` refresh — web sessions get shortened expiry, mobile
- *      sessions pass through with the global default.
- * Other update payloads (no activeOrganizationId, no expiresAt) pass
- * through untouched.
- */
-
 import { describe, expect, it, vi } from "vitest";
 import { runSessionUpdateBefore } from "../instance";
 
@@ -125,7 +112,6 @@ describe("runSessionUpdateBefore", () => {
       // boundary: result.data is Record<string, unknown> by the hook
       // signature; we know we just put a Date there above.
       const ts = (newExpiresAt as Date).getTime();
-      // Web sessions: 1 hour = 3600 * 1000 ms.
       expect(ts).toBeGreaterThanOrEqual(before + 3600 * 1000);
       expect(ts).toBeLessThanOrEqual(after + 3600 * 1000);
     });

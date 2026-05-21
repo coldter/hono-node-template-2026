@@ -1,6 +1,3 @@
-// BA refuses to derive a baseURL for hosts not in `allowedHosts`. Runs under
-// SKIP_DB=true; the allowedHosts check fires before any DB access.
-
 import type { HostConfig, Tenant } from "@repo/tenancy";
 import { describe, expect, it } from "vitest";
 import { db } from "@/db";
@@ -44,9 +41,7 @@ function makeSnapshot(): AllowedHostsSnapshot {
 const ALLOWED_HOSTS_ERR_RE = /allowed hosts/i;
 
 function makeDeps(opts: { tenantHost: string }) {
-  // Under SKIP_DB=true (see vitest.config.ts) `db` is an empty stub; BA's
-  // allowedHosts validation runs before any DB access so this is sufficient
-  // for these tests.
+  // Under SKIP_DB=true `db` is an empty stub; BA's allowedHosts check fires before any DB access.
   return {
     db,
     tenant: makeTenant(opts.tenantHost),
@@ -60,11 +55,6 @@ function makeDeps(opts: { tenantHost: string }) {
 describe("createAuth allowedHosts", () => {
   it("rejects unknown host via BA handler", async () => {
     const auth = createAuth(makeDeps({ tenantHost: "acme.app.example.com" }));
-    // BA 1.6.10's object-form baseURL throws a BetterAuthError when the
-    // derived host is not in the allowlist and no fallback is set. The
-    // throw propagates up to the Hono route handler, which converts it
-    // to an error response; that conversion is exercised in the
-    // tenancy-integration tests rather than here.
     await expect(
       auth.handler(new Request("https://attacker.example/api/auth/get-session"))
     ).rejects.toThrow(ALLOWED_HOSTS_ERR_RE);
@@ -75,10 +65,7 @@ describe("createAuth allowedHosts", () => {
     const res = await auth.handler(
       new Request("https://acme.app.example.com/api/auth/get-session")
     );
-    // 421 = Misdirected Request, which BA returns when host validation fails.
-    // Under SKIP_DB=true, /get-session resolves without a session row and
-    // BA returns 200 with `null` (typically) — assert a 2xx or 4xx range so
-    // the test guards against a 5xx (e.g. allowedHosts throw) regressing.
+    // 421 = Misdirected Request returned on host-validation failure; <500 guards against an allowedHosts regression.
     expect(res.status).not.toBe(421);
     expect(res.status).toBeLessThan(500);
   });

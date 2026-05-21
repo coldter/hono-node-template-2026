@@ -6,13 +6,6 @@ process.env.BETTER_AUTH_SECRET ??=
 process.env.VAULT_MASTER_KEY ??=
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
-/**
- * Generate OpenAPI documentation and save it to a file.
- *
- * This script initializes the OpenAPI documentation for the application,
- * registers necessary schemas, and writes the generated OpenAPI document
- * to a JSON file.
- */
 (async () => {
   try {
     const [{ app }, { docs }] = await Promise.all([

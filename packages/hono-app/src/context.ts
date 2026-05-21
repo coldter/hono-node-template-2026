@@ -32,9 +32,7 @@ export type AppEnv<TRequestContext> = {
   Variables: {
     requestContext: TRequestContext;
   };
-  Bindings: HttpBindings & {
-    /* ... */
-  };
+  Bindings: HttpBindings;
 };
 
 export function createEmptyRequestContext<

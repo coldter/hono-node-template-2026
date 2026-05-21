@@ -1,9 +1,6 @@
 import { faker } from "@faker-js/faker";
 import { nanoid } from "./utils";
 
-/**
- * Mock user factory for creating test user records.
- */
 export function mockUser(
   overrides: Partial<{
     id: string;
@@ -21,9 +18,6 @@ export function mockUser(
   };
 }
 
-/**
- * Mock session factory for creating test session records.
- */
 export function mockSession(
   userId: string,
   overrides: Partial<{

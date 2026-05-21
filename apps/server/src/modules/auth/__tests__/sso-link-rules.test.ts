@@ -43,8 +43,7 @@ describe("shouldAutoLink (A4.4)", () => {
     ).toBe(false);
   });
 
-  // Remaining four cells of the 2^3 truth table — guard against any future
-  // attempt to relax the rule to a "majority vote" or "any two true" shape.
+  // Remaining 2^3 truth-table cells — guard against relaxing the rule to "any two true".
   it("returns false when only emailVerified is true", () => {
     expect(
       shouldAutoLink({

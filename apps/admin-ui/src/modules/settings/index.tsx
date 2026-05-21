@@ -24,7 +24,6 @@ const sidebarNavItems = [
 export function Settings() {
   return (
     <>
-      {/* ===== Top Heading ===== */}
       <Header>
         <Search />
         <div className="ms-auto flex items-center space-x-4">

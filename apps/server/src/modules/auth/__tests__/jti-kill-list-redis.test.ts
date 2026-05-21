@@ -17,10 +17,8 @@ function makeStubRedis(): {
   });
   const existsMock = vi.fn(async (k: string) => (store.has(k) ? 1 : 0));
 
-  // boundary: structural stub satisfies the runtime call surface used by the
-  // adapter (`set(key, value, { EX })` + `exists(key)`); the real
-  // RedisClientType carries module-augmented command generics that the stub
-  // cannot express.
+  // boundary: structural stub matches the adapter's call surface; real RedisClientType
+  // carries module-augmented command generics the stub can't express.
   const redis = { set: setMock, exists: existsMock } as unknown as RedisClient;
   return { redis, setMock, existsMock, store };
 }

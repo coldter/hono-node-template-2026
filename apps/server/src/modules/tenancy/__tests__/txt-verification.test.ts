@@ -1,8 +1,3 @@
-// Behavioural tests for the TXT verification helper. The resolver is
-// injected, so tests never touch the network. The chunk-join behaviour
-// (TXT records >255 bytes are returned as multiple string chunks per
-// record) is exercised so the join survives accidental regressions.
-
 import { describe, expect, it, vi } from "vitest";
 
 import { verifyTxtRecord } from "@/modules/tenancy/txt-verification";

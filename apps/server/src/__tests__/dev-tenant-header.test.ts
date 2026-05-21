@@ -92,7 +92,6 @@ describe("X-Dev-Tenant-Slug header", () => {
         },
       }
     );
-    // No rewrite — `ghost.app.localhost` is unknown, so tenantMiddleware 404s.
     expect(res.status).toBe(404);
 
     vi.unstubAllEnvs();

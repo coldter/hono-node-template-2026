@@ -1,17 +1,7 @@
 /**
- * `listRegisteredRoutes(app)` — small introspection helper that returns the
- * `{ method, path }` pairs registered directly on an OpenAPIHono / Hono app.
- *
- * Used by route-audit tests (e.g. `sso-callback-routing.test.ts`) to assert
- * that we have NOT accidentally registered duplicate or alias paths at the
- * top-level Hono mount.
- *
- * Limitation: routes registered INSIDE a sub-handler that the Hono app
- * forwards to (for example, the Better Auth plugin's own internal Hono
- * instance reached via `baseApp.all("/api/auth/*", authProxyMiddleware)`)
- * will NOT appear here. Tests that need to audit plugin-managed routes must
- * probe `auth.handler` directly. See the dual-level audit doc in
- * `sso-callback-routing.test.ts` for the canonical pattern.
+ * `listRegisteredRoutes(app)` returns the `{ method, path }` pairs registered
+ * directly on a Hono app. Plugin/sub-handler routes (e.g. routes inside the BA
+ * proxy) are NOT visible here — tests for those probe `auth.handler` directly.
  */
 
 import type { Hono } from "hono";

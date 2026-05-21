@@ -160,13 +160,8 @@ export class Vault implements KekWrapper {
   }
 
   private createProvider(config: ProviderConfig): EncryptionProvider {
-    // Only the `local` adapter is wired today. The full switch (with
-    // `aws-kms`, `gcp-kms`, `azure-keyvault` branches and an exhaustive
-    // `never` check) returns when a second adapter actually arrives —
-    // until then, demoting to a single guarded branch keeps the seam from
-    // pretending to support backends it cannot construct.
-    // TODO(vault): re-expand to a discriminated switch when adding the
-    // first cloud KMS adapter; mirror the `ProviderConfig` union.
+    // TODO(vault): re-expand to a discriminated switch (mirroring `ProviderConfig`)
+    // when adding the first cloud KMS adapter.
     if (config.provider === "local") {
       return new LocalEncryptionProvider(config.masterKey, config.keyId);
     }

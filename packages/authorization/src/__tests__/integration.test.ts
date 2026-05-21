@@ -121,7 +121,6 @@ describe("integration: single-tenant", () => {
   });
 
   it("user cannot delete themselves (deny with whereTargetIsSelf)", async () => {
-    // Admin deleting themselves should also be denied
     const selfResource: UserResource = {
       id: "usr_admin",
       createdBy: "usr_admin",
@@ -204,17 +203,13 @@ describe("integration: single-tenant", () => {
   it("evaluateCapabilities returns correct map for user", async () => {
     const caps = await registry.evaluateCapabilities(user1);
     expect(caps["user:list"]).toBe(true);
-    // create has no allow for user role
     expect(caps["user:create"]).toBe(false);
-    // delete has no allow for user role (even though deny for self exists)
     expect(caps["user:delete"]).toBe(false);
-    // deactivate has no allow for user role
     expect(caps["user:deactivate"]).toBe(false);
   });
 
   it("evaluateCapabilities reports true for conditionally-allowed actions (whereOwner)", async () => {
     const caps = await registry.evaluateCapabilities(user1);
-    // view and update are allowed via whereOwner -- ignoreResourceConditions makes them true
     expect(caps["user:view"]).toBe(true);
     expect(caps["user:update"]).toBe(true);
   });
@@ -279,7 +274,6 @@ describe("integration: multi-tenant", () => {
 
   const registry = auth.buildRegistry({ project: projectResource });
 
-  // Org-context principal (org_1, role: member)
   const orgMember: Principal = {
     id: "usr_org_member",
     roles: ["member"],
@@ -373,7 +367,6 @@ describe("integration: multi-tenant", () => {
   });
 
   it("system admin bypasses org check and can access any org resource", async () => {
-    // sysAdmin has no org context but is a system admin role
     const decision = await registry.can(sysAdmin, "project", "delete", {
       resource: project1,
     });

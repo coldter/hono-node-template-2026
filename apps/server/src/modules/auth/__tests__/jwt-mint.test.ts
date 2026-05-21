@@ -1,10 +1,6 @@
-/**
- * Boots a minimal `betterAuth(...)` backed by the in-memory adapter so the
- * `/jwks` endpoint can resolve a real key pair, then asserts the served
- * key uses the configured `alg`. `createAuth` cannot be reused here
- * because it wires `drizzleAdapter` onto an empty stub `db` under
- * SKIP_DB=true.
- */
+// `createAuth` can't be reused here — it wires drizzleAdapter onto an empty
+// stub under SKIP_DB=true. We boot a minimal betterAuth(...) backed by the
+// memory adapter so /jwks resolves a real key pair.
 
 import { memoryAdapter } from "@better-auth/memory-adapter";
 import { betterAuth } from "better-auth";
@@ -14,10 +10,8 @@ import { describe, expect, it } from "vitest";
 
 describe("jwt plugin JWKS endpoint", () => {
   it("serves a public key with the configured EdDSA alg", async () => {
-    // The BA memory adapter doesn't synthesise the `jwks` model without
-    // schema seeding, so we feed a pre-generated EdDSA key through the
-    // jwt plugin's `adapter.getJwks` hook. That keeps the test focused on
-    // the JWKS surface (alg field) rather than key-storage plumbing.
+    // BA memory adapter doesn't synthesise the `jwks` model without schema
+    // seeding, so we feed a pre-generated key through `adapter.getJwks`.
     const { publicKey, privateKey } = await generateKeyPair("EdDSA", {
       crv: "Ed25519",
       extractable: true,

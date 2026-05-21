@@ -13,7 +13,6 @@ import { registerWorkflow, startWorker } from "@/worker";
 await docs(app, env.ENABLE_DOCS);
 showRoutes(app, {
   colorize: true,
-  // verbose: true,
 });
 
 serve(

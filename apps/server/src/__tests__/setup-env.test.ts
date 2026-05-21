@@ -123,7 +123,6 @@ describe("scripts/setup-env", () => {
   });
 
   it("script entrypoint resolves relative to the repo root", () => {
-    // Sanity: the path the script uses by default is the actual repo root.
     expect(
       existsSync(join(REPO_ROOT, "apps", "server", "src", "env-schema.ts"))
     ).toBe(true);

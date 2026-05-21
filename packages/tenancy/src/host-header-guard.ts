@@ -14,9 +14,6 @@ const STATUS_BAD_REQUEST = 400;
  * unknown-tenant hosts (nested_subdomain, slug_format, punycode,
  * reserved_slug) pass through so tenantMiddleware can return 404
  * instead of 400.
- *
- * Implementation is a 3-line wrapper over `classifyHost` so the policy
- * stays in one place.
  */
 export function hostHeaderGuard(
   opts: HostHeaderGuardOptions

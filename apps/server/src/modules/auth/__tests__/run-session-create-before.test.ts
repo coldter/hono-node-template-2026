@@ -1,19 +1,5 @@
-/**
- * Behavioral tests for `runSessionCreateBefore` (extracted from
- * `databaseHooks.session.create.before` in `instance.ts`).
- *
- * The critical invariant covered here: a credentials sign-in into an
- * organization with `enforceSSO = true` must abort BEFORE any platform /
- * notification / org-stamping side-effects run. This test asserts:
- *
- *   1. SSO enforcement fires when initial-org has `enforceSSO=true` and the
- *      endpoint path is `/sign-in/email`.
- *   2. The pre-existing session row is NOT revoked (DB delete is not called).
- *   3. The new-device notification is NOT queued.
- *
- * If those side-effects ran before the SSO check, a user with credentials
- * could trigger session cleanup or notification spam on a locked-down tenant.
- */
+// Invariant: credentials sign-in into an enforceSSO=true org must abort BEFORE
+// session revocation / notifications / org-stamping side-effects run.
 
 import type { DrizzleClient } from "@repo/db";
 import { makeDrizzleStub } from "@repo/test-harness";
@@ -21,10 +7,6 @@ import { describe, expect, it, vi } from "vitest";
 import { runSessionCreateBefore } from "../instance";
 import { silentLogger } from "./fixtures/logger";
 
-// Permissive stub Drizzle client. The `select(...).from(...).where(...).limit(...)`
-// chain in `runSessionCreateBefore` is only reached after SSO enforcement
-// passes; we still wire it to a resolving Promise so the positive-path test
-// doesn't trip on undefined chains.
 type DeleteSpy = ReturnType<typeof vi.fn>;
 
 function makeStubDb(): { db: DrizzleClient; deleteSpy: DeleteSpy } {
@@ -56,10 +38,7 @@ describe("runSessionCreateBefore — SSO enforcement composition", () => {
     }));
     const queueNewDeviceNotification = vi.fn();
 
-    // enforceSsoIfRequired queries liveOrganizations(db).selectById(...). We
-    // simulate SSO enforcement by making select return [{ enforceSSO: true }].
-    // The delete chain is preserved so a leak past the SSO gate would still
-    // hit a working spy.
+    // Simulate enforcement: liveOrganizations.selectById returns [{ enforceSSO: true }].
     const ssoSelectStub = {
       from: () => ({ where: () => Promise.resolve([{ enforceSSO: true }]) }),
     };
@@ -86,30 +65,23 @@ describe("runSessionCreateBefore — SSO enforcement composition", () => {
       body: { message: "SSO required" },
     });
 
-    // Side-effects must NOT have fired.
     expect(deleteSpy).not.toHaveBeenCalled();
     expect(queueNewDeviceNotification).not.toHaveBeenCalled();
-    // The org lookup is the first step and DOES run — that's the lookup we
-    // feed into SSO enforcement.
     expect(resolveInitialOrganizationContext).toHaveBeenCalledWith("u_1");
   });
 
   it("allows credentials sign-in when the resolved org has enforceSSO=false", async () => {
-    // Stub select chain such that liveOrganizations returns enforceSSO=false
-    // for the SSO check and an empty array for the previous-session lookup.
     let selectCallCount = 0;
     const ssoFalseDb = makeDrizzleStub({
       select: () => {
         selectCallCount += 1;
         if (selectCallCount === 1) {
-          // First call: enforceSsoIfRequired's selectById.
           return {
             from: () => ({
               where: () => Promise.resolve([{ enforceSSO: false }]),
             }),
           };
         }
-        // Subsequent: previous-session lookup.
         return {
           from: () => ({
             where: () => ({ limit: () => Promise.resolve([]) }),
@@ -147,11 +119,8 @@ describe("runSessionCreateBefore — SSO enforcement composition", () => {
   });
 
   it("does NOT enforce SSO for an SSO-callback login even when enforceSSO=true", async () => {
-    // SSO-callback paths are classified as provider="sso", so
-    // enforceSsoIfRequired short-circuits regardless of org config.
+    // SSO-callback paths classify as provider="sso", so the guard short-circuits before the select runs.
     const ssoCallbackDb = makeDrizzleStub({
-      // First call would be enforceSsoIfRequired — but the guard short-circuits
-      // BEFORE the select runs because provider !== "credentials".
       select: () => ({
         from: () => ({
           where: () => ({ limit: () => Promise.resolve([]) }),
@@ -179,7 +148,6 @@ describe("runSessionCreateBefore — SSO enforcement composition", () => {
       { resolveInitialOrganizationContext, queueNewDeviceNotification }
     );
 
-    // Login succeeds — produces a session with the org stamped on it.
     expect(result.data).toMatchObject({ activeOrganizationId: "o_1" });
   });
 
@@ -210,7 +178,6 @@ describe("runSessionCreateBefore — SSO enforcement composition", () => {
     );
 
     expect(result.data).toMatchObject({ userId: "u_1", platform: "web" });
-    // No active org stamped — orgContext was null.
     expect(result.data).not.toHaveProperty("activeOrganizationId");
   });
 });

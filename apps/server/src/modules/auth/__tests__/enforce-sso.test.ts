@@ -27,7 +27,6 @@ describe("enforceSsoIfRequired", () => {
         activeOrganizationId: undefined,
         provider: "credentials",
       };
-      // Using a stub that would fail if called, to confirm no DB access.
       const db = makeStubDb([{ enforceSSO: true }]);
       await expect(
         enforceSsoIfRequired(session, undefined, db)
@@ -88,7 +87,6 @@ describe("enforceSsoIfRequired", () => {
         provider: "credentials",
       };
       const db = makeStubDb([{ enforceSSO: true }]);
-      // APIError.status is a string code like "FORBIDDEN", not numeric 403.
       await expect(
         enforceSsoIfRequired(session, undefined, db)
       ).rejects.toMatchObject({

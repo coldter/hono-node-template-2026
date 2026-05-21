@@ -25,7 +25,6 @@ export function createNodeDrizzleClient(
   });
 }
 
-// Type inference
 function _inferType() {
   return createDrizzleClient(null as never);
 }

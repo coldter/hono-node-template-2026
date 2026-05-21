@@ -1,18 +1,9 @@
 /**
- * Host classification + reserved-slug policy.
- *
- * Single source of truth for "is this host shape an admin / fallback /
- * subdomain / custom / rejected?". Previously the policy was split across
- * `parse-hostname.ts` (parser only) and three call sites that consulted
- * `BUILTIN_RESERVED_SLUGS` inconsistently:
- *   - `resolve-tenant.ts` did NOT consult the reserved set;
- *   - `dev-header.ts` did;
- *   - `host-header-guard.ts` re-parsed only to check empty / invalid_chars.
- *
- * `classifyHost` re-uses `parseHostname` internally so the host-shape
- * parser stays free of policy concerns and so `parseHostname` remains
- * usable by direct callers; `isReserved` is the canonical predicate over
- * `BUILTIN_RESERVED_SLUGS`.
+ * Host classification + reserved-slug policy. Single source of truth for
+ * "is this host shape an admin / fallback / subdomain / custom /
+ * rejected?". `classifyHost` re-uses `parseHostname` internally so the
+ * host-shape parser stays free of policy concerns; `isReserved` is the
+ * canonical predicate over `BUILTIN_RESERVED_SLUGS`.
  */
 
 import type { HostConfig } from "./host-config";

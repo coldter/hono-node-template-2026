@@ -23,9 +23,6 @@ function resolvePrincipal(c: Context<Env>): AuthzPrincipal | null {
   if (!isAuthenticated(principal)) {
     return null;
   }
-  // The Principal Module has already narrowed BA's session into typed
-  // fields. Re-shape into the project's authorization-principal input —
-  // the authorization package owns its own type so we marshal here.
   return toBaseAuthorizationPrincipal(
     buildAuthorizationPrincipal(
       {

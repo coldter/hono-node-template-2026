@@ -17,7 +17,7 @@ import type {
 export function formatNotificationSummary(
   notification: NotificationRecord
 ): NotificationSummary {
-  // Only push supports read tracking; email and SMS return null/null
+  // Read tracking is push-only; email/SMS return null/null.
   const isReadTrackable = notification.channel === "push";
 
   return {

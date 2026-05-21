@@ -10,10 +10,6 @@ import type { TenancyCache } from "./cache";
  *     transaction (so the bump rolls back if the transition aborts).
  *   - `broadcast(host?)` — post-commit Hatchet push (best-effort) plus
  *     local LRU clear; never throws.
- *
- * Callers that previously called `bumpVersion(host)` post-commit should
- * now call `bumpDurable(tx)` inside the tx and `broadcast(host)` after
- * the tx commits.
  */
 export type Invalidator = Readonly<{
   bumpDurable(tx: Executor): Promise<void>;

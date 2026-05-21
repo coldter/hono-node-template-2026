@@ -19,12 +19,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.unmock("@repo/tenancy");
 
-// Stub the BA factory so the per-request `auth` returned to both the
-// auth-context middleware and the auth proxy is a controllable surrogate.
-// Replicating the real factory would require a fully wired Drizzle adapter;
-// the proxy contract only depends on `auth.handler(req)` being invoked
-// (which the stub exercises) and `auth.api.getSession` returning null
-// (so the auth-context middleware sets `principal: null`).
+// Stub BA factory: proxy contract only needs `auth.handler(req)` invoked and
+// `auth.api.getSession` returning null (auth-context sets `principal: null`).
 vi.mock("@/modules/auth/instance", () => ({
   createAuth: () => ({
     api: {
@@ -47,8 +43,6 @@ vi.mock("@/modules/auth/instance", () => ({
   }),
 }));
 
-// Audit-context middleware is a no-op for these tests so the proxy is the
-// terminal handler observable in the route tree.
 vi.mock("@/middlewares/audit-context", () => ({
   auditContextMiddleware: async (_c: Context, next: Next) => {
     await next();
@@ -56,8 +50,7 @@ vi.mock("@/middlewares/audit-context", () => ({
 }));
 
 describe("/api/auth route tree", () => {
-  // Re-import the app and tenancy cache after the vi.mock declarations have
-  // been hoisted so the stubs are in effect when the module graph evaluates.
+  // Re-import after vi.mock declarations are hoisted so stubs apply.
   let appModule: typeof import("@/routers/main");
   let serverModule: typeof import("@/server");
 
@@ -76,8 +69,6 @@ describe("/api/auth route tree", () => {
   });
 
   it("200s on /api/auth/get-session when host is known (cache pre-seeded)", async () => {
-    // Pre-seed the tenancy cache so `tenantMiddleware` resolves the host
-    // without a DB lookup. The cache owns key composition and TTL policy.
     serverModule.tenancyCache.set("acme.app.localhost", {
       kind: "found",
       tenant: {
@@ -104,15 +95,8 @@ describe("/api/auth route tree", () => {
       host: string | null;
     };
     expect(body.ok).toBe(true);
-    // The proxy must pin Host to the resolved tenant before BA sees the URL.
-    // `sanitizedAuthRequest` rebuilds the Request with the original URL but
-    // a pinned Host header, so the URL itself remains intact.
     expect(body.url).toContain("/api/auth/get-session");
-    // Proof the proxy ran `sanitizedAuthRequest` rather than forwarding
-    // `c.req.raw` directly: the Host header on the inbound Request matches
-    // the resolved tenant. If the sanitizer were skipped the value would
-    // either be missing (Hono's `app.request` does not auto-populate Host
-    // when the URL is absolute) or echo the spoofed value.
+    // Proof `sanitizedAuthRequest` ran: Host matches resolved tenant rather than the spoofed value.
     expect(body.host).toBe("acme.app.localhost");
   });
 });

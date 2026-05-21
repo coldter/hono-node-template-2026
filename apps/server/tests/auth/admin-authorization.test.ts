@@ -3,12 +3,6 @@ import { describe, expect, it } from "vitest";
 import { assertCanManageUserStatus } from "@/modules/auth/plugins/admin";
 import type { AuthenticatedPrincipal } from "@/modules/auth/principal";
 
-/**
- * Build a fixture authenticated Principal for the authorization assertion.
- * Only the fields the assertion actually reads are populated; the BA-shaped
- * `user`/`session`/`raw` aliases are stubbed because `assertCanManageUserStatus`
- * no longer touches them.
- */
 function makePrincipal(
   overrides: Partial<AuthenticatedPrincipal>
 ): AuthenticatedPrincipal {
@@ -22,9 +16,6 @@ function makePrincipal(
     activeOrganizationId: null,
     activeOrgRole: null,
     platform: null,
-    // The aliases are part of the Principal contract but unused here; the
-    // empty objects are accepted by the `assertCanManageUserStatus` call
-    // chain because it reads only the typed top-level fields.
     user: {} as AuthenticatedPrincipal["user"],
     session: {} as AuthenticatedPrincipal["session"],
     raw: {

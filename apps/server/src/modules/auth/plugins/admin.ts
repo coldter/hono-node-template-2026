@@ -24,17 +24,9 @@ const EMPTY_AUDIT_CONTEXT = {
   userAgent: undefined,
 };
 
-/**
- * Read the actor off a Better Auth endpoint context. `sessionMiddleware`
- * guarantees `ctx.context.session.user` is populated; we re-use the project
- * Principal Module to narrow it instead of redefining ad-hoc `AuthSessionUser`
- * shapes in three different endpoint handlers.
- *
- * boundary: BA's endpoint `ctx.context.session` carries the plugin-augmented
- * Session shape but its TS type is widened to `Session<...>` at the SDK
- * surface. Project-level `AuthSession` carries the literal-typed status enum;
- * we narrow via the same cast site as `auth-context.ts`.
- */
+// boundary: BA's endpoint `ctx.context.session` is the plugin-augmented Session
+// shape but typed loosely on the endpoint ctx; we narrow with the same cast site
+// as `auth-context.ts`.
 function actorFromCtx(ctx: {
   context: { session: { user: unknown; session: unknown } };
 }): AuthenticatedPrincipal {
@@ -46,7 +38,6 @@ function actorFromCtx(ctx: {
   } as unknown as AuthSession;
   const principal = buildPrincipal(sessionLike);
   if (principal.kind !== "authenticated") {
-    // sessionMiddleware would have already rejected this — defensive only.
     throw new APIError("UNAUTHORIZED", { message: "Authentication required" });
   }
   return principal;

@@ -87,7 +87,6 @@ export function DataTablePagination<TData>({
             <ChevronLeftIcon className="h-4 w-4" />
           </Button>
 
-          {/* Page number buttons */}
           {pageNumbers.map((pageNumber, index) => (
             <div className="flex items-center" key={`${pageNumber}-${index}`}>
               {pageNumber === "..." ? (

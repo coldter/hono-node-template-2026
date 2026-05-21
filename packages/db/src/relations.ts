@@ -1,12 +1,7 @@
 import { defineRelations } from "drizzle-orm";
 import * as schema from "./schema";
 
-/**
- * Drizzle Relations v2 - Centralized relations definition
- *
- * All table relations are defined in one place using defineRelations.
- * @see https://orm.drizzle.team/docs/relations-v1-v2
- */
+/** @see https://orm.drizzle.team/docs/relations-v1-v2 */
 export const relations = defineRelations(schema, (r) => ({
   users: {
     deactivatedByUser: r.one.users({

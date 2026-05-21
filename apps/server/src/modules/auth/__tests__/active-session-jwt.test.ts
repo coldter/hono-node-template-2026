@@ -3,13 +3,8 @@ import { makeDrizzleStub } from "@repo/test-harness";
 import { describe, expect, it } from "vitest";
 import * as activeSessionJwt from "../active-session-jwt";
 
-/**
- * Minimal in-memory stub of the `update`/`select` chains the module touches.
- *
- * boundary: Drizzle's `DrizzleClient` carries generics that the structural
- * stub cannot fully express; the cast at the return site is acceptable
- * because the module's two calls are the only chains we model.
- */
+// boundary: Drizzle's `DrizzleClient` carries generics structural stubs can't
+// express; cast is fine because we model only the two chains the module touches.
 type StubRow = {
   id: string;
   currentJti: string | null;
@@ -41,8 +36,7 @@ function makeStubDb(seed: StubRow[]): {
         continue;
       }
       seen.add(node);
-      // boundary: opaque Drizzle SQL fragment — we only read the documented
-      // `queryChunks`/`params`/`value` fields defensively.
+      // boundary: opaque Drizzle SQL fragment; only the documented chunk fields are read.
       const obj = node as {
         queryChunks?: unknown[];
         params?: unknown[];

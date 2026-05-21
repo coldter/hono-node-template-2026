@@ -250,9 +250,7 @@ describe("evaluate", () => {
       ...defaults,
       principal: activePrincipal,
       resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
-      // no resource provided
     });
-    // The allow policy is skipped, so no match -> default deny
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
@@ -264,7 +262,6 @@ describe("evaluate", () => {
         denyRule(["user"], ["read"], [ownerCondition()]),
         allowRule(["user"], ["read"]),
       ],
-      // no resource; deny policy has a requires_resource condition so it is skipped
     });
     expect(result.allowed).toBe(true);
   });
@@ -343,10 +340,6 @@ describe("evaluate", () => {
     });
     expect(result).toEqual({ allowed: false, reason: "EVALUATION_ERROR" });
   });
-
-  // -----------------------------------------------------------------------
-  // Org scoping tests
-  // -----------------------------------------------------------------------
 
   describe("org scoping", () => {
     const orgPrincipal: Principal = {
@@ -485,13 +478,11 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(true);
     });
 
-    // Org scoping only applies when resolveOrganization is provided and resource is present
     it("skips org check when resolveOrganization is not provided", async () => {
       const result = await evaluate({
         ...defaults,
         principal: noOrgPrincipal,
         resource: { orgId: "org_1" },
-        // no resolveOrganization
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: [],
       });
@@ -503,17 +494,12 @@ describe("evaluate", () => {
         ...defaults,
         principal: noOrgPrincipal,
         resolveOrganization,
-        // no resource
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: [],
       });
       expect(result.allowed).toBe(true);
     });
   });
-
-  // -----------------------------------------------------------------------
-  // Evaluation order
-  // -----------------------------------------------------------------------
 
   describe("evaluation order", () => {
     it("checks global deny before resource deny", async () => {
@@ -523,7 +509,6 @@ describe("evaluate", () => {
         globalPolicies: [denyRule("*", "*", [principalNotActive()])],
         resourcePolicies: [denyRule(["user"], ["read"])],
       });
-      // Global deny fires first
       expect(result.allowed).toBe(false);
       if (!result.allowed) {
         expect(result.reason).toBe("GLOBAL_DENY");
@@ -539,7 +524,6 @@ describe("evaluate", () => {
           denyRule(["user"], ["read"]),
         ],
       });
-      // Deny is checked first regardless of array order
       expect(result.allowed).toBe(false);
       if (!result.allowed) {
         expect(result.reason).toBe("EXPLICIT_DENY");
@@ -547,24 +531,18 @@ describe("evaluate", () => {
     });
 
     it("global deny only fires for deny effect policies", async () => {
-      // An allow rule in globalPolicies is not checked in the global deny phase
       const result = await evaluate({
         ...defaults,
         principal: activePrincipal,
         globalPolicies: [allowRule("*", "*")],
         resourcePolicies: [],
       });
-      // The global allow is ignored; no resource policies match -> default deny
       expect(result.allowed).toBe(false);
       if (!result.allowed) {
         expect(result.reason).toBe("NO_MATCHING_POLICY");
       }
     });
   });
-
-  // -----------------------------------------------------------------------
-  // Multiple conditions (AND logic)
-  // -----------------------------------------------------------------------
 
   describe("multiple conditions (AND)", () => {
     it("requires all conditions to pass for a policy to match", async () => {

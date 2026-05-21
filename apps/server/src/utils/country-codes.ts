@@ -52,13 +52,6 @@ const ALPHA2_TO_NUMERIC: Record<string, string> = {
   ZA: "0710",
 };
 
-/**
- * Convert an ISO 3166-1 alpha-2 country code to its 4-digit zero-padded
- * numeric equivalent.
- *
- * Lookup is case-insensitive. Returns the original input unchanged when
- * the code is not recognised.
- */
 export function alpha2ToNumeric(alpha2: string): string {
   return ALPHA2_TO_NUMERIC[alpha2.toUpperCase()] ?? alpha2;
 }

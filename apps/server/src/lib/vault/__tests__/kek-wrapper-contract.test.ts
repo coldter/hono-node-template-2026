@@ -1,11 +1,5 @@
-/**
- * Locks the `Vault implements KekWrapper` contract.
- *
- * The fake (`fakeKekWrapper`) and the production `Vault` share callers
- * (envelope-encryption codecs) via structural compatibility on `wrap` /
- * `unwrap`. A rename or signature change in the future would silently
- * break the fake. This test makes such drift a compile error.
- */
+// Locks the `Vault implements KekWrapper` contract so a rename/signature change
+// on `wrap`/`unwrap` is a compile error rather than a silent fake-vault breakage.
 import { describe, expect, it } from "vitest";
 import { fakeKekWrapper } from "../fake";
 import type { KekWrapper } from "../types";
@@ -13,8 +7,6 @@ import type { Vault } from "../vault";
 
 describe("Vault / KekWrapper contract", () => {
   it("Vault assigns structurally to KekWrapper", () => {
-    // Type-level assertion: the cast compiles only if `Vault` exposes
-    // `wrap` and `unwrap` with the exact `KekWrapper` signatures.
     type VaultAssignable = Vault extends KekWrapper ? true : false;
     const ok: VaultAssignable = true;
     expect(ok).toBe(true);

@@ -22,22 +22,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.unmock("@repo/tenancy");
 
-// In-memory lifecycle map. `vi.mock` is hoisted, so we expose the map via a
-// module-level binding the factory writes to lazily.
-//
-// boundary: vitest hoists `vi.mock(...)` above all imports, so the factory
-// cannot close over a top-level `const`. Stashing the map on `globalThis`
-// keeps the per-test state addressable from both the factory and the body.
+// boundary: vitest hoists `vi.mock(...)` above all imports, so the factory cannot
+// close over a top-level `const`. Stash the map on `globalThis` so per-test state
+// is addressable from both the factory and the body.
 type LifecycleResult = "granted" | "denied";
 type LifecycleStore = Map<string, LifecycleResult>;
 const STORE_KEY = "__caddyAskTestLifecycleStore";
 
-/**
- * boundary: vitest hoists `vi.mock(...)` above all imports, so the factory
- * cannot close over a top-level `const`. Stashing the map on `globalThis`
- * keeps the per-test state addressable from both the factory and the body.
- * Single cast site reused by both the accessor and the mock factory.
- */
+// boundary: single cast site reused by the accessor and the mock factory.
 function globalLifecycleSlot(): { value: LifecycleStore | undefined } {
   const g = globalThis as unknown as Record<string, LifecycleStore | undefined>;
   return {
@@ -70,9 +62,6 @@ vi.mock("@/modules/tenancy/lookup-custom-hostname-lifecycle", () => ({
   },
 }));
 
-// `auditContextMiddleware` runs after tenancy in the chain; the caddy/ask
-// route is mounted BEFORE tenancy so this mock is defensive — kept in step
-// with the sibling contract tests so the suites have a consistent shape.
 vi.mock("@/middlewares/audit-context", () => ({
   auditContextMiddleware: async (_c: Context, next: Next) => {
     await next();
@@ -86,11 +75,6 @@ vi.mock("@/modules/auth/instance", () => ({
   }),
 }));
 
-// The handler-level lifecycle mapping says "granted" for `awaiting_caddy` and
-// `active`, "denied" for the rest. The mock above flattens that to the
-// two-value result the reader returns; we replay the per-status matrix at the
-// reader's output level here because the wiring test does not need to assert
-// against the enum's full surface (that lives in the lookup unit suite).
 const DENIED_LIFECYCLE_STATUSES = [
   "pending_txt",
   "failed",
@@ -129,8 +113,7 @@ describe("/caddy/ask contract", () => {
     it.each(
       DENIED_LIFECYCLE_STATUSES
     )("returns 404 for a host in `%s`", async (status) => {
-      // Underscores are rejected by the handler's charset guard before
-      // the DB lookup, so we map the status onto a hyphenated label.
+      // Underscores fail the charset guard before the DB lookup; use hyphens.
       const label = status.replace(/_/g, "-");
       const host = `${label}.acme.com`;
       lifecycleStore().set(host, "denied");
@@ -169,12 +152,9 @@ describe("/caddy/ask contract", () => {
   });
 
   describe("lazy awaiting_caddy -> active flip (deferred)", () => {
-    // Production code flips `awaiting_caddy -> active` from the reconciler
-    // workflow (keyed off `caddyCertStorageKey`), not from a request-time
-    // middleware. Once `tenantMiddleware` grows a handshake-aware writer,
-    // replace this placeholder with a real assertion against the
-    // `tenant_custom_hostnames` row's `lifecycle_status` and
-    // `last_handshake_at`.
+    // TODO: once `tenantMiddleware` grows a handshake-aware writer, assert
+    // against `tenant_custom_hostnames.lifecycle_status` and `.last_handshake_at`.
+    // Today the flip happens in the reconciler workflow, not at request time.
     it.todo(
       "flips awaiting_caddy -> active via lifecycle on the first successful handshake"
     );
@@ -186,9 +166,7 @@ describe("/caddy/ask contract", () => {
       const ip = "203.0.113.50";
 
       const statuses: number[] = [];
-      // The handler's window is 5 req / 2 min. Firing 8 from the same IP
-      // exceeds it; the suite's freshly-imported `chain.ts` gives this IP a
-      // clean counter (see beforeEach `vi.resetModules`).
+      // Window is 5 req / 2 min; 8 from one IP exceeds it. `vi.resetModules` in beforeEach gives a clean counter.
       for (let i = 0; i < 8; i += 1) {
         const res = await appModule.app.request(
           "http://internal-host/caddy/ask?domain=burst.acme.com",
@@ -205,9 +183,7 @@ describe("/caddy/ask contract", () => {
       const ipA = "1.1.1.1";
       const ipB = "2.2.2.2";
 
-      // Each IP fires under the per-IP limit. Both bursts must succeed end
-      // to end — if the limiter keyed on something other than the resolved
-      // client IP (e.g., a global counter), one of them would 429.
+      // If the limiter keyed globally instead of per-IP, one of these bursts would 429.
       const fire = (ip: string) =>
         appModule.app.request(
           "http://internal-host/caddy/ask?domain=shared.acme.com",

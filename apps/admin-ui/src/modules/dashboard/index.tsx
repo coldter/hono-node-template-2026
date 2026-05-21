@@ -20,7 +20,6 @@ import { RecentSales } from "./components/recent-sales";
 export function Dashboard() {
   return (
     <>
-      {/* ===== Top Heading ===== */}
       <Header>
         <TopNav links={topNav} />
         <div className="ms-auto flex items-center space-x-4">
@@ -30,7 +29,6 @@ export function Dashboard() {
         </div>
       </Header>
 
-      {/* ===== Main ===== */}
       <Main>
         <div className="mb-2 flex items-center justify-between space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
@@ -56,7 +54,6 @@ export function Dashboard() {
             </TabsList>
           </div>
           <TabsContent className="space-y-4" value="overview">
-            {/* Add your dashboard metrics here */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
               <Card className="col-span-1 lg:col-span-4">
                 <CardHeader>

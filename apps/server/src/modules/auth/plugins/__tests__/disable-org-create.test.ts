@@ -14,8 +14,6 @@ describe("disableOrgCreatePlugin", () => {
 
     it("matches /organization/create path", () => {
       const matcher = getMatcher();
-      // HookEndpointContext has path as optional string, so we cast to satisfy
-      // the structural type without importing private BA internals.
       expect(
         matcher({ path: "/organization/create" } as Parameters<
           typeof matcher
@@ -48,7 +46,6 @@ describe("disableOrgCreatePlugin", () => {
 
     it("returns false when path is undefined", () => {
       const matcher = getMatcher();
-      // path may be undefined per HookEndpointContext type
       expect(matcher({} as Parameters<typeof matcher>[0])).toBe(false);
     });
   });
@@ -61,10 +58,8 @@ describe("disableOrgCreatePlugin", () => {
         throw new Error("no before hook registered");
       }
 
-      // boundary: better-call's createInternalContext expects a
-      // MiddlewareInputContext (a branded type carrying request/runtime
-      // plumbing). Our handler throws unconditionally before reading the
-      // argument, so the stub never has to satisfy the brand.
+      // boundary: handler throws unconditionally before reading its argument,
+      // so the stub need not satisfy better-call's MiddlewareInputContext brand.
       type HandlerCtx = Parameters<typeof hook.handler>[0];
       const stub = { context: {} } as unknown as HandlerCtx;
       await expect(hook.handler(stub)).rejects.toMatchObject({

@@ -27,8 +27,8 @@ export type UserWithStatusFields = {
   twoFactorEnabled: boolean;
 };
 
-// !important: fieldName must match the column name in the database adapter
-// schema, not necessarily the column name in the database schema.
+// IMPORTANT: fieldName must match the column name in the database adapter schema,
+// not necessarily the column in the database schema.
 export const enhancedUserPlugin = () => {
   return {
     id: "user-status",

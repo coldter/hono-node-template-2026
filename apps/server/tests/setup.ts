@@ -15,9 +15,8 @@ vi.mock("@/middlewares/rate-limit", () => ({
   },
 }));
 
-// Mock the tenancy middlewares in test mode so existing tests are not broken by
-// host-header / tenant checks. The tenancy package's own tests and the
-// dedicated tenancy-integration.test.ts cover the real behaviour.
+// Mock tenancy middlewares so existing tests bypass host-header / tenant checks.
+// Real behaviour is covered in tenancy-integration.test.ts and the tenancy package.
 vi.mock("@repo/tenancy", async (importOriginal) => {
   const original = await importOriginal<typeof import("@repo/tenancy")>();
   return {

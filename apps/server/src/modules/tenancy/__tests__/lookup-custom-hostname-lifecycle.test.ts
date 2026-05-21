@@ -1,11 +1,5 @@
-/**
- * Tests for the sanctioned single-purpose Caddy-ask reader. Covers two
- * security invariants (spec § 08):
- *   1. The projected column set is exactly `{ lifecycleStatus }`; no
- *      tenant identifier or token leaks into the select.
- *   2. The hostname is parameter-bound by Drizzle's `eq(...)`, so SQL
- *      injection in the host string cannot bypass the gate.
- */
+// Security invariants (spec § 08): the projection is exactly `{ lifecycleStatus }`
+// (no tenant identifier leaks) and the hostname is parameter-bound via `eq(...)`.
 
 import type { DrizzleClient } from "@repo/db";
 import { tenantCustomHostnames } from "@repo/db/schema";
@@ -15,20 +9,9 @@ import { lookupCustomHostnameLifecycle } from "../lookup-custom-hostname-lifecyc
 
 type LifecycleRow = { lifecycleStatus: string };
 
-/**
- * Structural Drizzle stub mirroring the exact chain the reader uses:
- *   db.select(columns).from(table).where(pred).limit(1)
- *
- * The stub captures the `columns` argument so the projection assertion
- * can verify that only `lifecycleStatus` is selected. It also captures
- * the `pred` argument so we can sniff the bound parameter for the
- * SQL-injection-safety test (Drizzle's `eq` returns an SQL value whose
- * `.queryChunks` / `.params` contain the bound id).
- *
- * boundary: Drizzle's `DrizzleClient` carries generics the structural
- * stub cannot express; the cast is acceptable because the reader only
- * touches the single `select.from.where.limit` chain stubbed below.
- */
+// boundary: Drizzle stub captures `columns` (for projection assertion) and `pred`
+// (for the SQL-injection-safety test). The cast is fine — the reader only touches
+// `select.from.where.limit`.
 function makeStubDb(rowsByHostname: Map<string, LifecycleRow>): {
   db: DrizzleClient;
   captured: {
@@ -160,17 +143,12 @@ describe("lookupCustomHostnameLifecycle", () => {
     const { db, captured } = makeStubDb(new Map());
     const result = await lookupCustomHostnameLifecycle(db, malicious);
     expect(result).toBe("denied");
-    // The exact hostname string we passed must have been bound as a
-    // parameter, not interpolated into a SQL string. The structural stub
-    // pulls the value back out of the Drizzle SQL fragment.
     expect(captured.boundHostname).toBe(malicious);
   });
 
   it("projects ONLY lifecycleStatus (no tenant identifiers in the select)", async () => {
     const { db, captured } = makeStubDb(new Map());
     await lookupCustomHostnameLifecycle(db, "anything.example.com");
-    // The columns argument must be an object with exactly one key,
-    // `lifecycleStatus`, pointing at the schema column.
     expect(typeof captured.columns).toBe("object");
     expect(captured.columns).not.toBeNull();
     const cols = captured.columns as Record<string, unknown>;
@@ -182,11 +160,7 @@ describe("lookupCustomHostnameLifecycle", () => {
 
   it("does not call any insert/update on the DB (read-only)", async () => {
     const { db } = makeStubDb(new Map());
-    // Confirm the stub has no insert/update methods invoked; this is a
-    // belt-and-braces guard against future refactors adding writes.
-    // boundary: vendor-SDK generic variance — vi.spyOn requires a concrete
-    // object key; DrizzleClient's `select` is overload-rich and the spy needs
-    // the narrowed callable shape only.
+    // boundary: vi.spyOn requires a concrete callable; DrizzleClient.select is overload-rich.
     const spy = vi.spyOn(
       db as unknown as { select: (...args: unknown[]) => unknown },
       "select"

@@ -1,14 +1,5 @@
-/**
- * Behavioural tests for `customHostnameService`. The Drizzle client is
- * stubbed structurally (mirrors `sso-storage.test.ts`); we exercise the
- * public surface end-to-end without a real DB.
- *
- * boundary: the runtime stub returns `unknown`-typed builders shaped after
- * Drizzle's call chains. We cast at the boundary because Drizzle's
- * `DrizzleClient` carries pg-bound generics that cannot be reproduced in a
- * structural mock.
- */
-
+// boundary: structural Drizzle stub. The cast is unavoidable because
+// `DrizzleClient` carries pg-bound generics.
 import type { DrizzleClient } from "@repo/db";
 import type { TenantCustomHostname } from "@repo/db/schema";
 import type { Invalidator } from "@repo/tenancy";

@@ -14,18 +14,8 @@ const DEV_USER_NAME = "Dev User";
 const DEV_USER_PASSWORD = "dev";
 
 /**
- * Seed a local-dev tenant ("acme") and a tenant member user
- * (`dev@example.com` / `dev`). Idempotent — re-running is safe.
- *
- * `seedTenant` from `@repo/test-harness` centralises the
- * org-insert + `bumpTenantCacheVersion` sequence; this CLI adds
- * the user + credential-account on top so a local server has a
- * password-loginable seed account.
- *
- * `SEED_CUSTOM_HOST=1` opts in to seeding `app.acme.localhost` as
- * an active custom hostname; the harness writes the row in
- * `lifecycle_status = "active"` directly (documented short-circuit
- * inside `seedTenant`).
+ * Idempotent local-dev seed: tenant "acme" plus a credential-loginable user.
+ * `SEED_CUSTOM_HOST=1` additionally seeds `app.acme.localhost` as an active custom hostname.
  */
 export const devSeed = async () => {
   if (env.NODE_ENV === "production") {

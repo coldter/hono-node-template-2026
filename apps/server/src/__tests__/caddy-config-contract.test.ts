@@ -64,15 +64,11 @@ describe.skipIf(!CADDY_PATH)("Caddyfile.prod contract", () => {
     const { code, stdout, stderr } = runCaddyAdapt();
     expect(code, `caddy adapt stderr:\n${stderr}`).toBe(0);
 
-    // The adapter may emit warnings on stderr (env var substitution, etc.)
-    // — those are not failures, so we only assert on stdout JSON.
     const parsed = JSON.parse(stdout) as unknown;
     expect(typeof parsed).toBe("object");
     expect(parsed).not.toBeNull();
 
-    // Confirm the permission endpoint URL appears in the adapted config.
-    // We assert via the raw JSON text so we don't have to walk Caddy's
-    // app/module shape (which can drift between minor versions).
+    // Assert via raw JSON text to avoid coupling to Caddy's app/module shape (drifts between minor versions).
     expect(stdout).toContain(PERMISSION_URL);
   });
 });

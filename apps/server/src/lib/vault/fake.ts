@@ -38,7 +38,5 @@ export function fakeKekWrapper(): KekWrapper {
   };
 }
 
-/**
- * Backward-compat alias. Prefer `fakeKekWrapper` in new code.
- */
+/** Backward-compat alias. Prefer `fakeKekWrapper` in new code. */
 export const fakeVault = fakeKekWrapper;
