@@ -190,7 +190,7 @@ export type ListAuditLogsResponses = {
             id: string;
             event: 'auth.login.success' | 'auth.login.failed' | 'auth.logout' | 'auth.password.changed' | 'auth.session.revoked' | 'user.created' | 'user.updated' | 'user.deleted' | 'user.deactivated' | 'user.activated' | 'user.unlocked' | 'user.viewed' | 'user.listed' | 'role.created' | 'role.updated' | 'role.deleted' | 'role.assigned' | 'role.unassigned';
             actorId: string | null;
-            actorType: 'user' | 'system' | 'api';
+            actorType: 'USER' | 'GLOBAL_ADMIN' | 'SYSTEM';
             targetId: string | null;
             targetType: 'user' | 'role' | 'session' | null;
             ipAddress: string | null;

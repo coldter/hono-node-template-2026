@@ -54,9 +54,9 @@ export const zListAuditLogsResponse = z.object({
         ]),
         actorId: z.string().nullable(),
         actorType: z.enum([
-            'user',
-            'system',
-            'api'
+            'USER',
+            'GLOBAL_ADMIN',
+            'SYSTEM'
         ]),
         targetId: z.string().nullable(),
         targetType: z.enum([
