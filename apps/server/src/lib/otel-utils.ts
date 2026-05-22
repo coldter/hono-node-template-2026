@@ -10,16 +10,10 @@ import {
   SERVICE_NAME,
 } from "./otel-config";
 
-/**
- * Get tracer for this service
- */
 export function getTracer() {
   return trace.getTracer(SERVICE_NAME);
 }
 
-/**
- * Start a manual span and execute a function
- */
 export async function withSpan<T>(
   name: string,
   fn: (span: Span) => Promise<T>,
@@ -50,7 +44,7 @@ export async function withSpan<T>(
       span.setAttribute("error.type", err.constructor.name);
 
       span.setStatus({
-        code: 2, // ERROR
+        code: 2,
         message: "Error occurred",
       });
 
@@ -60,9 +54,6 @@ export async function withSpan<T>(
   });
 }
 
-/**
- * Set attributes on current span (SAFE)
- */
 export function setSpanAttributes(attributes: Record<string, unknown>): void {
   if (!OTEL_ENABLED) {
     return;
@@ -77,9 +68,6 @@ export function setSpanAttributes(attributes: Record<string, unknown>): void {
   span.setAttributes(sanitized);
 }
 
-/**
- * Add an event to current span (SAFE)
- */
 export function addSpanEvent(
   name: string,
   attributes?: Record<string, unknown>
@@ -99,9 +87,6 @@ export function addSpanEvent(
   span.addEvent(name, sanitized);
 }
 
-/**
- * Record an exception on current span (SAFE)
- */
 export function recordSpanException(error: Error): void {
   if (!OTEL_ENABLED) {
     return;
@@ -115,14 +100,11 @@ export function recordSpanException(error: Error): void {
   span.setAttribute("error.type", error.constructor.name);
 
   span.setStatus({
-    code: 2, // ERROR
+    code: 2,
     message: "Error occurred",
   });
 }
 
-/**
- * Create a span without starting it as active
- */
 export function startSpan(name: string, options?: SpanOptions): Span {
   if (!OTEL_ENABLED) {
     const tracer = trace.getTracer(SERVICE_NAME);
@@ -141,9 +123,6 @@ export function startSpan(name: string, options?: SpanOptions): Span {
   return tracer.startSpan(name, safeOptions);
 }
 
-/**
- * Get current trace ID (for logging correlation)
- */
 export function getTraceId(): string | undefined {
   if (!OTEL_ENABLED) {
     return;
@@ -157,9 +136,6 @@ export function getTraceId(): string | undefined {
   return span.spanContext().traceId;
 }
 
-/**
- * Get current span ID
- */
 export function getSpanId(): string | undefined {
   if (!OTEL_ENABLED) {
     return;
@@ -173,12 +149,10 @@ export function getSpanId(): string | undefined {
   return span.spanContext().spanId;
 }
 
-/**
- * Get trace ID from Hono context
- */
 export function getTraceIdFromContext(c: {
   get: (key: string) => unknown;
 }): string | null {
+  // boundary: structural context typed as `get(key) -> unknown`; otel slot shape lives in lib/context.ts
   const otelContext = c.get("otel") as { traceId?: string } | undefined;
   return otelContext?.traceId || null;
 }

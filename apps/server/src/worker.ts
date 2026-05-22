@@ -2,18 +2,20 @@ import type {
   BaseWorkflowDeclaration,
   Worker,
 } from "@hatchet-dev/typescript-sdk/v1";
+import type {
+  InputType,
+  OutputType,
+} from "@hatchet-dev/typescript-sdk/v1/types";
 import { env } from "@/env";
 import { getHatchet } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";
 
-let worker: Worker | null = null;
-// biome-ignore lint/suspicious/noExplicitAny: SDK requires flexible workflow types
-const workflowsToRegister: BaseWorkflowDeclaration<any, any>[] = [];
+type AnyWorkflowDeclaration = BaseWorkflowDeclaration<InputType, OutputType>;
 
-export function registerWorkflow(
-  // biome-ignore lint/suspicious/noExplicitAny: SDK requires flexible workflow types
-  workflow: BaseWorkflowDeclaration<any, any>
-): void {
+let worker: Worker | null = null;
+const workflowsToRegister: AnyWorkflowDeclaration[] = [];
+
+export function registerWorkflow(workflow: AnyWorkflowDeclaration): void {
   workflowsToRegister.push(workflow);
 }
 

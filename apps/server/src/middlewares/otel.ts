@@ -4,18 +4,8 @@ import type { Env } from "@/lib/context";
 import { OTEL_ENABLED, sanitizeUrl } from "@/lib/otel-config";
 import { getTracer } from "@/lib/otel-utils";
 
-/**
- * Custom OpenTelemetry Middleware for Hono
- *
- * Purpose: Add custom attributes and inject trace ID into context
- * HTTP spans are handled by @hono/otel
- */
-
-interface OtelContext {
-  spanId: string | null;
-  traceId: string | null;
-}
-
+// HTTP spans are owned by @hono/otel; this middleware adds business attributes
+// and exposes the active trace/span ID via the Hono context.
 export const customOtelMiddleware = createMiddleware<Env>(async (c, next) => {
   if (!OTEL_ENABLED) {
     return next();
@@ -32,13 +22,11 @@ export const customOtelMiddleware = createMiddleware<Env>(async (c, next) => {
   const traceId = spanContext.traceId;
   const spanId = spanContext.spanId;
 
-  // Store in Hono context
   c.set("otel", {
     traceId,
     spanId,
-  } as OtelContext);
+  });
 
-  // Create business logic span
   return tracer.startActiveSpan(
     "request.processing",
     {

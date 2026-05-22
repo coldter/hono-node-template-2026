@@ -14,6 +14,7 @@ export const apiKeySchema: VaultSchema<ApiKeyData> = {
 
   serialize: (data: ApiKeyData): string => JSON.stringify(data),
 
+  // boundary: deserialize is the inverse of serialize on the same schema — runtime shape trusted
   deserialize: (plaintext: string): ApiKeyData =>
     JSON.parse(plaintext) as ApiKeyData,
 
