@@ -1,4 +1,7 @@
-import type { UserStatus } from "./types";
+import { z } from "zod";
+import { USER_STATUS_VALUES } from "./constants";
+
+const userStatusSchema = z.enum(USER_STATUS_VALUES);
 
 type UserSummaryRecord = {
   id: string;
@@ -31,14 +34,20 @@ type MyAccountRecord = {
   updatedAt: Date;
 };
 
+// Returns null on status parse failure so the caller decides policy: list
+// endpoints drop the row via the pagination seam; single-row endpoints throw.
 export function toUserSummaryResponse(user: UserSummaryRecord) {
+  const parsedStatus = userStatusSchema.safeParse(user.status);
+  if (!parsedStatus.success) {
+    return null;
+  }
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     emailVerified: user.emailVerified,
     image: user.image,
-    status: user.status as UserStatus,
+    status: parsedStatus.data,
     roleSlugs: user.roleSlugs,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -46,13 +55,17 @@ export function toUserSummaryResponse(user: UserSummaryRecord) {
 }
 
 export function toUserDetailResponse(user: UserDetailRecord) {
+  const parsedStatus = userStatusSchema.safeParse(user.status);
+  if (!parsedStatus.success) {
+    return null;
+  }
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     emailVerified: user.emailVerified,
     image: user.image,
-    status: user.status as UserStatus,
+    status: parsedStatus.data,
     roleSlugs: user.roleSlugs,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),

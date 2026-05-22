@@ -1,3 +1,4 @@
+import { firstOrThrow } from "@repo/db";
 import { accounts, sessions, users } from "@repo/db/schema";
 import {
   and,
@@ -9,7 +10,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 
-import { db, type Executor, firstOrThrow } from "@/db";
+import { db, type Executor } from "@/db";
 import type { AuditContext } from "@/lib/audit-context";
 import { AUDIT_EVENTS, TARGET_TYPES } from "@/modules/audit-logs/constants";
 import { auditLogService } from "@/modules/audit-logs/service";
@@ -133,8 +134,8 @@ export const userService = {
     const hashedPassword = await hashPassword(input.password);
 
     return executor.transaction(async (tx) => {
-      const user = await firstOrThrow(
-        tx
+      const user = firstOrThrow(
+        await tx
           .insert(users)
           .values({
             name: input.name,
@@ -190,8 +191,8 @@ export const userService = {
     }
 
     return executor.transaction(async (tx) => {
-      const updatedUser = await firstOrThrow(
-        tx
+      const updatedUser = firstOrThrow(
+        await tx
           .update(users)
           .set({
             ...(input.name && { name: input.name }),
@@ -241,8 +242,8 @@ export const userService = {
     }
 
     return executor.transaction(async (tx) => {
-      const updatedUser = await firstOrThrow(
-        tx
+      const updatedUser = firstOrThrow(
+        await tx
           .update(users)
           .set({ roleSlugs: input.roleSlugs })
           .where(eq(users.id, id))

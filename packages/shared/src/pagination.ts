@@ -19,7 +19,12 @@ export const paginationQuerySchema = z.object({
     .max(100)
     .default(20)
     .meta({ description: "Items per page (max 100)" }),
-  sort: z.string().optional().meta({ description: "Sort by column" }),
+  sort: z
+    .string()
+    .max(64)
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+    .optional()
+    .meta({ description: "Sort by column" }),
   order: sortOrderSchema,
 });
 
@@ -82,8 +87,9 @@ export function getPaginationParams(query: Partial<PaginationQuery>) {
   return { page, perPage, offset, sort, order } as const;
 }
 
-// Overloads: when no formatter is supplied, the return type is PaginatedResponse<T>.
-// When a formatter is supplied, the return type is PaginatedResponse<R>.
+// Formatter may return null/undefined to drop a row (e.g. enum drift). When rows
+// drop, meta.total is adjusted downward so data.length matches meta. Only drops
+// on the current page are visible, so adjusted total is a lower bound.
 export function createPaginatedResponse<T>(options: {
   data: T[];
   total: number;
@@ -93,34 +99,57 @@ export function createPaginatedResponse<T, R>(options: {
   data: T[];
   total: number;
   query: Partial<PaginationQuery>;
-  formatter: (item: T) => R;
+  formatter: (item: T) => R | null | undefined;
 }): PaginatedResponse<R>;
 export function createPaginatedResponse<T, R>(options: {
   data: T[];
   total: number;
   query: Partial<PaginationQuery>;
-  formatter?: (item: T) => R;
+  formatter?: (item: T) => R | null | undefined;
 }): PaginatedResponse<T> | PaginatedResponse<R> {
   const { data, total, query, formatter } = options;
   const { page, perPage } = getPaginationParams(query);
-  const pageCount = Math.ceil(total / perPage);
-  const meta = {
-    total,
-    page,
-    perPage,
-    pageCount,
-    hasNext: page < pageCount,
-    hasPrev: page > 1,
-    nextPage: page < pageCount ? page + 1 : null,
-    prevPage: page > 1 ? page - 1 : null,
-  };
 
   if (formatter) {
+    const formatted: R[] = [];
+    let dropped = 0;
+    for (const item of data) {
+      const result = formatter(item);
+      if (result === null || result === undefined) {
+        dropped += 1;
+        continue;
+      }
+      formatted.push(result);
+    }
+    const adjustedTotal = Math.max(0, total - dropped);
+    const pageCount = Math.ceil(adjustedTotal / perPage);
     return {
-      data: data.map(formatter),
-      meta,
+      data: formatted,
+      meta: {
+        total: adjustedTotal,
+        page,
+        perPage,
+        pageCount,
+        hasNext: page < pageCount,
+        hasPrev: page > 1,
+        nextPage: page < pageCount ? page + 1 : null,
+        prevPage: page > 1 ? page - 1 : null,
+      },
     };
   }
 
-  return { data, meta };
+  const pageCount = Math.ceil(total / perPage);
+  return {
+    data,
+    meta: {
+      total,
+      page,
+      perPage,
+      pageCount,
+      hasNext: page < pageCount,
+      hasPrev: page > 1,
+      nextPage: page < pageCount ? page + 1 : null,
+      prevPage: page > 1 ? page - 1 : null,
+    },
+  };
 }

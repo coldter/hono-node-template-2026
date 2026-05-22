@@ -8,6 +8,7 @@ import type { Env } from "@/lib/context";
 import { EVENTS, pushEvent } from "@/lib/events";
 import { notificationService } from "@/modules/notifications";
 import { defaultHook } from "@/utils/default-hook";
+import { createPaginatedResponse } from "@/utils/pagination";
 import { UserNotFoundError } from "./errors";
 import {
   toMyAccountResponse,
@@ -36,18 +37,36 @@ function handleUserNotFound(error: unknown): never {
   throw error;
 }
 
+// 422 (not 500) when status drifts from the response enum: preserves the
+// existing response-code contract; the underlying cause is data-integrity drift.
+function presentOrThrow<T extends { status: string }, R>(
+  user: T,
+  presenter: (u: T) => R | null
+): R {
+  const presented = presenter(user);
+  if (presented === null) {
+    throw new HTTPException(422, {
+      message: `User status "${user.status}" is not a recognised value`,
+    });
+  }
+  return presented;
+}
+
 const usersHandler = app
   .openapi(usersRoutes.listUsers, async (c) => {
     const query = c.req.valid("query");
     const result = await userService.find(query);
 
-    return c.json(
-      {
-        data: result.data.map(toUserSummaryResponse),
-        meta: result.meta,
-      },
-      200
-    );
+    // The pagination seam drops rows that fail to parse AND subtracts from meta.total
+    // so a single drifted status value cannot crash the list endpoint.
+    const paginated = createPaginatedResponse({
+      data: result.data,
+      total: result.meta.total,
+      query,
+      formatter: toUserSummaryResponse,
+    });
+
+    return c.json(paginated, 200);
   })
 
   .openapi(usersRoutes.getMyAccount, async (c) => {
@@ -80,7 +99,7 @@ const usersHandler = app
       throw new HTTPException(404, { message: "User not found" });
     }
 
-    return c.json({ user: toUserDetailResponse(user) }, 200);
+    return c.json({ user: presentOrThrow(user, toUserDetailResponse) }, 200);
   })
 
   .openapi(usersRoutes.createUser, async (c) => {
@@ -106,7 +125,7 @@ const usersHandler = app
       name: user.name,
     });
 
-    return c.json({ user: toUserSummaryResponse(user) }, 201);
+    return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 201);
   })
 
   .openapi(usersRoutes.updateUser, async (c) => {
@@ -121,7 +140,7 @@ const usersHandler = app
         currentUser.id,
         c.var.auditContext
       );
-      return c.json({ user: toUserSummaryResponse(user) }, 200);
+      return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 200);
     } catch (error) {
       handleUserNotFound(error);
     }
@@ -152,7 +171,7 @@ const usersHandler = app
         currentUser.id,
         c.var.auditContext
       );
-      return c.json({ user: toUserSummaryResponse(user) }, 200);
+      return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 200);
     } catch (error) {
       handleUserNotFound(error);
     }

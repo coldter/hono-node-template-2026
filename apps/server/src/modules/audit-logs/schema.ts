@@ -40,16 +40,18 @@ export const listAuditLogsQuerySchema = z
   })
   .extend(paginationQuerySchema.shape);
 
+export const auditEventKeySchema = z.enum(AUDIT_EVENT_KEYS);
+
 export const auditLogSchema = z.object({
   id: z.string(),
-  event: z.enum(AUDIT_EVENT_KEYS),
+  event: auditEventKeySchema,
   actorId: z.string().nullable(),
   actorType: z.enum(ACTOR_TYPE_VALUES),
   targetId: z.string().nullable(),
   targetType: z.enum(TARGET_TYPE_VALUES).nullable(),
   ipAddress: z.string().nullable(),
   userAgent: z.string().nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   createdAt: z.string().datetime(),
 });
 

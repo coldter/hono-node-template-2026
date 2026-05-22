@@ -13,11 +13,12 @@ export function createChangeMetadata<T extends Record<string, unknown>>(
     const afterValue = after[field];
 
     if (afterValue !== undefined && beforeValue !== afterValue) {
-      changes[field as string] = {
+      const fieldKey = String(field);
+      changes[fieldKey] = {
         from: beforeValue,
         to: afterValue,
       };
-      changedFields.push(field as string);
+      changedFields.push(fieldKey);
     }
   }
 
