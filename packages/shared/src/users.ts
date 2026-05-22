@@ -1,15 +1,20 @@
+import { z } from "zod";
+
 export const USER_STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
   LOCKED: "locked",
+  DELETED: "deleted",
 } as const;
 
-export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
-
 export const USER_STATUS_VALUES = Object.values(USER_STATUS) as [
-  UserStatus,
-  ...UserStatus[],
+  (typeof USER_STATUS)[keyof typeof USER_STATUS],
+  ...(typeof USER_STATUS)[keyof typeof USER_STATUS][],
 ];
+
+export const userStatusSchema = z.enum(USER_STATUS_VALUES);
+
+export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const USER_STATUS_CONFIG = {
   [USER_STATUS.ACTIVE]: {

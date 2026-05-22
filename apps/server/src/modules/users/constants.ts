@@ -1,11 +1,9 @@
-import { USER_STATUS as SHARED_USER_STATUS } from "@repo/shared/users";
-
-export const USER_STATUS = SHARED_USER_STATUS;
-
-export const USER_STATUS_VALUES = Object.values(USER_STATUS) as [
-  (typeof USER_STATUS)[keyof typeof USER_STATUS],
-  ...(typeof USER_STATUS)[keyof typeof USER_STATUS][],
-];
+export {
+  USER_STATUS,
+  USER_STATUS_VALUES,
+  type UserStatus,
+  userStatusSchema,
+} from "@repo/shared/users";
 
 export const USERS_SORT_COLUMNS = {
   name: "name",

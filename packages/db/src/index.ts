@@ -5,6 +5,7 @@ export {
   type Executor,
   type Transaction,
 } from "./client";
+export { createdAt, firstOrThrow, updatedAt } from "./helpers";
 export type {
   AccountId,
   SessionId,

@@ -1,19 +1,12 @@
+import {
+  USER_STATUS,
+  USER_STATUS_VALUES,
+  userStatusSchema,
+} from "@repo/shared/users";
 import type { BetterAuthPlugin } from "better-auth";
-import { z } from "zod";
+import type { z } from "zod";
 
-export const USER_STATUS = {
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-  LOCKED: "locked",
-  DELETED: "deleted",
-} as const;
-
-export const USER_STATUS_VALUES = Object.values(USER_STATUS) as [
-  (typeof USER_STATUS)[keyof typeof USER_STATUS],
-  ...(typeof USER_STATUS)[keyof typeof USER_STATUS][],
-];
-
-export const userStatusSchema = z.enum(USER_STATUS_VALUES);
+export { USER_STATUS, USER_STATUS_VALUES, userStatusSchema };
 
 export type UserWithStatusFields = {
   status: z.infer<typeof userStatusSchema>;
@@ -27,24 +20,14 @@ export type UserWithStatusFields = {
   twoFactorEnabled: boolean;
 };
 
-/**
- * User Status Plugin
- *
- * Extends the user schema with:
- * - Status tracking (active, inactive, locked, deleted)
- * - Deactivation tracking (who, when, why)
- * - Lockout tracking (failed attempts, lockout expiry)
- * - Role assignment (roleSlugs array)
- *
- * !important: fieldName must match the column name in the database adapter schema not necessarily the column name in the database schema
- */
-export const enhancedUserPlugin = () => {
-  return {
+// `fieldName` MUST match the database adapter's column name, which is not
+// always the database schema's column name. Diverging breaks Better Auth reads.
+export const enhancedUserPlugin = () =>
+  ({
     id: "user-status",
     schema: {
       user: {
         fields: {
-          // Status field - determines if user can login
           status: {
             type: "string",
             fieldName: "status",
@@ -52,7 +35,6 @@ export const enhancedUserPlugin = () => {
             defaultValue: "active",
             input: false,
           },
-          // Deactivation tracking - when admin deactivates a user
           deactivatedAt: {
             type: "date",
             fieldName: "deactivatedAt",
@@ -71,7 +53,6 @@ export const enhancedUserPlugin = () => {
             required: false,
             input: false,
           },
-          // Lockout tracking - for failed login attempts
           failedLoginAttempts: {
             type: "number",
             fieldName: "failedLoginAttempts",
@@ -85,7 +66,6 @@ export const enhancedUserPlugin = () => {
             required: false,
             input: false,
           },
-          // Role assignment - array of role slugs
           roleSlugs: {
             type: "string[]",
             fieldName: "roleSlugs",
@@ -93,14 +73,12 @@ export const enhancedUserPlugin = () => {
             defaultValue: [],
             input: false,
           },
-          // Onboarding tracking - when user completed onboarding
           onboardingCompletedAt: {
             type: "date",
             fieldName: "onboardingCompletedAt",
             required: false,
             input: false,
           },
-          // Two-factor authentication status (managed by twoFactor plugin)
           twoFactorEnabled: {
             type: "boolean",
             fieldName: "twoFactorEnabled",
@@ -111,5 +89,4 @@ export const enhancedUserPlugin = () => {
         },
       },
     },
-  } satisfies BetterAuthPlugin;
-};
+  }) satisfies BetterAuthPlugin;

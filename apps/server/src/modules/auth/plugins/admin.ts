@@ -24,6 +24,14 @@ type AuthSessionUser = {
   status?: string;
 };
 
+type AuthEndpointCtx = {
+  context: { session: { user: { id: string } } };
+};
+
+function getAuthSessionUser(ctx: AuthEndpointCtx): AuthSessionUser {
+  return ctx.context.session.user as AuthSessionUser;
+}
+
 const EMPTY_AUDIT_CONTEXT = {
   ipAddress: undefined,
   userAgent: undefined,
@@ -67,22 +75,10 @@ async function runUserStatusMutationWithApiError(
   }
 }
 
-/**
- * Admin Plugin
- *
- * Provides endpoints for user management:
- * - Deactivate user (admin sets user to inactive)
- * - Activate user (admin reactivates a user)
- * - Unlock user (admin unlocks a locked user)
- */
-export const adminPlugin = () => {
-  return {
+export const adminPlugin = () =>
+  ({
     id: "admin",
     endpoints: {
-      /**
-       * Deactivate a user - sets status to "inactive"
-       * Revokes all user sessions
-       */
       deactivateUser: createAuthEndpoint(
         "/admin/deactivate-user",
         {
@@ -117,7 +113,7 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user as AuthSessionUser;
+          const currentUser = getAuthSessionUser(ctx);
 
           await assertCanManageUserStatusWithApiError(
             currentUser,
@@ -125,7 +121,6 @@ export const adminPlugin = () => {
             ctx.body.userId
           );
 
-          // Cannot deactivate yourself
           if (ctx.body.userId === currentUser.id) {
             throw new APIError("BAD_REQUEST", {
               message: "Cannot deactivate yourself",
@@ -144,10 +139,6 @@ export const adminPlugin = () => {
         }
       ),
 
-      /**
-       * Activate a user - sets status back to "active"
-       * Clears deactivation fields
-       */
       activateUser: createAuthEndpoint(
         "/admin/activate-user",
         {
@@ -181,7 +172,7 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user as AuthSessionUser;
+          const currentUser = getAuthSessionUser(ctx);
 
           await assertCanManageUserStatusWithApiError(
             currentUser,
@@ -201,10 +192,6 @@ export const adminPlugin = () => {
         }
       ),
 
-      /**
-       * Unlock a user - resets lockout status
-       * Clears failed login attempts and lockedUntil
-       */
       unlockUser: createAuthEndpoint(
         "/admin/unlock-user",
         {
@@ -237,7 +224,7 @@ export const adminPlugin = () => {
           },
         },
         async (ctx) => {
-          const currentUser = ctx.context.session.user as AuthSessionUser;
+          const currentUser = getAuthSessionUser(ctx);
 
           await assertCanManageUserStatusWithApiError(
             currentUser,
@@ -257,8 +244,7 @@ export const adminPlugin = () => {
         }
       ),
     },
-  } satisfies BetterAuthPlugin;
-};
+  }) satisfies BetterAuthPlugin;
 
 export async function assertCanManageUserStatus(
   actor: AuthSessionUser,
