@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { type JSX, useState } from "react";
+import type { JSX } from "react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/modules/ui/button";
 import { ScrollArea } from "@/modules/ui/scroll-area";
@@ -22,10 +22,9 @@ type SidebarNavProps = React.HTMLAttributes<HTMLElement> & {
 export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const [val, setVal] = useState(pathname ?? "/settings");
+  const val = pathname ?? "/settings";
 
   const handleSelect = (e: string) => {
-    setVal(e);
     navigate({ to: e });
   };
 

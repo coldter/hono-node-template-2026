@@ -59,10 +59,15 @@ export function RoleAssignmentDialog({
   }, [open, user, form]);
 
   const onSubmit = async (values: RolesFormValues) => {
-    await updateMutation.mutateAsync({
-      userId: user.id,
-      data: values,
-    });
+    try {
+      await updateMutation.mutateAsync({
+        userId: user.id,
+        data: values,
+      });
+    } catch {
+      // Keep dialog open; the mutation onError already surfaces a toast.
+      return;
+    }
     onOpenChange(false);
   };
 

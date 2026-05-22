@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { getAuthorizationCapabilities } from "@/api.gen/sdk.gen";
 
 function normalizeCapabilities(capabilities: unknown): Record<string, boolean> {
@@ -24,8 +25,10 @@ export function useAuthorization() {
     retry: 1,
   });
 
+  const capabilities = useMemo(() => query.data ?? {}, [query.data]);
+
   return {
-    capabilities: query.data ?? {},
+    capabilities,
     isLoading: query.isLoading,
     refetch: query.refetch,
   };

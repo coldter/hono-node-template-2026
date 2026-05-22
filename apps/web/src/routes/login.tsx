@@ -4,7 +4,7 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { Logo } from "@/assets/logo";
 import {
@@ -42,14 +42,10 @@ function RouteComponent() {
   const { redirect } = useSearch({ strict: false });
   const { clearLastUser, lastUser } = useLastUserStore();
 
-  const [step, setStep] = useState<LoginStep>("fresh");
+  const [step, setStep] = useState<LoginStep>(() =>
+    lastUser ? "welcome" : "fresh"
+  );
   const [twoFactorEmail, setTwoFactorEmail] = useState("");
-
-  useEffect(() => {
-    if (lastUser) {
-      setStep("welcome");
-    }
-  }, [lastUser]);
 
   const handleSuccess = () => {
     navigate({ to: redirect ?? "/dashboard" });

@@ -24,9 +24,17 @@ type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
 export function AppearanceForm() {
   const { theme, setTheme } = useTheme();
 
-  // This can come from your database or API.
+  // Resolve "system" to the actual OS-level preference so the form starts on a
+  // value the schema accepts.
+  const systemPrefersDark = window.matchMedia(
+    "(prefers-color-scheme: dark)"
+  ).matches;
+  const systemTheme: "light" | "dark" = systemPrefersDark ? "dark" : "light";
+  const resolvedDefaultTheme: "light" | "dark" =
+    theme === "light" || theme === "dark" ? theme : systemTheme;
+
   const defaultValues: Partial<AppearanceFormValues> = {
-    theme: theme as "light" | "dark",
+    theme: resolvedDefaultTheme,
   };
 
   const form = useForm<AppearanceFormValues>({

@@ -57,6 +57,8 @@ export function TwoFactorSection() {
       });
       resetConfirm();
       toast.success("Two-factor authentication enabled");
+    } catch {
+      toast.error("Failed to enable 2FA");
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +87,8 @@ export function TwoFactorSection() {
       });
       resetConfirm();
       toast.success("Two-factor authentication disabled");
+    } catch {
+      toast.error("Failed to disable 2FA");
     } finally {
       setIsLoading(false);
     }

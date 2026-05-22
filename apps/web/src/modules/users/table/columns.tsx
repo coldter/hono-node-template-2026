@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
 
 import { UserRoleBadges } from "../components/user-role-badges";
 import { UserStatusBadge } from "../components/user-status-badge";
-import type { User, UserStatus } from "../types";
+import { isUserStatus, type User } from "../types";
 
 export const usersColumns: ColumnDef<User>[] = [
   {
@@ -48,9 +48,13 @@ export const usersColumns: ColumnDef<User>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
-    cell: ({ row }) => (
-      <UserStatusBadge status={row.original.status as UserStatus} />
-    ),
+    cell: ({ row }) => {
+      const status = row.original.status;
+      if (!isUserStatus(status)) {
+        return null;
+      }
+      return <UserStatusBadge status={status} />;
+    },
     enableSorting: true,
   },
   {

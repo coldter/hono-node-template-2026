@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CommandMenu } from "@/modules/common/command-menu";
 
 type SearchContextType = {
@@ -27,8 +27,10 @@ export function SearchProvider({ children }: SearchProviderProps) {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
+  const value = useMemo(() => ({ open, setOpen }), [open]);
+
   return (
-    <SearchContext value={{ open, setOpen }}>
+    <SearchContext value={value}>
       {children}
       <CommandMenu />
     </SearchContext>

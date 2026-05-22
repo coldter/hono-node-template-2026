@@ -1,5 +1,5 @@
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { useMemo } from "react";
+import { useEffect } from "react";
 
 import type { NavigateFn } from "@/hooks/use-table-url-state";
 import { useTableUrlState } from "@/hooks/use-table-url-state";
@@ -64,7 +64,7 @@ export function UsersTable() {
 
   const pageCount = data?.meta.pageCount ?? 0;
 
-  useMemo(() => {
+  useEffect(() => {
     ensurePageInRange(pageCount);
   }, [pageCount, ensurePageInRange]);
 

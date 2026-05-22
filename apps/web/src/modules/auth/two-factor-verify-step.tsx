@@ -101,6 +101,7 @@ export function TwoFactorVerifyStep({
     <div className="space-y-6">
       <div className="flex items-center">
         <button
+          aria-label="Go back"
           className="group flex size-10 items-center justify-center rounded-full border bg-background transition-colors hover:bg-accent"
           onClick={onBack}
           type="button"

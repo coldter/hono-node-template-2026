@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/modules/ui/separator";
 import { SidebarTrigger } from "@/modules/ui/sidebar";
@@ -10,16 +10,21 @@ type HeaderProps = React.HTMLAttributes<HTMLElement> & {
 
 export function Header({ className, fixed, children, ...props }: HeaderProps) {
   const [offset, setOffset] = useState(0);
+  const lastBucketRef = useRef<"top" | "scrolled">("top");
 
   useEffect(() => {
     const onScroll = () => {
-      setOffset(document.body.scrollTop || document.documentElement.scrollTop);
+      const scrollTop =
+        document.body.scrollTop || document.documentElement.scrollTop;
+      const bucket: "top" | "scrolled" = scrollTop > 10 ? "scrolled" : "top";
+      if (bucket !== lastBucketRef.current) {
+        lastBucketRef.current = bucket;
+        setOffset(scrollTop);
+      }
     };
 
-    // Add scroll listener to the body
     document.addEventListener("scroll", onScroll, { passive: true });
 
-    // Clean up the event listener on unmount
     return () => document.removeEventListener("scroll", onScroll);
   }, []);
 

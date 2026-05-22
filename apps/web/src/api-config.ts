@@ -19,7 +19,12 @@ export const createClientConfig: CreateClientConfig = (baseConfig) => ({
       return response;
     }
 
-    const json = await response.json();
+    let json: unknown;
+    try {
+      json = await response.json();
+    } catch {
+      throw ApiError.fromResponse(response, undefined);
+    }
     throw ApiError.fromResponse(response, json);
   },
 });

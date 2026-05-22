@@ -120,9 +120,18 @@ export function AuditLogsTable() {
 
     return rows.map((row) => (
       <TableRow
+        aria-label={`View audit log ${row.original.id}`}
         className="cursor-pointer transition-colors"
         key={row.id}
         onClick={() => handleRowClick(row.original)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleRowClick(row.original);
+          }
+        }}
+        role="button"
+        tabIndex={0}
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id}>

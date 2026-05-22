@@ -1,5 +1,11 @@
 import type * as React from "react";
-import { createContext, useContext, useEffect, useMemo } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 import { type Theme, useUIStore } from "@/store";
 
 type ResolvedTheme = Exclude<Theme, "system">;
@@ -69,21 +75,27 @@ export function ThemeProvider({
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme, resolvedTheme]);
 
-  const setTheme = (nextTheme: Theme) => {
-    setThemeStore(nextTheme);
-  };
+  const setTheme = useCallback(
+    (nextTheme: Theme) => {
+      setThemeStore(nextTheme);
+    },
+    [setThemeStore]
+  );
 
-  const resetTheme = () => {
+  const resetTheme = useCallback(() => {
     setThemeStore(DEFAULT_THEME);
-  };
+  }, [setThemeStore]);
 
-  const contextValue = {
-    defaultTheme,
-    resolvedTheme,
-    resetTheme,
-    theme,
-    setTheme,
-  };
+  const contextValue = useMemo(
+    () => ({
+      defaultTheme,
+      resolvedTheme,
+      resetTheme,
+      theme,
+      setTheme,
+    }),
+    [defaultTheme, resolvedTheme, resetTheme, theme, setTheme]
+  );
 
   return (
     <ThemeContext value={contextValue} {...props}>

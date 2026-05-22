@@ -111,7 +111,6 @@ function MetadataValue({ data }: { data: unknown }) {
     );
   }
 
-  // Handle "changes" format: { field: { from, to } }
   if (typeof data === "object") {
     const obj = data as Record<string, unknown>;
 
@@ -142,7 +141,6 @@ function MetadataValue({ data }: { data: unknown }) {
 function MetadataSection({ metadata }: { metadata: Record<string, unknown> }) {
   const entries = Object.entries(metadata);
 
-  // Separate "changes" and "changedFields" from other top-level keys
   const changes = metadata.changes as Record<string, unknown> | undefined;
   const changedFields = metadata.changedFields as string[] | undefined;
   const otherEntries = entries.filter(

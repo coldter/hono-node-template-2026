@@ -54,7 +54,12 @@ export function CreateUserDialog({
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {
-    await createMutation.mutateAsync(values);
+    try {
+      await createMutation.mutateAsync(values);
+    } catch {
+      // Keep dialog open; the mutation onError already surfaces a toast.
+      return;
+    }
     form.reset();
     onOpenChange(false);
   };

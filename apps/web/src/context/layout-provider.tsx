@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { createContext, useContext } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { type Collapsible, useUIStore, type Variant } from "@/store";
 
 const DEFAULT_VARIANT = "floating";
@@ -29,28 +29,37 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
   const variant = useUIStore((state) => state.variant);
   const setVariantStore = useUIStore((state) => state.setVariant);
 
-  const setCollapsible = (newCollapsible: Collapsible) => {
-    setCollapsibleStore(newCollapsible);
-  };
+  const setCollapsible = useCallback(
+    (newCollapsible: Collapsible) => {
+      setCollapsibleStore(newCollapsible);
+    },
+    [setCollapsibleStore]
+  );
 
-  const setVariant = (newVariant: Variant) => {
-    setVariantStore(newVariant);
-  };
+  const setVariant = useCallback(
+    (newVariant: Variant) => {
+      setVariantStore(newVariant);
+    },
+    [setVariantStore]
+  );
 
-  const resetLayout = () => {
+  const resetLayout = useCallback(() => {
     setCollapsible(DEFAULT_COLLAPSIBLE);
     setVariant(DEFAULT_VARIANT);
-  };
+  }, [setCollapsible, setVariant]);
 
-  const contextValue: LayoutContextType = {
-    resetLayout,
-    defaultCollapsible: DEFAULT_COLLAPSIBLE,
-    collapsible,
-    setCollapsible,
-    defaultVariant: DEFAULT_VARIANT,
-    variant,
-    setVariant,
-  };
+  const contextValue = useMemo<LayoutContextType>(
+    () => ({
+      resetLayout,
+      defaultCollapsible: DEFAULT_COLLAPSIBLE,
+      collapsible,
+      setCollapsible,
+      defaultVariant: DEFAULT_VARIANT,
+      variant,
+      setVariant,
+    }),
+    [collapsible, resetLayout, setCollapsible, setVariant, variant]
+  );
 
   return <LayoutContext value={contextValue}>{children}</LayoutContext>;
 }

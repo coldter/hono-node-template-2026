@@ -6,7 +6,9 @@ import { Button } from "@/modules/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/modules/ui/select";
@@ -26,7 +28,13 @@ type AuditLogsFiltersProps = {
   navigate: NavigateFn;
 };
 
-// Group events by category for the dropdown
+const VALID_TARGET_TYPES = ["user", "role", "session"] as const;
+type ValidTargetType = (typeof VALID_TARGET_TYPES)[number];
+
+function isValidTargetType(value: string): value is ValidTargetType {
+  return value === "user" || value === "role" || value === "session";
+}
+
 const eventCategories = [
   {
     label: "Authentication",
@@ -68,7 +76,6 @@ export function AuditLogsFilters({ search, navigate }: AuditLogsFiltersProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        {/* Event filter */}
         <Select
           onValueChange={(value) =>
             updateFilter({ event: value === "__all__" ? undefined : value })
@@ -81,10 +88,10 @@ export function AuditLogsFilters({ search, navigate }: AuditLogsFiltersProps) {
           <SelectContent>
             <SelectItem value="__all__">All events</SelectItem>
             {eventCategories.map((category) => (
-              <div key={category.label}>
-                <div className="text-muted-foreground px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider">
+              <SelectGroup key={category.label}>
+                <SelectLabel className="text-muted-foreground px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider">
                   {category.label}
-                </div>
+                </SelectLabel>
                 {category.events.map((event) => (
                   <SelectItem key={event} value={event}>
                     <span className="flex items-center gap-2">
@@ -98,19 +105,18 @@ export function AuditLogsFilters({ search, navigate }: AuditLogsFiltersProps) {
                     </span>
                   </SelectItem>
                 ))}
-              </div>
+              </SelectGroup>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Target type filter */}
         <Select
           onValueChange={(value) =>
             updateFilter({
               targetType:
-                value === "__all__"
+                value === "__all__" || !isValidTargetType(value)
                   ? undefined
-                  : (value as "user" | "role" | "session"),
+                  : value,
             })
           }
           value={search.targetType ?? "__all__"}
@@ -143,7 +149,6 @@ export function AuditLogsFilters({ search, navigate }: AuditLogsFiltersProps) {
         )}
       </div>
 
-      {/* Active filter badges */}
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-muted-foreground text-xs">Active filters:</span>

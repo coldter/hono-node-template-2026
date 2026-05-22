@@ -87,20 +87,19 @@ export function DataTablePagination<TData>({
             <ChevronLeftIcon className="h-4 w-4" />
           </Button>
 
-          {/* Page number buttons */}
           {pageNumbers.map((pageNumber, index) => (
             <div className="flex items-center" key={`${pageNumber}-${index}`}>
-              {pageNumber === "..." ? (
-                <span className="text-muted-foreground px-1 text-sm">...</span>
-              ) : (
+              {typeof pageNumber === "number" ? (
                 <Button
                   className="h-8 min-w-8 px-2"
-                  onClick={() => table.setPageIndex((pageNumber as number) - 1)}
+                  onClick={() => table.setPageIndex(pageNumber - 1)}
                   variant={currentPage === pageNumber ? "default" : "outline"}
                 >
                   <span className="sr-only">Go to page {pageNumber}</span>
                   {pageNumber}
                 </Button>
+              ) : (
+                <span className="text-muted-foreground px-1 text-sm">...</span>
               )}
             </div>
           ))}

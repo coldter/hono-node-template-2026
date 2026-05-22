@@ -21,10 +21,42 @@ interface RoleMultiSelectProps {
   value: string[];
 }
 
+type RoleOption = { slug: string; name: string };
+
+function renderTriggerLabel({
+  isError,
+  value,
+  roles,
+}: {
+  isError: boolean;
+  value: string[];
+  roles: RoleOption[];
+}) {
+  if (isError) {
+    return <span className="text-destructive">Couldn&apos;t load roles</span>;
+  }
+  if (value.length === 0) {
+    return <span className="text-muted-foreground">Select roles...</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {value.map((slug) => (
+        <Badge className="capitalize" key={slug} variant="secondary">
+          {roles.find((r) => r.slug === slug)?.name ?? slug}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 export function RoleMultiSelect({ value, onChange }: RoleMultiSelectProps) {
   const [open, setOpen] = useState(false);
 
-  const { data: rolesData, isLoading } = useQuery({
+  const {
+    data: rolesData,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
       const response = await listRoles();
@@ -47,21 +79,11 @@ export function RoleMultiSelect({ value, onChange }: RoleMultiSelectProps) {
       <PopoverTrigger asChild>
         <Button
           className="w-full justify-between"
-          disabled={isLoading}
+          disabled={isLoading || isError}
           role="combobox"
           variant="outline"
         >
-          {value.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {value.map((slug) => (
-                <Badge className="capitalize" key={slug} variant="secondary">
-                  {roles.find((r) => r.slug === slug)?.name ?? slug}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <span className="text-muted-foreground">Select roles...</span>
-          )}
+          {renderTriggerLabel({ isError, value, roles })}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

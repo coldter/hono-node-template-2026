@@ -87,7 +87,7 @@ export const DownAlert = () => {
     return null;
   }
 
-  const config = downAlertConfig[downAlert as AlertKeys];
+  const config = downAlertConfig[downAlert];
   if (!config) {
     return null;
   }
