@@ -5,7 +5,7 @@
 - `src/routers/main.ts`: route composition
 - `src/modules/*`: feature modules (schema/routes/handler/service)
 - `src/lib/*`: reusable infrastructure and cross-cutting helpers
-- `src/db/*`: Drizzle client and schema
+- `src/db/*`: Drizzle client wiring (schema and migrations live in `packages/db/src/{schema,migrations}`)
 - `src/middlewares/*`: auth, guards, request concerns
 
 ## Module Convention

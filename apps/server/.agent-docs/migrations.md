@@ -6,10 +6,10 @@
 
 ## Generated Migrations (Schema Changes)
 
-When you add or change tables/columns/indexes in `src/db/schema/`:
+When you add or change tables/columns/indexes in `packages/db/src/schema/`:
 
 ```bash
-bun run db:generate   # generates migration in src/db/migrations/
+bun run db:generate   # generates migration in packages/db/src/migrations/
 ```
 
 This produces a timestamped directory with `migration.sql` + `snapshot.json`. Both files are required — the snapshot tracks Drizzle's internal schema state. Do not edit generated files.

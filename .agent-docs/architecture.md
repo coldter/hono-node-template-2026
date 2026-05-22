@@ -12,7 +12,7 @@
 | `packages/email` | React Email templates + transport utilities |
 
 ## Server Modules (`apps/server/src/modules`)
-- `analytics`, `audit-logs`, `auth`, `cards`, `controls`, `mcc-catalog`, `mobile-dashboard`, `notifications`, `shares`, `status`, `transactions`, `users`
+- `audit-logs`, `auth`, `notifications`, `status`, `users`
 
 ## Import Aliases
 - In app workspaces, `@/*` maps to `src/*`.

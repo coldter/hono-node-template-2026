@@ -21,19 +21,16 @@ const [user] = await db.select().from(users).where(eq(users.id, id));
 return user.name; // error: user is T | undefined
 ```
 
-Use the helpers in `apps/server/src/db/index.ts`:
+Use the `firstOrThrow` helper exported from `@repo/db` (`packages/db/src/helpers.ts`) — it takes a resolved row array and throws when the array is empty.
 
 ```ts
-import { db, firstOrNull, firstOrThrow } from "@/db";
+import { firstOrThrow } from "@repo/db";
 
-// returns T | null — caller handles the absent case
-const user = await firstOrNull(
-  db.select().from(users).where(eq(users.id, id))
-);
+import { db } from "@/db";
 
 // returns T — throws with the given message if the row is missing
-const user = await firstOrThrow(
-  db.select().from(users).where(eq(users.id, id)),
+const user = firstOrThrow(
+  await db.select().from(users).where(eq(users.id, id)),
   "User not found"
 );
 ```
@@ -57,12 +54,14 @@ Outside these categories, refactor the code. If you must keep the cast, annotate
 Services that perform multi-step writes accept an optional `executor` parameter so callers can pass in an active transaction:
 
 ```ts
+import { firstOrThrow } from "@repo/db";
+
 import { db, type Executor } from "@/db";
 
 async function createUser(input, executor: Executor = db) {
   return executor.transaction(async (tx) => {
-    const user = await firstOrThrow(
-      tx.insert(users).values(input).returning(),
+    const user = firstOrThrow(
+      await tx.insert(users).values(input).returning(),
       "Failed to create user"
     );
     await auditLogService.create({ ... }, tx);

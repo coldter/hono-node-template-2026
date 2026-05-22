@@ -7,8 +7,7 @@ A production-ready monorepo template with authentication, RBAC, user management,
 1. Clone the template:
 
    ```bash
-   bun create <repo> my-app
-   # or: git clone <repo-url> my-app
+   git clone <your-template-url> my-app
    cd my-app
    ```
 
@@ -36,12 +35,12 @@ A production-ready monorepo template with authentication, RBAC, user management,
    # see docker/ and compose.extra.yaml for additional services
    ```
 
-5. Install, push schema, seed:
+5. Install and push schema:
 
    ```bash
    bun install
    bun run db:push
-   bun run db:seed
+   # (no seed script in this template)
    ```
 
 6. Run dev (use split terminals for the API and the web app):
@@ -74,8 +73,8 @@ bun run db:studio                    # Open Drizzle Studio
 
 ## Requirements
 
-- Bun 1.3+
-- Node.js 25+
+- Bun 1.3.14 (matches `packageManager` in root `package.json`)
+- Node.js 25.9 or newer (matches `@types/node` floor)
 - PostgreSQL
 
 ## Structure
