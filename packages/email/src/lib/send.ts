@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
-import { createTransport } from "../transports";
+import { createTransport, type EmailTransport } from "../transports";
 import type { SendEmailOptions, SendEmailResult } from "../transports/types";
-import { getEmailConfig } from "./config";
+import { type EmailConfig, getEmailConfig } from "./config";
 import { renderEmail } from "./render";
 
 export interface SendEmailParams<T> {
@@ -12,11 +12,35 @@ export interface SendEmailParams<T> {
   to: string | string[];
 }
 
+let cachedTransport: EmailTransport | undefined;
+let cachedTransportKey: string | undefined;
+
+function transportKey(config: EmailConfig): string {
+  if (config.provider === "console") {
+    return "console";
+  }
+  if (config.smtp) {
+    return `nodemailer:${config.smtp.host}:${config.smtp.port}:${config.smtp.secure}:${config.smtp.auth.user}`;
+  }
+  return "fallback";
+}
+
+function getTransport(config: EmailConfig): EmailTransport {
+  const key = transportKey(config);
+  if (cachedTransport && cachedTransportKey === key) {
+    return cachedTransport;
+  }
+  const transport = createTransport(config);
+  cachedTransport = transport;
+  cachedTransportKey = key;
+  return transport;
+}
+
 export async function sendEmail<T>(
   params: SendEmailParams<T>
 ): Promise<SendEmailResult> {
   const config = getEmailConfig();
-  const transport = createTransport(config);
+  const transport = getTransport(config);
 
   try {
     const reactElement = params.template(params.props);

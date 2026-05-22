@@ -1,6 +1,7 @@
 import { type Notification, notifications } from "@repo/db/schema";
 import { NotificationEmail, sendEmail } from "@repo/email";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import { EVENTS, type EventPayloads } from "@/lib/events";
 import { isHatchetEnabled, requireHatchet } from "@/lib/hatchet";
@@ -15,8 +16,18 @@ type EmailNotificationOutput = {
   sendEmail: { sent: boolean; messageId?: string };
 };
 
+const emailNotificationPropsSchema = z
+  .object({
+    actionUrl: z.string().optional(),
+    actionLabel: z.string().optional(),
+  })
+  .passthrough();
+
 async function resolveAndSendEmail(notification: Notification, to: string) {
-  const props = notification.props;
+  const parsedProps = emailNotificationPropsSchema.safeParse(
+    notification.props ?? {}
+  );
+  const props = parsedProps.success ? parsedProps.data : {};
 
   return sendEmail({
     to,
@@ -25,8 +36,8 @@ async function resolveAndSendEmail(notification: Notification, to: string) {
     props: {
       subject: notification.subject ?? "Notification",
       body: notification.body ?? "",
-      actionUrl: (props?.actionUrl as string) ?? undefined,
-      actionLabel: (props?.actionLabel as string) ?? undefined,
+      actionUrl: props.actionUrl,
+      actionLabel: props.actionLabel,
     },
   });
 }
@@ -50,7 +61,6 @@ function createEmailNotificationWorkflow() {
         notificationId: input.notificationId,
       });
 
-      // Load notification record
       const [notification] = await db
         .select()
         .from(notifications)
@@ -67,7 +77,6 @@ function createEmailNotificationWorkflow() {
         );
       }
 
-      // Look up user email
       const user = await userService.findById(notification.userId);
 
       if (!user) {
@@ -104,7 +113,6 @@ function createEmailNotificationWorkflow() {
           return { sent: false };
         }
 
-        // Success: update DB record
         await db
           .update(notifications)
           .set({

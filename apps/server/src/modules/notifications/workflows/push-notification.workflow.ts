@@ -35,7 +35,6 @@ function createPushNotificationWorkflow() {
         notificationId: input.notificationId,
       });
 
-      // Load notification record
       const [notification] = await db
         .select()
         .from(notifications)
@@ -59,7 +58,6 @@ function createPushNotificationWorkflow() {
         return { sent: false, deliveredCount: 0, failedCount: 0 };
       }
 
-      // Fetch active push tokens for this user
       const tokens = await db
         .select()
         .from(pushTokens)
@@ -90,18 +88,37 @@ function createPushNotificationWorkflow() {
       let deliveredCount = 0;
       let failedCount = 0;
 
-      for (const pushToken of tokens) {
-        const result = await provider.send({
-          token: pushToken.token,
-          data: {
-            notificationId: notification.id,
-            type: notification.type,
-            title: notification.subject ?? "",
-            body: notification.body ?? "",
-            priority: notification.priority,
-            deepLink: `notification/${notification.id}`,
-          },
-        });
+      const sendResults = await Promise.all(
+        tokens.map(async (pushToken) => {
+          try {
+            const result = await provider.send({
+              token: pushToken.token,
+              data: {
+                notificationId: notification.id,
+                type: notification.type,
+                title: notification.subject ?? "",
+                body: notification.body ?? "",
+                priority: notification.priority,
+                deepLink: `notification/${notification.id}`,
+              },
+            });
+            return { pushToken, result, error: undefined } as const;
+          } catch (err) {
+            return { pushToken, result: undefined, error: err } as const;
+          }
+        })
+      );
+
+      for (const settled of sendResults) {
+        const { pushToken, result, error } = settled;
+        if (error !== undefined || result === undefined) {
+          failedCount++;
+          taskLogger.warn("Push failed for device", {
+            tokenId: pushToken.id,
+            error,
+          });
+          continue;
+        }
 
         if (result.success) {
           deliveredCount++;
@@ -117,7 +134,6 @@ function createPushNotificationWorkflow() {
             invalidToken: result.invalidToken,
           });
 
-          // Remove invalid tokens
           if (result.invalidToken) {
             await notificationService.deletePushTokenByToken(pushToken.token);
             taskLogger.info("Removed invalid push token", {
@@ -127,7 +143,6 @@ function createPushNotificationWorkflow() {
         }
       }
 
-      // Update notification status
       const allFailed = deliveredCount === 0;
       await db
         .update(notifications)
