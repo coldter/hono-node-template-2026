@@ -11,7 +11,7 @@
     "format": "biome format --write",
     "dev": "turbo dev --filter=!@repo/email",
     "build": "turbo build",
-    "clean": "rm -rf .turbo && git clean -xdf node_modules apps/*/node_modules && rm bun.lock",
+    "clean": "rm -rf .turbo && git clean -xdf node_modules apps/*/node_modules && rm -f bun.lock",
     "check-types": "turbo check-types",
     "check-types:backup": "turbo check-types:backup",
     "dev:web": "turbo -F web dev",

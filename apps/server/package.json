@@ -17,7 +17,7 @@
     "seed:audit-logs": "tsx scripts/seeds/audit-logs/run.ts",
     "vault:debug": "tsx scripts/vault-debug.ts",
     "push:debug": "tsx scripts/push-debug.ts",
-    "generate-openapi": "tsx scripts/generate-openapi.ts || true",
+    "generate-openapi": "tsx scripts/generate-openapi.ts",
     "db:mm:up": "drizzle-kit up",
     "test": "vitest run",
     "test:watch": "vitest",

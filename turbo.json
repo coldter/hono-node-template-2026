@@ -10,9 +10,6 @@
       "outputs": ["dist/**"],
       "env": ["VITE_*", "NODE_ENV"]
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
     "check-types": {
       "dependsOn": ["^check-types"],
       "inputs": ["$TURBO_DEFAULT$", "tsconfig*.json", "../../tsconfig*.json"],
@@ -50,16 +47,16 @@
       "persistent": true
     },
     "db:migrate": {
-      "cache": false,
-      "persistent": true
+      "cache": false
     },
     "db:generate": {
       "cache": false,
       "persistent": true
     },
     "generate-openapi": {
-      "cache": false,
-      "outputs": ["openapi.cache.json"]
+      "cache": true,
+      "outputs": ["openapi.cache.json"],
+      "env": ["DATABASE_URL", "BETTER_AUTH_SECRET", "SKIP_ENV_VALIDATION"]
     },
     "generate-client": {
       "cache": false
