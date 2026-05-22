@@ -13,6 +13,7 @@ export function PasswordResetEmail({
   resetUrl,
   expiresIn,
 }: PasswordResetEmailProps) {
+  const safeUserName = userName.slice(0, 100);
   return (
     <BaseLayout previewText="Reset your password (link inside).">
       <Section>
@@ -20,7 +21,7 @@ export function PasswordResetEmail({
           Reset your password
         </Heading>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-4">
-          Hi {userName},
+          Hi {safeUserName},
         </Text>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-8">
           We received a request to reset the password for your account. No

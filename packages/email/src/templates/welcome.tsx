@@ -8,11 +8,12 @@ interface WelcomeEmailProps {
 }
 
 export function WelcomeEmail({ userName, loginUrl }: WelcomeEmailProps) {
+  const safeUserName = userName.slice(0, 100);
   return (
     <BaseLayout previewText="Welcome aboard! Your account is ready.">
       <Section>
         <Heading className="text-[28px] font-bold text-slate-900 text-center m-0 mb-6 leading-tight">
-          Welcome, {userName}!
+          Welcome, {safeUserName}!
         </Heading>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-6">
           We're thrilled to have you here. Your account is fully set up and

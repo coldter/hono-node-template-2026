@@ -17,6 +17,7 @@ export function TwoFactorOtpEmail({
   ipAddress,
   userAgent,
 }: TwoFactorOtpEmailProps) {
+  const safeUserName = userName.slice(0, 100);
   return (
     <BaseLayout previewText={`Your 2FA code: ${otp}`}>
       <Section>
@@ -24,7 +25,7 @@ export function TwoFactorOtpEmail({
           Two-Factor Authentication
         </Heading>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-4">
-          Hi {userName},
+          Hi {safeUserName},
         </Text>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-6">
           A sign-in attempt requires verification. Use the code below to

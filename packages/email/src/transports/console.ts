@@ -8,7 +8,7 @@ import type {
 export class ConsoleTransport implements EmailTransport {
   async send(options: SendEmailOptions): Promise<SendEmailResult> {
     console.log("---------------------------------------");
-    console.log("📧 Email sent (Console Transport)");
+    console.log("[email/console] Email sent (Console Transport)");
     console.log(
       `To: ${Array.isArray(options.to) ? options.to.join(", ") : options.to}`
     );
@@ -32,7 +32,7 @@ export class ConsoleTransport implements EmailTransport {
 
     return {
       success: true,
-      messageId: `console-${Date.now()}`,
+      messageId: `console-${crypto.randomUUID()}`,
     };
   }
 }

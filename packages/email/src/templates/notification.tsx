@@ -15,14 +15,15 @@ export function NotificationEmail({
   actionUrl,
   actionLabel,
 }: NotificationEmailProps) {
+  const safeBody = body.slice(0, 5000);
   return (
-    <BaseLayout previewText={body.slice(0, 140)}>
+    <BaseLayout previewText={safeBody.slice(0, 140)}>
       <Section>
         <Heading className="text-[24px] font-bold text-slate-900 m-0 mb-4 leading-tight">
           {subject}
         </Heading>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-6 whitespace-pre-line">
-          {body}
+          {safeBody}
         </Text>
         {actionUrl ? (
           <Section className="text-center mb-4">

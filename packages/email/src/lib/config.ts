@@ -102,12 +102,13 @@ export function getEmailConfig(): EmailConfig {
       );
       throw new Error("Invalid email configuration");
     }
-    return {
+    return emailConfigSchema.parse({
+      provider: "console",
       from: {
         default: "noreply@example.com",
         name: `${brand.appName} (Dev)`,
       },
-    } as EmailConfig;
+    });
   }
 
   return parsed.data;

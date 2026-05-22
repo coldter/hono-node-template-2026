@@ -18,8 +18,8 @@ export interface NodemailerConfig {
 }
 
 export class NodemailerTransport implements EmailTransport {
-  private readonly config: NodemailerConfig;
-  private readonly transporter: nodemailer.Transporter;
+  private config: NodemailerConfig;
+  private transporter: nodemailer.Transporter;
 
   constructor(config: NodemailerConfig) {
     this.config = config;
@@ -76,8 +76,23 @@ export class NodemailerTransport implements EmailTransport {
         const toggledTransport =
           nodemailer.createTransport(toggledSecureConfig);
 
+        let retrySucceeded = false;
         try {
           const info = await toggledTransport.sendMail(mailOptions);
+          retrySucceeded = true;
+
+          // Persist corrected transport; subsequent sends skip the retry path.
+          const previousTransporter = this.transporter;
+          this.transporter = toggledTransport;
+          this.config = toggledSecureConfig;
+          try {
+            previousTransporter.close();
+          } catch (closeError) {
+            console.warn(
+              "Failed to close previous SMTP transport:",
+              closeError
+            );
+          }
 
           return {
             success: true,
@@ -93,13 +108,15 @@ export class NodemailerTransport implements EmailTransport {
             normalizedRetryError
           );
         } finally {
-          try {
-            toggledTransport.close();
-          } catch (closeError) {
-            console.warn(
-              "Failed to close temporary SMTP transport:",
-              closeError
-            );
+          if (!retrySucceeded) {
+            try {
+              toggledTransport.close();
+            } catch (closeError) {
+              console.warn(
+                "Failed to close temporary SMTP transport:",
+                closeError
+              );
+            }
           }
         }
       }

@@ -32,6 +32,7 @@ export function VerificationOtpEmail({
 }: VerificationOtpEmailProps) {
   const title = TYPE_TITLES[type];
   const description = TYPE_DESCRIPTIONS[type];
+  const safeUserName = userName.slice(0, 100);
 
   return (
     <BaseLayout previewText={`Your verification code: ${otp}`}>
@@ -40,7 +41,7 @@ export function VerificationOtpEmail({
           {title}
         </Heading>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-4">
-          Hi {userName},
+          Hi {safeUserName},
         </Text>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-6">
           {description}
