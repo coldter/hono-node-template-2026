@@ -46,7 +46,7 @@ services:
       - app-network
 
   redis:
-    image: redis:8
+    image: redis:8.0-alpine
     restart: always
     command: ["redis-server", "--maxmemory-policy", "noeviction"]
     volumes:
@@ -61,7 +61,7 @@ services:
       - app-network
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.30
     restart: unless-stopped
     environment:
       MP_DATABASE: /data/mailpit.db
@@ -103,12 +103,20 @@ services:
       dockerfile: deploy/Dockerfile
       target: server
     restart: always
+    expose:
+      - "3000"
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: ${PORT}
       LOG_LEVEL: ${LOG_LEVEL}
       APP_NAME: ${APP_NAME:-Server}
+      COMPANY_NAME: ${COMPANY_NAME}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL}
+      BRAND_PRIMARY_COLOR: ${BRAND_PRIMARY_COLOR}
+      LOGO_TEXT: ${LOGO_TEXT}
+      APP_URL: ${APP_URL}
       ENABLE_DOCS: ${ENABLE_DOCS}
+      ENABLE_DOCS_IN_PRODUCTION: ${ENABLE_DOCS_IN_PRODUCTION:-false}
       DATABASE_URL: ${DATABASE_URL}
       CORS_ORIGIN: ${CORS_ORIGIN}
       BASE_PATH: ${BASE_PATH:-}
@@ -161,6 +169,7 @@ services:
 
   hatchet-postgres:
     image: postgres:15.6
+    profiles: ["hatchet"]
     restart: always
     command: postgres -c 'max_connections=1000'
     environment:
@@ -180,6 +189,7 @@ services:
 
   hatchet-migration:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.79.3
+    profiles: ["hatchet"]
     restart: "no"
     command: /hatchet/hatchet-migrate
     environment:
@@ -192,6 +202,7 @@ services:
 
   hatchet-setup:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.79.3
+    profiles: ["hatchet"]
     restart: on-failure
     command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet/config --overwrite=false
     environment:
@@ -217,6 +228,7 @@ services:
 
   hatchet-engine:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.79.3
+    profiles: ["hatchet"]
     restart: always
     command: /hatchet/hatchet-engine --config /hatchet/config
     environment:
@@ -238,6 +250,7 @@ services:
 
   hatchet-dashboard:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.79.3
+    profiles: ["hatchet"]
     restart: always
     command: sh -c "sh ./entrypoint.sh --config /hatchet/config"
     environment:
@@ -273,6 +286,11 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       server:
         condition: service_healthy

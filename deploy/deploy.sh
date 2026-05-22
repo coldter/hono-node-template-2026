@@ -13,12 +13,16 @@ if [ ! -f .env.production ]; then
   exit 1
 fi
 
-# Load env for compose interpolation
-set -a
-source .env.production
-set +a
+# Use --env-file so compose interpolates from the file natively
+# without exporting every secret into every child build process.
+COMPOSE_CMD=(docker compose --env-file .env.production -f compose.prod.yaml)
 
-COMPOSE_CMD=(docker compose -f compose.prod.yaml)
+# Source a minimal subset of vars only for the final echo summary below.
+# Scoped to this script; not exported to subprocesses.
+API_DOMAIN=$(grep -E '^API_DOMAIN=' .env.production | cut -d= -f2- || true)
+APP_DOMAIN=$(grep -E '^APP_DOMAIN=' .env.production | cut -d= -f2- || true)
+MAIL_DOMAIN=$(grep -E '^MAIL_DOMAIN=' .env.production | cut -d= -f2- || true)
+HATCHET_DASHBOARD_DOMAIN=$(grep -E '^HATCHET_DASHBOARD_DOMAIN=' .env.production | cut -d= -f2- || true)
 
 BUILD_ARGS=(--build --remove-orphans)
 if [[ "${1:-}" == "--no-cache" ]] || [[ "${2:-}" == "--no-cache" ]]; then

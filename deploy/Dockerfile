@@ -1,7 +1,7 @@
 # =============================================================================
 # Shared dependency stage
 # =============================================================================
-FROM oven/bun:1.3.11-alpine AS deps
+FROM oven/bun:1.3.14-alpine AS deps
 WORKDIR /app
 
 COPY package.json bun.lock turbo.json ./
@@ -9,13 +9,15 @@ COPY apps/server/package.json ./apps/server/
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/email/package.json ./packages/email/
+COPY packages/db/package.json ./packages/db/
+COPY packages/authorization/package.json ./packages/authorization/
 
 RUN bun install --frozen-lockfile
 
 # =============================================================================
 # Server target
 # =============================================================================
-FROM oven/bun:1.3.11-alpine AS server
+FROM oven/bun:1.3.14-alpine AS server
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="app-server" \
@@ -29,10 +31,14 @@ COPY --from=deps /app/package.json ./
 COPY apps/server ./apps/server
 COPY packages/shared ./packages/shared
 COPY packages/email ./packages/email
-RUN rm -rf ./apps/server/node_modules ./packages/shared/node_modules ./packages/email/node_modules
+COPY packages/db ./packages/db
+COPY packages/authorization ./packages/authorization
+RUN rm -rf ./apps/server/node_modules ./packages/shared/node_modules ./packages/email/node_modules ./packages/db/node_modules ./packages/authorization/node_modules
 
 RUN addgroup --system --gid 1001 bunjs && \
     adduser --system --uid 1001 --ingroup bunjs bunapp
+
+RUN chown -R bunapp:bunjs /app
 
 WORKDIR /app/apps/server
 EXPOSE 3000
@@ -47,7 +53,7 @@ CMD ["bun", "run", "src/index.ts"]
 # =============================================================================
 # Web build stage (intermediate -- not a final target)
 # =============================================================================
-FROM oven/bun:1.3.11-alpine AS web-build
+FROM oven/bun:1.3.14-alpine AS web-build
 WORKDIR /app
 
 ARG VITE_SERVER_URL

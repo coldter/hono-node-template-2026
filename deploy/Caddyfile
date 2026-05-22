@@ -1,5 +1,8 @@
 {$API_DOMAIN} {
 	encode gzip
+	request_body {
+		max_size 10MB
+	}
 	reverse_proxy server:3000 {
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-Proto {scheme}
