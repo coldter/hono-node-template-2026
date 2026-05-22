@@ -1,5 +1,6 @@
 import { pushTokens } from "@repo/db/schema";
 import { and, desc, eq } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 import { db } from "@/db";
 import type { PushTokenRecord, RegisterPushTokenInput } from "./types";
 
@@ -17,10 +18,25 @@ export const notificationPushTokenService = {
     sessionId: string,
     input: RegisterPushTokenInput
   ): Promise<PushTokenRecord> {
-    const [existing] = await db
+    // Cross-user check to prevent silent token take-over.
+    const [conflicting] = await db
       .select()
       .from(pushTokens)
       .where(eq(pushTokens.token, input.token))
+      .limit(1);
+
+    if (conflicting && conflicting.userId !== userId) {
+      throw new HTTPException(409, {
+        message: "Token already registered to a different user",
+      });
+    }
+
+    const [existing] = await db
+      .select()
+      .from(pushTokens)
+      .where(
+        and(eq(pushTokens.token, input.token), eq(pushTokens.userId, userId))
+      )
       .limit(1);
 
     if (existing) {

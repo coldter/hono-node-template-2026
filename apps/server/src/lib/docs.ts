@@ -32,9 +32,18 @@ export const docs = async (
   if (!shouldGenerate) {
     return;
   }
+
+  // Public OpenAPI + Scalar UI leak schema/route info; require explicit opt-in
+  // via ENABLE_DOCS_IN_PRODUCTION. skipScalar=true mounts no HTTP routes and is allowed.
+  const isProduction = env.NODE_ENV === "production";
+  if (isProduction && !env.ENABLE_DOCS_IN_PRODUCTION && !skipScalar) {
+    logger.info(
+      "Skipping public OpenAPI/docs endpoints in production (set ENABLE_DOCS_IN_PRODUCTION=true to override)"
+    );
+    return;
+  }
   const registry = app.openAPIRegistry;
 
-  // Set security schemes
   registry.registerComponent("securitySchemes", "cookieAuth", {
     type: "apiKey",
     in: "cookie",
@@ -45,7 +54,6 @@ export const docs = async (
 
   app.doc31("/openapi.json", openApiConfig);
 
-  // Get JSON doc and save to file
   const openApiDoc = app.getOpenAPI31Document(openApiConfig);
   await fs.writeFile(
     "./openapi.cache.json",

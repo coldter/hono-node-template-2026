@@ -2,6 +2,7 @@ import type { PushEventOptions } from "@hatchet-dev/typescript-sdk/clients/event
 import { env } from "@/env";
 import { getHatchet } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";
+import { redactSensitiveFields } from "@/lib/otel-config";
 import { addSpanEvent } from "@/lib/otel-utils";
 
 export const EVENTS = {
@@ -61,7 +62,9 @@ export async function pushEvent<K extends keyof EventPayloads>(
       logger.error(`[HATCHET] Failed to push event: ${eventName}`, {
         error: err.message,
         stack: err.stack,
-        payload,
+        payload: redactSensitiveFields(
+          payload as unknown as Record<string, unknown>
+        ),
       });
     } else {
       logger.error(`Failed to push event: ${eventName}`, {
@@ -110,6 +113,9 @@ export async function pushEvents<K extends keyof EventPayloads>(
       logger.error(`[HATCHET] Failed to bulk push events: ${eventName}`, {
         error: err.message,
         stack: err.stack,
+        payloads: payloads.map((payload) =>
+          redactSensitiveFields(payload as unknown as Record<string, unknown>)
+        ),
       });
     } else {
       logger.error(`Failed to bulk push events: ${eventName}`, {

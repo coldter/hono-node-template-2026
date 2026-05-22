@@ -29,8 +29,7 @@ export function handleError(err: Error, c: Context<Env>): Response {
         status: err.status,
         path: c.req.path,
         method: c.req.method,
-        body: c.req.raw.body,
-        headers: c.req.raw.headers,
+        contentType: c.req.header("content-type") ?? null,
       });
     }
     const causeCode =
@@ -65,9 +64,6 @@ export function handleError(err: Error, c: Context<Env>): Response {
     });
   }
 
-  /**
-   * Database Errors
-   */
   if (err instanceof DrizzleQueryError) {
     logger.error("DatabaseError", { error: err });
     if (!(err.cause instanceof pg.DatabaseError)) {

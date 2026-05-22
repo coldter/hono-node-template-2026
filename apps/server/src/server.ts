@@ -43,10 +43,19 @@ baseApp.use(
   })
 );
 
+const corsOrigins = (
+  Array.isArray(env.CORS_ORIGIN) ? env.CORS_ORIGIN : []
+).filter((s) => s.length > 0);
+if (corsOrigins.length === 0) {
+  throw new Error(
+    "CORS_ORIGIN is required and must contain at least one origin"
+  );
+}
+
 baseApp.use(
   "/*",
   cors({
-    origin: Array.isArray(env.CORS_ORIGIN) ? env.CORS_ORIGIN : [],
+    origin: corsOrigins,
     allowMethods: ["GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,

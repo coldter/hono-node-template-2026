@@ -31,7 +31,6 @@ import { hashPassword, verifyPasswordHash } from "./helpers/argon2id";
 
 const platformSchema = z.enum(["web", "mobile"]);
 
-// Platform-specific session durations
 const SESSION_CONFIG = {
   web: {
     expiresIn: seconds("1 hour"),
@@ -45,13 +44,34 @@ const SESSION_CONFIG = {
 
 type Platform = "web" | "mobile";
 
+function maskEmail(email: string): string {
+  const atIndex = email.indexOf("@");
+  if (atIndex <= 0) {
+    return "***";
+  }
+  const localPart = email.slice(0, atIndex);
+  const domain = email.slice(atIndex);
+  const visible = localPart.slice(0, 2);
+  return `${visible}***${domain}`;
+}
+
+function sanitizeHeaderText(
+  value: string | undefined,
+  maxLength: number
+): string | undefined {
+  if (value === undefined) {
+    return;
+  }
+  const stripped = value.replace(/[\r\n<>]/g, "");
+  return stripped.slice(0, maxLength);
+}
+
 export type SessionWithAdditionalFields = {
   platform: Platform;
   expiresAt: Date;
   activeOrgRole: string | null;
 };
 
-// Regex patterns at top-level for performance
 const MOBILE_PATTERNS = [
   /android/i,
   /iphone/i,
@@ -73,16 +93,13 @@ const detectPlatform = (userAgent: string | null): Platform => {
     : "web";
 };
 
-// Shape of the session update payload we care about. Unknown fields pass
-// through; we only read `activeOrganizationId` explicitly.
 const sessionUpdateInputSchema = z
   .object({
     activeOrganizationId: z.string().nullable().optional(),
   })
   .loose();
 
-// Extract the user id from Better Auth's endpoint context. The context is
-// typed as `unknown` by the SDK; we defensively walk the tree and narrow.
+// Better Auth endpoint context is typed as `unknown`; defensively walk and narrow.
 const endpointCtxSchema = z
   .object({
     context: z
@@ -108,7 +125,7 @@ function getSessionUserId(ctx: unknown): string | undefined {
 }
 
 function resolveTrustedOrigins(request: Request | undefined): string[] {
-  // During initialization or auth.api calls, request is undefined
+  // request is undefined during initialization or auth.api calls
   if (!request) {
     return env.CORS_ORIGIN;
   }
@@ -116,21 +133,17 @@ function resolveTrustedOrigins(request: Request | undefined): string[] {
   const userAgent = request.headers.get("user-agent");
   const origin = request.headers.get("origin");
 
-  // If request has a valid origin, check against CORS_ORIGIN
   if (origin) {
     return env.CORS_ORIGIN;
   }
 
-  // For mobile clients (no origin header), verify via user-agent
-  // and return an empty array to signal "trust this request"
+  // Mobile clients send no Origin header; trust the request URL origin
+  // only after verifying a mobile UA so this cannot be spoofed by browsers.
   if (userAgent && detectPlatform(userAgent) === "mobile") {
-    // Return the request URL origin to allow the request
-    // This is safe because we verified it's a mobile client
     const url = new URL(request.url);
     return [url.origin];
   }
 
-  // Default: use configured CORS origins
   return env.CORS_ORIGIN;
 }
 
@@ -230,12 +243,11 @@ const authConfig = {
     usePlural: true,
     schema,
   }),
-  // Dynamic trustedOrigins to support both web and mobile clients
-  // Mobile apps don't send Origin headers, so we detect them via user-agent
+  // Mobile clients send no Origin header; resolveTrustedOrigins detects them via user-agent.
   trustedOrigins: (request: Request | undefined) =>
     resolveTrustedOrigins(request),
 
-  // Rate limiting - set higher than lockout to ensure our custom lockout kicks in first
+  // Global rate-limit must sit above the per-account lockout so our lockout fires first.
   rateLimit: {
     enabled: true,
     window: RATE_LIMIT_CONFIG.global.window,
@@ -251,10 +263,9 @@ const authConfig = {
 
   emailAndPassword: {
     enabled: true,
-    // Self-signup enabled for mobile onboarding flow
     disableSignUp: false,
     requireEmailVerification: true,
-    // Password reset is handled via emailOTP plugin instead of magic links
+    // Password reset uses emailOTP plugin, not magic links.
     password: {
       hash: async (password: string) => await hashPassword(password),
       verify: async ({ hash, password }: { hash: string; password: string }) =>
@@ -263,8 +274,8 @@ const authConfig = {
   },
 
   session: {
-    // Use mobile defaults so cookie Max-Age matches 7-day mobile sessions.
-    // Web sessions are shortened in database hooks.
+    // Use mobile defaults so cookie Max-Age matches the 7-day mobile session.
+    // Web sessions get a shorter expiry via the database hooks below.
     expiresIn: SESSION_CONFIG.mobile.expiresIn,
     updateAge: SESSION_CONFIG.mobile.updateAge,
     additionalFields: {
@@ -281,7 +292,7 @@ const authConfig = {
   },
 
   advanced: {
-    // secure flag is auto-detected from baseURL (https = secure, http = not)
+    // `secure` is auto-detected from baseURL scheme (https → secure).
     defaultCookieAttributes: {
       sameSite: "lax",
       httpOnly: true,
@@ -301,7 +312,6 @@ const authConfig = {
   databaseHooks: {
     user: {
       create: {
-        // Assign default role, status, and force 2FA on user creation
         before: async (user) => ({
           data: {
             ...user,
@@ -316,16 +326,13 @@ const authConfig = {
     session: {
       create: {
         before: async (session, context) => {
-          // Note: User status checks (deleted, inactive, locked) are handled by loginSecurityPlugin
-          // This hook handles platform detection and session configuration
-
-          // Platform detection and session configuration
+          // User status checks (deleted, inactive, locked) live in loginSecurityPlugin;
+          // this hook only handles platform detection and session configuration.
           const userAgent = context?.headers?.get("user-agent") ?? null;
           const ipAddress = resolveClientIp(context?.headers);
           const platform = detectPlatform(userAgent);
           const config = SESSION_CONFIG[platform];
 
-          // Query existing session for new-device detection
           const [previousSession] = await db
             .select({
               userAgent: schema.sessions.userAgent,
@@ -335,12 +342,11 @@ const authConfig = {
             .where(eq(schema.sessions.userId, session.userId))
             .limit(1);
 
-          // Revoke existing sessions for this user (single session per user)
+          // Single session per user: revoke any existing rows before inserting.
           await db
             .delete(schema.sessions)
             .where(eq(schema.sessions.userId, session.userId));
 
-          // Detect new device and send notification
           if (previousSession) {
             const isNewDevice =
               previousSession.userAgent !== userAgent ||
@@ -356,7 +362,6 @@ const authConfig = {
             }
           }
 
-          // Calculate expiration based on platform
           const expiresAt = new Date(Date.now() + config.expiresIn * 1000);
 
           const orgContext = await resolveInitialOrganizationContext(
@@ -412,21 +417,17 @@ const authConfig = {
             return { data: session };
           }
 
-          // Only intervene when Better Auth is refreshing the session expiry.
-          // Other updates (e.g. updatedAt, ipAddress) should pass through.
+          // Only intervene when Better Auth is refreshing the session expiry;
+          // other updates (updatedAt, ipAddress) must pass through unchanged.
           if (!session.expiresAt) {
             return { data: session };
           }
 
-          // Detect platform from the request user-agent. The update hook only
-          // receives the update payload (expiresAt, updatedAt) without the
-          // session id or token, so we cannot look up the session row. Instead,
-          // use the same user-agent detection as the create hook -- the request
-          // that triggered the refresh carries the mobile client's user-agent.
+          // The update payload omits session id/token, so we cannot look up the row.
+          // Re-detect platform from the request UA (same heuristic as the create hook).
           const userAgent = context?.headers?.get("user-agent") ?? null;
           const platform = detectPlatform(userAgent);
 
-          // Web sessions get shorter expiry; mobile uses the global default (7 days)
           if (platform === "web") {
             return {
               data: {
@@ -448,7 +449,7 @@ const authConfig = {
     enhancedUserPlugin(),
     loginSecurityPlugin(),
     adminPlugin(),
-    // Email OTP plugin for password reset via OTP (not magic links)
+    // Email OTP: powers password reset and email verification (no magic links).
     emailOTP({
       otpLength: TWO_FACTOR_CONFIG.otpLength,
       expiresIn: TWO_FACTOR_CONFIG.emailOtpExpiresIn,
@@ -473,13 +474,12 @@ const authConfig = {
           "change-email": "Confirm Email Change",
         };
 
-        logger.info(`Sending ${typeLabels[type]} OTP to ${email}`);
+        logger.info(`Sending ${typeLabels[type]} OTP to ${maskEmail(email)}`);
 
-        // Map change-email to email-verification for the template
         const templateType =
           type === "change-email" ? "email-verification" : type;
 
-        // Send email without awaiting to prevent timing attacks
+        // Do not await: prevents timing attacks that could leak email existence.
         sendEmail({
           to: email,
           subject: subjectByType[type],
@@ -492,31 +492,33 @@ const authConfig = {
           },
         }).catch((error) => {
           logger.error("Failed to send verification OTP email", {
-            email,
+            email: maskEmail(email),
             type,
             error: error instanceof Error ? error.message : String(error),
           });
         });
       },
     }),
-    // Two-factor authentication plugin (email OTP only, no TOTP)
+    // Two-factor: email OTP only — no TOTP authenticator support.
     twoFactor({
-      // Use our custom twoFactor table
       twoFactorTable: "twoFactors",
-      // Skip TOTP verification since we only use email OTP
+      // TOTP would force a verify step on enable; we use email OTP so skip it.
       skipVerificationOnEnable: true,
-      // OTP configuration for 2FA verification
       otpOptions: {
-        // OTP expires in 3 minutes
         period: TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes,
         async sendOTP({ user, otp }, ctx) {
-          logger.info(`Sending 2FA OTP to ${user.email}`);
+          logger.info(`Sending 2FA OTP to ${maskEmail(user.email)}`);
 
-          // Extract device info from context if available
-          const ipAddress = ctx?.headers?.get("x-forwarded-for") ?? undefined;
-          const userAgent = ctx?.headers?.get("user-agent") ?? undefined;
+          const ipAddress = sanitizeHeaderText(
+            ctx?.headers?.get("x-forwarded-for") ?? undefined,
+            64
+          );
+          const userAgent = sanitizeHeaderText(
+            ctx?.headers?.get("user-agent") ?? undefined,
+            200
+          );
 
-          // Send email without awaiting to prevent timing attacks
+          // Do not await: prevents timing attacks that could leak email existence.
           sendEmail({
             to: user.email,
             subject: "Your Two-Factor Authentication Code",
@@ -531,7 +533,7 @@ const authConfig = {
           }).catch((error) => {
             logger.error("Failed to send 2FA OTP email", {
               userId: user.id,
-              email: user.email,
+              email: maskEmail(user.email),
               error: error instanceof Error ? error.message : String(error),
             });
           });
@@ -541,7 +543,6 @@ const authConfig = {
     openAPI({
       disableDefaultReference: true,
     }),
-    // override type
     {
       id: "override-type",
       $Infer: {} as {

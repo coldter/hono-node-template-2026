@@ -1,9 +1,14 @@
+import { z } from "zod";
 import { env } from "@/env";
 import { logger } from "@/lib/logger";
 
-// ============================================================
-// TYPES
-// ============================================================
+const firebaseServiceAccountSchema = z
+  .object({
+    project_id: z.string(),
+    client_email: z.string().email(),
+    private_key: z.string(),
+  })
+  .passthrough();
 
 interface PushMessage {
   data: Record<string, string>;
@@ -22,10 +27,6 @@ interface PushProvider {
   send(message: PushMessage): Promise<PushSendResult>;
 }
 
-// ============================================================
-// CONSOLE PROVIDER (development)
-// ============================================================
-
 class ConsolePushProvider implements PushProvider {
   async send(message: PushMessage): Promise<PushSendResult> {
     logger.info("Console push provider: would send push notification", {
@@ -37,10 +38,6 @@ class ConsolePushProvider implements PushProvider {
     return { success: true, messageId: `console_${Date.now()}` };
   }
 }
-
-// ============================================================
-// FIREBASE PROVIDER
-// ============================================================
 
 class FirebasePushProvider implements PushProvider {
   private messagingInstance:
@@ -65,21 +62,28 @@ class FirebasePushProvider implements PushProvider {
         );
       }
 
-      let serviceAccountKey: string;
-      let serviceAccount: Record<string, string>;
+      let serviceAccount: z.infer<typeof firebaseServiceAccountSchema>;
       try {
-        serviceAccountKey = Buffer.from(
+        const serviceAccountKey = Buffer.from(
           serviceAccountKeyBase64,
           "base64"
         ).toString("utf8");
-        serviceAccount = JSON.parse(serviceAccountKey);
+        serviceAccount = firebaseServiceAccountSchema.parse(
+          JSON.parse(serviceAccountKey)
+        );
       } catch {
         throw new Error(
-          "FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 must be a valid base64-encoded Firebase service account JSON"
+          "FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 must be a valid base64-encoded Firebase service account JSON with project_id, client_email, and private_key"
         );
       }
 
-      initializeApp({ credential: cert(serviceAccount) });
+      initializeApp({
+        credential: cert({
+          projectId: serviceAccount.project_id,
+          clientEmail: serviceAccount.client_email,
+          privateKey: serviceAccount.private_key,
+        }),
+      });
     }
 
     this.messagingInstance = getMessaging();
@@ -116,10 +120,6 @@ class FirebasePushProvider implements PushProvider {
     }
   }
 }
-
-// ============================================================
-// SINGLETON
-// ============================================================
 
 let pushProvider: PushProvider | null = null;
 

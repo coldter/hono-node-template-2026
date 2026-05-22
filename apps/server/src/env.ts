@@ -23,6 +23,10 @@ const envSchema = z
       .string()
       .default("true")
       .transform((val) => val === "true"),
+    ENABLE_DOCS_IN_PRODUCTION: z
+      .string()
+      .default("false")
+      .transform((val) => val === "true" || val === "1"),
     DATABASE_URL: z.string().min(1).max(1000),
     DATABASE_TEST_URL: z.string().optional(),
     SKIP_DB: z
@@ -78,7 +82,6 @@ const envSchema = z
       .default("false")
       .transform((val) => val === "true" || val === "1"),
 
-    // Firebase Cloud Messaging
     FCM_PROVIDER: z.enum(["firebase", "console"]).default("console"),
     FIREBASE_SERVICE_ACCOUNT_KEY_BASE64: z.string().optional(),
 
@@ -106,9 +109,6 @@ const envSchema = z
     }
   );
 
-/**
- * @public
- */
 export type Env = z.infer<typeof envSchema>;
 
 const parsedEnv = envSchema.safeParse(process.env);
