@@ -36,7 +36,7 @@ export class LocalEncryptionProvider implements EncryptionProvider {
   private readonly derivedKeyCache = new Map<string, Buffer>();
 
   constructor(masterKeyHex: string, keyId?: string) {
-    if (!masterKeyHex || masterKeyHex.length !== 64) {
+    if (masterKeyHex?.length !== 64) {
       throw new Error(
         "LocalEncryptionProvider requires a 32-byte hex-encoded key (64 characters)"
       );
