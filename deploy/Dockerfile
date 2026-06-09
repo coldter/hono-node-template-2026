@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # =============================================================================
 # Shared dependency stage
 # =============================================================================
@@ -12,7 +13,7 @@ COPY packages/email/package.json ./packages/email/
 COPY packages/db/package.json ./packages/db/
 COPY packages/authorization/package.json ./packages/authorization/
 
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 
 # =============================================================================
 # Server target
@@ -72,7 +73,7 @@ COPY apps/server/openapi.cache.json ./apps/server/openapi.cache.json
 WORKDIR /app/apps/web
 
 ENV VITE_SERVER_URL=$VITE_SERVER_URL
-RUN bun install --frozen-lockfile && bun run generate-client && bun run build
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile && bun run generate-client && bun run build
 
 # =============================================================================
 # Caddy target (serves web SPA + reverse proxies API services)

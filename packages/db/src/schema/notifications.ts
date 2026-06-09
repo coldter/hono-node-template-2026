@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   jsonb,
@@ -90,6 +91,14 @@ export const notifications = pgTable(
     index("notifications_type_idx").on(table.type),
     index("notifications_status_idx").on(table.status),
     index("notifications_created_at_idx").on(table.createdAt),
+    // Partial index covering the unread-push hot path (getUnreadCount,
+    // markAllAsRead, and the unreadOnly list filter) so they never scan a
+    // user's full notification history.
+    index("notifications_unread_push_idx")
+      .on(table.userId)
+      .where(
+        sql`${table.channel} = 'push' AND ${table.readAt} IS NULL AND ${table.status} IN ('sent', 'delivered')`
+      ),
   ]
 );
 

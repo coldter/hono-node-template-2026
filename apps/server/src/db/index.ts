@@ -45,6 +45,10 @@ if (isDbSkipped) {
       idleTimeoutMillis: 30_000,
       max: 10,
       min: 0,
+      // Defensive server-side timeouts so a stuck query or an abandoned open
+      // transaction cannot hold a pooled connection indefinitely.
+      statement_timeout: 30_000,
+      idle_in_transaction_session_timeout: 30_000,
     },
     new DrizzleLogger()
   ) as DB;

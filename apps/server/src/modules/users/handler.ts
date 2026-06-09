@@ -72,13 +72,16 @@ const usersHandler = app
   .openapi(usersRoutes.getMyAccount, async (c) => {
     const currentUser = requireCurrentUser(c);
 
-    const account = await userService.findAccountSummaryById(currentUser.id);
+    // Both lookups are keyed on the current user and independent, so run them
+    // concurrently rather than serializing two round-trips.
+    const [account, unreadCount] = await Promise.all([
+      userService.findAccountSummaryById(currentUser.id),
+      notificationService.getUnreadCount(currentUser.id),
+    ]);
 
     if (!account) {
       throw new HTTPException(404, { message: "User not found" });
     }
-
-    const unreadCount = await notificationService.getUnreadCount(account.id);
 
     return c.json(
       {

@@ -8,10 +8,12 @@ import { app } from "@/routers/main";
 import { startWorker } from "@/worker";
 
 await docs(app, env.ENABLE_DOCS);
-showRoutes(app, {
-  colorize: true,
-  // verbose: true,
-});
+if (env.NODE_ENV !== "production") {
+  showRoutes(app, {
+    colorize: true,
+    // verbose: true,
+  });
+}
 
 serve(
   {

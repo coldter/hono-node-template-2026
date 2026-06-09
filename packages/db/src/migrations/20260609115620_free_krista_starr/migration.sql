@@ -1,0 +1,1 @@
+CREATE INDEX "notifications_unread_push_idx" ON "notifications" ("user_id") WHERE "channel" = 'push' AND "read_at" IS NULL AND "status" IN ('sent', 'delivered');

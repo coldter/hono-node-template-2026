@@ -274,6 +274,15 @@ const authConfig = {
   },
 
   session: {
+    // Cache the resolved session in a signed, short-TTL cookie so getSession()
+    // (called on every request via authContextMiddleware) reads the cookie
+    // instead of hitting Postgres. maxAge is deliberately short (60s): with
+    // single-session-per-user revocation, a cached cookie can outlive a revoked
+    // session or stale roleSlugs by at most this window.
+    cookieCache: {
+      enabled: true,
+      maxAge: 60,
+    },
     // Use mobile defaults so cookie Max-Age matches the 7-day mobile session.
     // Web sessions get a shorter expiry via the database hooks below.
     expiresIn: SESSION_CONFIG.mobile.expiresIn,
