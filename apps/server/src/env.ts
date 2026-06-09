@@ -36,6 +36,15 @@ const envSchema = z
     CORS_ORIGIN: z
       .string()
       .transform((val) => val.split(",").map((s) => s.trim())),
+    TRUST_PROXY: z
+      .string()
+      .default("false")
+      .transform((val) => val === "true" || val === "1"),
+    REDIS_URL: z.string().optional(),
+    ENABLE_SIGNUP: z
+      .string()
+      .default("false")
+      .transform((val) => val === "true" || val === "1"),
     BASE_PATH: z.string().default(""),
     SERVER_URL: z.string().default("http://localhost:3100"),
     BETTER_AUTH_SECRET: z.string(),
