@@ -1,6 +1,7 @@
 ---
 name: zustand
-description: Zustand state management guide. Use when working with store code (src/store/**), implementing actions, managing state, or creating slices. Triggers on Zustand store development, state management questions, or action implementation.
+description: 'LobeHub Zustand store conventions. Use when editing src/store, store slices, public/internal actions, dispatch actions, flattenActions, optimistic updates, selectors, maps, or class action migration.'
+user-invocable: false
 ---
 
 # LobeHub Zustand State Management
@@ -174,9 +175,28 @@ export const chatGroupAction: StateCreator<
   - `ChatGroupStoreWithRefresh` for member refresh
   - `ChatGroupStoreWithInternal` for curd `internal_dispatchChatGroup`
 
-### Do / Don't
+### Slices That Don't Currently Need `set`
 
-- **Do**: keep constructor signature aligned with `StateCreator` params `(set, get, api)`.
-- **Do**: use `#private` to avoid `set/get` being exposed.
-- **Do**: use `flattenActions` instead of spreading class instances.
-- **Don't**: keep both old slice objects and class actions active at the same time.
+When a slice doesn't write local state (e.g. it delegates to another store or just runs hooks), drop `#set` and mark the constructor param as `_set` with `void _set` to keep the `(set, get, api)` shape:
+
+```ts
+export class ToolActionImpl {
+  readonly #get: () => ConversationStore;
+
+  constructor(_set: Setter, get: () => ConversationStore, _api?: unknown) {
+    void _set;
+    void _api;
+    this.#get = get;
+  }
+
+  approveToolCall = async (id: string) => {
+    const { context, hooks } = this.#get();
+    await useChatStore.getState().approveToolCalling(id, '', context);
+    hooks.onToolCallComplete?.(id, undefined);
+  };
+}
+```
+
+- Drop `#set` when unused; restore it when a later edit needs `set` — re-adding costs nothing.
+- Don't add `setNamespace` for slices that don't write state.
+- Don't keep both old slice objects and class actions active at the same time during migration.
