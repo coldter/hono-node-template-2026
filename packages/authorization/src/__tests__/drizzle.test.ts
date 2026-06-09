@@ -13,12 +13,10 @@ import {
   listRelations,
 } from "../drizzle";
 
-// ---------------------------------------------------------------------------
 // Fake table reference -- structural shape only, values are not used in tests.
 // The drizzle module expects columns typed as Column (from drizzle-orm); here
 // we feed string sentinels so the mocks can assert equality on them.
 // boundary: test fixture reflection
-// ---------------------------------------------------------------------------
 
 type FakeTable = Parameters<typeof checkRelation>[1];
 
@@ -31,9 +29,7 @@ const fakeTable = {
   createdBy: "createdBy_col",
 } as unknown as FakeTable;
 
-// ---------------------------------------------------------------------------
 // Helpers to build mock db instances
-// ---------------------------------------------------------------------------
 
 function makeSelectDb(rows: RelationTuple[]) {
   const limitFn = vi.fn().mockResolvedValue(rows);
@@ -65,9 +61,7 @@ function makeDeleteDb() {
   return { db: { delete: deleteFn }, deleteFn, whereFn };
 }
 
-// ---------------------------------------------------------------------------
 // Test data
-// ---------------------------------------------------------------------------
 
 const subject = { type: "user", id: "usr_1" };
 const object = { type: "document", id: "doc_1" };
@@ -81,10 +75,6 @@ const createInput: CreateRelationInput = {
   object,
   createdBy: "usr_admin",
 };
-
-// ---------------------------------------------------------------------------
-// checkRelation
-// ---------------------------------------------------------------------------
 
 describe("checkRelation", () => {
   it("returns true when a matching row is found", async () => {
@@ -127,10 +117,6 @@ describe("checkRelation", () => {
     expect(limitFn).toHaveBeenCalledWith(1);
   });
 });
-
-// ---------------------------------------------------------------------------
-// checkRelationBatch
-// ---------------------------------------------------------------------------
 
 describe("checkRelationBatch", () => {
   it("returns an empty map for empty input without querying", async () => {
@@ -234,10 +220,6 @@ describe("checkRelationBatch", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// createRelation
-// ---------------------------------------------------------------------------
-
 describe("createRelation", () => {
   it("calls db.insert with the table", async () => {
     const { db, insertFn } = makeInsertDb();
@@ -272,10 +254,6 @@ describe("createRelation", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// deleteRelation
-// ---------------------------------------------------------------------------
-
 describe("deleteRelation", () => {
   it("calls db.delete with the table", async () => {
     const { db, deleteFn } = makeDeleteDb();
@@ -298,10 +276,6 @@ describe("deleteRelation", () => {
     expect(result).toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// listRelations
-// ---------------------------------------------------------------------------
 
 describe("listRelations", () => {
   function makeListDb(rows: RelationTuple[]) {

@@ -18,9 +18,6 @@ import type { ListNotificationsQuery } from "./types";
 const app = new OpenAPIHono<Env>({ defaultHook });
 
 const notificationsHandler = app
-  // ─────────────────────────────────────────────────────────────
-  // LIST NOTIFICATIONS
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.listNotifications, async (c) => {
     const userId = requireUserId(c);
     const query = c.req.valid("query");
@@ -39,9 +36,6 @@ const notificationsHandler = app
     );
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // GET PREFERENCES
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.getPreferences, async (c) => {
     const userId = requireUserId(c);
 
@@ -51,9 +45,6 @@ const notificationsHandler = app
     return c.json({ preferences: formatPreferencesSummary(preferences) }, 200);
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // GET NOTIFICATION
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.getNotification, async (c) => {
     const userId = requireUserId(c);
     const { notificationId } = c.req.valid("param");
@@ -73,9 +64,6 @@ const notificationsHandler = app
     );
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // GET UNREAD COUNT
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.getUnreadCount, async (c) => {
     const userId = requireUserId(c);
 
@@ -84,9 +72,6 @@ const notificationsHandler = app
     return c.json({ count }, 200);
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // MARK AS READ
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.markAsRead, async (c) => {
     const userId = requireUserId(c);
     const { notificationId } = c.req.valid("param");
@@ -103,9 +88,6 @@ const notificationsHandler = app
     return c.json({ success: true }, 200);
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // MARK ALL AS READ
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.markAllAsRead, async (c) => {
     const userId = requireUserId(c);
 
@@ -114,9 +96,6 @@ const notificationsHandler = app
     return c.json({ success: true, markedCount }, 200);
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // UPDATE PREFERENCES
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.updatePreferences, async (c) => {
     const userId = requireUserId(c);
     const body = c.req.valid("json");
@@ -129,9 +108,6 @@ const notificationsHandler = app
     return c.json({ preferences: formatPreferencesSummary(preferences) }, 200);
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // LIST PUSH TOKENS
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.listPushTokens, async (c) => {
     const userId = requireUserId(c);
 
@@ -140,9 +116,6 @@ const notificationsHandler = app
     return c.json({ tokens: tokens.map(formatPushTokenSummary) }, 200);
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // REGISTER PUSH TOKEN
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.registerPushToken, async (c) => {
     const userId = requireUserId(c);
     const sessionId = requireSessionId(c);
@@ -157,9 +130,6 @@ const notificationsHandler = app
     return c.json({ token: formatPushTokenSummary(token) }, 201);
   })
 
-  // ─────────────────────────────────────────────────────────────
-  // DELETE PUSH TOKEN
-  // ─────────────────────────────────────────────────────────────
   .openapi(notificationsRoutes.deletePushToken, async (c) => {
     const userId = requireUserId(c);
     const { tokenId } = c.req.valid("param");

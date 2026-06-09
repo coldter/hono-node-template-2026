@@ -3,8 +3,6 @@ import type { AuditContext } from "@/lib/audit-context";
 import type { auth } from "@/modules/auth/instance";
 
 /**
- * Set node server bindings.
- *
  * @link https://hono.dev/docs/getting-started/nodejs#access-the-raw-node-js-apis
  */
 type Bindings = HttpBindings & {
@@ -12,8 +10,6 @@ type Bindings = HttpBindings & {
 };
 
 /**
- * Define the context environment.
- *
  * Uses better-auth's inferred types for full type safety.
  *
  * @link https://hono.dev/docs/middleware/builtin/context-storage#usage

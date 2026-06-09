@@ -7,11 +7,7 @@ process.env.VAULT_MASTER_KEY ??=
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 /**
- * Generate OpenAPI documentation and save it to a file.
- *
- * This script initializes the OpenAPI documentation for the application,
- * registers necessary schemas, and writes the generated OpenAPI document
- * to a JSON file.
+ * Generate the OpenAPI document and write it to the JSON cache file.
  */
 (async () => {
   try {

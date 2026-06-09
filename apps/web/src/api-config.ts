@@ -2,8 +2,7 @@ import type { CreateClientConfig } from "@/api.gen/client.gen";
 import { ApiError, clientConfig } from "@/lib/api";
 
 /**
- * Runtime client configuration for the API client after it is generated.
- * The output is in /apps/web/src/api.gen/
+ * Runtime client configuration for the generated API client.
  *
  * @link https://heyapi.dev/openapi-ts/get-started
  */

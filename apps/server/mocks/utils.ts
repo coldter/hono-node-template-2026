@@ -13,16 +13,10 @@ export function nanoid(size = 21): string {
   return id;
 }
 
-/**
- * Generate a random ISO date string in the past.
- */
 export function pastIsoDate(): string {
   return faker.date.past().toISOString();
 }
 
-/**
- * Generate a random ISO date string in the future.
- */
 export function futureIsoDate(): string {
   return faker.date.future().toISOString();
 }

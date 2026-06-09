@@ -47,7 +47,6 @@ const eventDisplayNames: Record<string, string> = {
   "role.unassigned": "Role Unassigned",
 };
 
-// Badge styles keyed by event name for fine-grained control
 const eventBadgeStyles: Record<string, BadgeStyle> = {
   "auth.login.success": {
     variant: "default",
@@ -184,7 +183,7 @@ const eventIconNames: Record<string, string> = {
   "role.unassigned": "ShieldAlert",
 };
 
-/** @public ignore knip might be useful for future */
+/** @public ignore knip */
 export function getEventCategory(event: string): EventCategory {
   return eventCategoryMap[event] ?? "auth";
 }
@@ -254,9 +253,6 @@ export function getTargetTypeLabel(targetType: string | null): string {
   }
 }
 
-/**
- * Generate a concise human-readable description of what happened.
- */
 export function getEventDescription(
   event: string,
   actorType: string,

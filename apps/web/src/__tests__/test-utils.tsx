@@ -3,7 +3,6 @@ import { type RenderOptions, render } from "@testing-library/react";
 import type * as React from "react";
 
 /**
- * Create a QueryClient configured for testing.
  * Disables retries and caching for predictable test behavior.
  */
 export function createTestQueryClient() {
@@ -21,9 +20,6 @@ export function createTestQueryClient() {
   });
 }
 
-/**
- * Provider wrapper that includes all necessary context providers for testing.
- */
 function AllProviders({ children }: { children: React.ReactNode }) {
   const queryClient = createTestQueryClient();
 
@@ -33,7 +29,6 @@ function AllProviders({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Custom render function that wraps components in all necessary providers.
  * Use this instead of importing render directly from @testing-library/react.
  */
 function customRender(
@@ -43,6 +38,5 @@ function customRender(
   return render(ui, { wrapper: AllProviders, ...options });
 }
 
-// Re-export everything from testing-library
 export * from "@testing-library/react";
 export { customRender as render };

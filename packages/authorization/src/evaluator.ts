@@ -47,12 +47,10 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       ignoreResourceConditions = false,
     } = input;
 
-    // Step 1: No principal = UNAUTHENTICATED
     if (!principal) {
       return { allowed: false, reason: "UNAUTHENTICATED" };
     }
 
-    // Step 2: Check global deny policies
     for (const policy of globalPolicies) {
       if (policy.effect !== "deny") {
         continue;
@@ -78,7 +76,7 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
     // of a generic NO_MATCHING_POLICY.
     let orgDenyReason: DenyReason | undefined;
 
-    // Step 3: Check resource deny policies (deny rules first)
+    // Resource deny policies are checked before allow policies.
     for (const policy of resourcePolicies) {
       if (policy.effect !== "deny") {
         continue;
@@ -125,7 +123,6 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       }
     }
 
-    // Step 4: Check resource allow policies
     for (const policy of resourcePolicies) {
       if (policy.effect !== "allow") {
         continue;
@@ -170,7 +167,7 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       }
     }
 
-    // Step 5: Default deny -- use org-specific reason when available
+    // Default deny -- use org-specific reason when available
     if (orgDenyReason) {
       return { allowed: false, reason: orgDenyReason };
     }
@@ -206,12 +203,10 @@ async function matchPolicy(
   resolveRelation?: EvaluateInput["resolveRelation"],
   ignoreResourceConditions = false
 ): Promise<boolean> {
-  // Check role match
   if (!roleMatches(policy, principal)) {
     return false;
   }
 
-  // Check action match
   if (!actionMatches(policy, action)) {
     return false;
   }
@@ -287,7 +282,6 @@ function checkOrgScoping(
     return { skip: "ORG_RESOLUTION_FAILED" };
   }
 
-  // Org IDs must match
   if (org.id !== resourceOrgId) {
     return { skip: "TENANT_MISMATCH" };
   }

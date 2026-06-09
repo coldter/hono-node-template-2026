@@ -6,7 +6,6 @@ import type { Principal } from "../types";
 const KEY_MISMATCH_PATTERN = /does not match resource name/i;
 
 describe("buildRegistry", () => {
-  // Create a full schema + resource + registry for testing
   const auth = createAuthSchema({
     roles: ["admin", "user"],
     systemAdminRoles: ["admin"],
@@ -55,7 +54,6 @@ describe("buildRegistry", () => {
     attributes: { status: "inactive" },
   };
 
-  // can() returns PolicyDecision
   it("admin can do everything", async () => {
     const decision = await registry.can(adminPrincipal, "test", "list");
     expect(decision.allowed).toBe(true);
@@ -108,7 +106,6 @@ describe("buildRegistry", () => {
     }
   });
 
-  // can().allowed yields the boolean directly
   it("can() returns allowed=true on permitted action", async () => {
     expect((await registry.can(adminPrincipal, "test", "list")).allowed).toBe(
       true
@@ -127,7 +124,6 @@ describe("buildRegistry", () => {
     );
   });
 
-  // assertCan() throws on deny
   it("assertCan throws AuthorizationError on deny", async () => {
     const { AuthorizationError } = await import("../errors");
     await expect(
@@ -141,7 +137,6 @@ describe("buildRegistry", () => {
     ).resolves.toBeUndefined();
   });
 
-  // evaluateCapabilities returns Record<string, boolean>
   it("evaluateCapabilities returns correct map for admin", async () => {
     const caps = await registry.evaluateCapabilities(adminPrincipal);
     expect(caps["test:list"]).toBe(true);

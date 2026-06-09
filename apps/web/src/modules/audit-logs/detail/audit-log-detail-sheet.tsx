@@ -82,7 +82,6 @@ function MetadataValue({ data }: { data: unknown }) {
     return <span className="text-muted-foreground italic">None</span>;
   }
 
-  // Handle simple primitive values
   if (
     typeof data === "string" ||
     typeof data === "number" ||
@@ -91,7 +90,6 @@ function MetadataValue({ data }: { data: unknown }) {
     return <span className="font-mono text-xs">{String(data)}</span>;
   }
 
-  // Handle arrays
   if (Array.isArray(data)) {
     if (data.length === 0) {
       return <span className="text-muted-foreground italic">Empty</span>;
@@ -114,7 +112,6 @@ function MetadataValue({ data }: { data: unknown }) {
   if (typeof data === "object") {
     const obj = data as Record<string, unknown>;
 
-    // Check if it's a from/to change
     if ("from" in obj && "to" in obj) {
       return (
         <div className="flex flex-col items-end gap-1">
@@ -149,7 +146,6 @@ function MetadataSection({ metadata }: { metadata: Record<string, unknown> }) {
 
   return (
     <div className="space-y-3">
-      {/* Render scalar metadata fields */}
       {otherEntries.map(([key, value]) => {
         // Skip complex nested objects not in "changes" pattern
         if (
@@ -166,7 +162,6 @@ function MetadataSection({ metadata }: { metadata: Record<string, unknown> }) {
         );
       })}
 
-      {/* Render changes */}
       {changes && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 pt-1">
@@ -207,7 +202,6 @@ function parseUserAgent(ua: string): { browser: string; os: string } {
   let browser = "Unknown";
   let os = "Unknown";
 
-  // OS detection
   if (ua.includes("Windows")) {
     os = "Windows";
   } else if (ua.includes("Mac OS X") || ua.includes("Macintosh")) {
@@ -220,7 +214,6 @@ function parseUserAgent(ua: string): { browser: string; os: string } {
     os = "iOS";
   }
 
-  // Browser detection
   if (ua.includes("FakerBot")) {
     browser = "FakerBot";
   } else if (ua.includes("Googlebot")) {
@@ -254,7 +247,6 @@ export function AuditLogDetailSheet({
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="sm:max-w-[480px] p-0 flex flex-col" side="right">
-        {/* Header */}
         <SheetHeader className="border-b px-6 pt-6 pb-4">
           <div className="flex items-start gap-3">
             <span
@@ -276,10 +268,8 @@ export function AuditLogDetailSheet({
           </div>
         </SheetHeader>
 
-        {/* Content */}
         <ScrollArea className="flex-1 overflow-hidden">
           <div className="divide-y px-6 flex flex-col max-w-full">
-            {/* Event Info Section */}
             <div className="py-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Event Information
@@ -307,7 +297,6 @@ export function AuditLogDetailSheet({
               </DetailRow>
             </div>
 
-            {/* Actor Section */}
             <div className="py-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Actor
@@ -328,7 +317,6 @@ export function AuditLogDetailSheet({
               </DetailRow>
             </div>
 
-            {/* Target Section */}
             <div className="py-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Target
@@ -355,7 +343,6 @@ export function AuditLogDetailSheet({
               </DetailRow>
             </div>
 
-            {/* Network Section */}
             <div className="py-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Network
@@ -397,7 +384,6 @@ export function AuditLogDetailSheet({
               )}
             </div>
 
-            {/* Metadata Section */}
             {log.metadata && Object.keys(log.metadata).length > 0 && (
               <div className="py-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
@@ -409,7 +395,6 @@ export function AuditLogDetailSheet({
               </div>
             )}
 
-            {/* Raw JSON (collapsible) */}
             <div className="py-4 pb-6 w-full max-w-full">
               <details className="group w-full max-w-full">
                 <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted-foreground select-none hover:text-foreground transition-colors outline-none list-none [&::-webkit-details-marker]:hidden">

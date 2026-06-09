@@ -75,7 +75,6 @@ export function buildRegistryInstance<
   resources: TResources,
   options: RegistryOptions
 ): RegistryInstance<TResources> {
-  // Validate at construction time
   validateRegistry(
     resources,
     options.schemaRoles,

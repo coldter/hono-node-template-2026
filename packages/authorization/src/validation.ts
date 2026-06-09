@@ -10,14 +10,12 @@ export function validateRegistry(
   const names = new Set<string>();
 
   for (const [key, resource] of Object.entries(resources)) {
-    // Check that registry key matches resource name
     if (key !== resource.name) {
       throw new Error(
         `Registry key "${key}" does not match resource name "${resource.name}". Use { ${resource.name}: ... } instead.`
       );
     }
 
-    // Check duplicate names
     if (names.has(resource.name)) {
       throw new Error(
         `Duplicate resource name "${resource.name}" in registry.`
@@ -26,10 +24,8 @@ export function validateRegistry(
     names.add(resource.name);
 
     for (const policy of resource.policies) {
-      // Validate policies reference valid roles
       validatePolicyRoles(policy, schemaRoles, resource.name);
 
-      // Validate relation and org-role condition values
       validateConditionValues(
         policy,
         schemaRelations,
@@ -38,7 +34,6 @@ export function validateRegistry(
       );
     }
 
-    // Validate withOrgRole usage
     if (
       hasOrgRoleConditions(resource.policies) &&
       !resource.resolveOrganization

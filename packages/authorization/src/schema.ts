@@ -1,4 +1,3 @@
-// packages/authorization/src/schema.ts
 import { buildRegistryInstance, type RegistryInstance } from "./registry";
 import {
   createResourceDefinition,
@@ -16,7 +15,6 @@ export function principalAttribute<T>(): { __type: T } {
   return {} as { __type: T };
 }
 
-// Extract attribute types from the principal config
 type ExtractAttributes<T extends Record<string, { __type: unknown }>> = {
   [K in keyof T]: T[K]["__type"];
 };
@@ -128,7 +126,6 @@ export type AnyResourceDef<
   readonly resolveOwner?: (resource: never) => string;
 };
 
-// Re-export RegistryInstance for consumers
 export type { RegistryInstance } from "./registry";
 
 export function createAuthSchema<

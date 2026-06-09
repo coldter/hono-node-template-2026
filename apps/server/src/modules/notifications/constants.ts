@@ -3,16 +3,10 @@ import type {
   NotificationPriority,
 } from "@repo/db/schema";
 
-// ============================================================
-// NOTIFICATION TYPES
-// ============================================================
-
 /**
- * All notification type identifiers.
  * Pattern: "domain.event"
  */
 export const NOTIFICATION_TYPES = {
-  // System events
   USER_WELCOME: "user.welcome",
   SECURITY_LOGIN_NEW_DEVICE: "security.login_new_device",
   SECURITY_PASSWORD_CHANGED: "security.password_changed",
@@ -21,23 +15,15 @@ export const NOTIFICATION_TYPES = {
 export type NotificationType =
   (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
 
-// ============================================================
-// DEFAULT CHANNELS PER TYPE
-// ============================================================
-
 interface NotificationTypeConfig {
   channels: NotificationChannel[];
   priority: NotificationPriority;
 }
 
-/**
- * Default channel and priority configuration per notification type.
- */
 export const NOTIFICATION_TYPE_CONFIG: Record<
   NotificationType,
   NotificationTypeConfig
 > = {
-  // System events
   [NOTIFICATION_TYPES.USER_WELCOME]: {
     channels: ["email"],
     priority: "medium",
@@ -51,10 +37,6 @@ export const NOTIFICATION_TYPE_CONFIG: Record<
     priority: "high",
   },
 } as const;
-
-// ============================================================
-// SORT COLUMNS
-// ============================================================
 
 export const NOTIFICATIONS_SORT_COLUMNS = {
   createdAt: "createdAt",

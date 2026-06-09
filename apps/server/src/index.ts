@@ -11,7 +11,6 @@ await docs(app, env.ENABLE_DOCS);
 if (env.NODE_ENV !== "production") {
   showRoutes(app, {
     colorize: true,
-    // verbose: true,
   });
 }
 
@@ -19,14 +18,10 @@ serve(
   {
     fetch: app.fetch,
     port: env.PORT,
-    // hostname: process.env.HOSTNAME || "localhost",
   },
   async (info) => {
     logger.info(`Server is running on http://${info.address}:${info.port}`);
 
-    /**
-     * Start background worker processes
-     */
     await startWorker();
   }
 );

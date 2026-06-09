@@ -3,7 +3,6 @@ import { cleanup } from "@testing-library/react";
 import type React from "react";
 import { afterEach, vi } from "vitest";
 
-// Automatic cleanup after each test
 afterEach(() => {
   cleanup();
 });

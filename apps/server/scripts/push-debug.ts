@@ -87,13 +87,11 @@ async function resolveUser(
 async function inspectCommand(identifier: string): Promise<void> {
   const user = await resolveUser(identifier);
 
-  // User info
   console.log(chalk.bold.cyan("\n--- User ---"));
   console.log(chalk.dim(`ID:     ${user.id}`));
   console.log(chalk.dim(`Email:  ${user.email}`));
   console.log(chalk.dim(`Name:   ${user.name}`));
 
-  // Push tokens
   const tokens = await db
     .select()
     .from(pushTokens)
@@ -131,7 +129,6 @@ async function inspectCommand(identifier: string): Promise<void> {
     );
   }
 
-  // Recent notifications
   const recentNotifications = await db
     .select()
     .from(notifications)
@@ -161,7 +158,6 @@ async function inspectCommand(identifier: string): Promise<void> {
     );
   }
 
-  // Preferences
   const preferences = await db
     .select()
     .from(notificationPreferences)

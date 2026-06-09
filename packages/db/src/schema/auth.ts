@@ -34,11 +34,9 @@ export const users = pgTable("users", {
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
   // Role assignment (from userStatusPlugin)
   roleSlugs: text("role_slugs").array().default([]).notNull(),
-  // Onboarding tracking
   onboardingCompletedAt: timestamp("onboarding_completed_at", {
     withTimezone: true,
   }),
-  // Two-factor authentication enabled flag
   twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
 });
 

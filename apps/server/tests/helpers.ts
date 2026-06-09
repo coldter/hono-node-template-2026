@@ -1,19 +1,9 @@
-/**
- * Domain-specific test helpers for creating entities and parsing responses.
- */
-
-/**
- * Parse JSON response with proper typing.
- */
 export async function parseResponse<T>(response: {
   json: () => Promise<unknown>;
 }): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-/**
- * Standard error response shape from the API.
- */
 export type ErrorResponse = {
   success: false;
   error: {
@@ -22,9 +12,6 @@ export type ErrorResponse = {
   };
 };
 
-/**
- * Assert that a response is an error with specific code.
- */
 export function expectError(
   response: ErrorResponse,
   expectedCode: string

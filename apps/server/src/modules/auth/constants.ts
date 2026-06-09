@@ -5,7 +5,6 @@
  * Lockout lasts for lockoutDurationMinutes.
  */
 export const LOCKOUT_CONFIG = {
-  /** Maximum failed login attempts before lockout */
   maxFailedAttempts: 3,
   /** Lockout duration in minutes */
   lockoutDurationMinutes: 15,
@@ -27,23 +26,16 @@ export const RATE_LIMIT_CONFIG = {
   global: {
     /** Time window in seconds */
     window: 60,
-    /** Max requests in window */
     max: 1000,
   },
 } as const;
 
-/**
- * Calculate lockout expiry time from now
- */
 export function calculateLockoutExpiry(): Date {
   return new Date(
     Date.now() + LOCKOUT_CONFIG.lockoutDurationMinutes * 60 * 1000
   );
 }
 
-/**
- * Check if lockout has expired
- */
 export function isLockoutExpired(lockedUntil: Date | null): boolean {
   if (!lockedUntil) {
     return true;
@@ -57,7 +49,6 @@ export function isLockoutExpired(lockedUntil: Date | null): boolean {
  * Email OTP is mandatory for all users. TOTP is not supported.
  */
 export const TWO_FACTOR_CONFIG = {
-  /** OTP code length (6 digits) */
   otpLength: 6,
   /** Email OTP expiry time in seconds (5 minutes) */
   emailOtpExpiresIn: 300,

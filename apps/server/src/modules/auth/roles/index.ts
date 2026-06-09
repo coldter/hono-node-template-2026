@@ -1,4 +1,3 @@
-// Constants and types
 export {
   PERMISSION_KEYS,
   type PermissionKey,

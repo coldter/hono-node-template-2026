@@ -7,6 +7,4 @@ export async function onUserStatusChange(
   _newStatus: "active" | "inactive" | "locked" | "deleted",
   _previousStatus: string,
   _reason?: string | null
-): Promise<void> {
-  // Add domain-specific status change logic here
-}
+): Promise<void> {}

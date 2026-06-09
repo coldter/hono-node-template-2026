@@ -57,7 +57,6 @@ describe("integration: single-tenant", () => {
     attributes: { status: "inactive", email: "inactive@test.com" },
   };
 
-  // Test 1: Admin can do everything
   it("admin can do everything", async () => {
     const actions = ["list", "view", "create", "update", "deactivate"];
     for (const action of actions) {
@@ -72,7 +71,6 @@ describe("integration: single-tenant", () => {
     }
   });
 
-  // Test 2: User can list but not delete
   it("user can list but not delete", async () => {
     const listDecision = await registry.can(user1, "user", "list");
     expect(listDecision.allowed).toBe(true);
@@ -86,7 +84,6 @@ describe("integration: single-tenant", () => {
     }
   });
 
-  // Test 3: User can view/update own profile (ownership)
   it("user can view and update own profile via ownership", async () => {
     const ownResource: UserResource = {
       id: "res_1",
@@ -123,7 +120,6 @@ describe("integration: single-tenant", () => {
     expect(updateDecision.allowed).toBe(false);
   });
 
-  // Test 4: User cannot delete themselves (deny via whereTargetIsSelf)
   it("user cannot delete themselves (deny with whereTargetIsSelf)", async () => {
     // Admin deleting themselves should also be denied
     const selfResource: UserResource = {
@@ -157,7 +153,6 @@ describe("integration: single-tenant", () => {
     }
   });
 
-  // Test 5: Inactive user denied by global policy
   it("inactive user is denied by global policy", async () => {
     const decision = await registry.can(inactiveUser, "user", "list");
     expect(decision.allowed).toBe(false);
@@ -182,7 +177,6 @@ describe("integration: single-tenant", () => {
     }
   });
 
-  // Test 6: Unknown role is denied (no matching policy)
   it("unknown role is denied due to no matching policy", async () => {
     const unknownRolePrincipal: Principal = {
       id: "usr_unknown",
@@ -197,7 +191,6 @@ describe("integration: single-tenant", () => {
     }
   });
 
-  // Test 7: evaluateCapabilities returns correct map for admin
   it("evaluateCapabilities returns all true for admin", async () => {
     const caps = await registry.evaluateCapabilities(admin);
     expect(caps["user:list"]).toBe(true);
@@ -208,7 +201,6 @@ describe("integration: single-tenant", () => {
     expect(caps["user:deactivate"]).toBe(true);
   });
 
-  // Test 8: evaluateCapabilities returns correct map for user
   it("evaluateCapabilities returns correct map for user", async () => {
     const caps = await registry.evaluateCapabilities(user1);
     expect(caps["user:list"]).toBe(true);
@@ -220,7 +212,6 @@ describe("integration: single-tenant", () => {
     expect(caps["user:deactivate"]).toBe(false);
   });
 
-  // Test 9: evaluateCapabilities reports true for conditionally-allowed actions (whereOwner)
   it("evaluateCapabilities reports true for conditionally-allowed actions (whereOwner)", async () => {
     const caps = await registry.evaluateCapabilities(user1);
     // view and update are allowed via whereOwner -- ignoreResourceConditions makes them true
@@ -228,7 +219,6 @@ describe("integration: single-tenant", () => {
     expect(caps["user:update"]).toBe(true);
   });
 
-  // Test 14: AuthorizationError is thrown by assertCan on deny
   it("assertCan throws AuthorizationError on deny", async () => {
     await expect(registry.assertCan(user1, "user", "create")).rejects.toThrow(
       AuthorizationError
@@ -247,8 +237,8 @@ describe("integration: single-tenant", () => {
     ).resolves.toBeUndefined();
   });
 
-  // Test 15: can().allowed reports the same boolean information that the
-  // removed isAllowed/isDenied helpers used to expose.
+  // can().allowed reports the same boolean information that the removed
+  // isAllowed/isDenied helpers used to expose.
   it("can() returns allowed=true for permitted actions", async () => {
     expect((await registry.can(admin, "user", "list")).allowed).toBe(true);
     expect((await registry.can(user1, "user", "list")).allowed).toBe(true);
@@ -300,7 +290,6 @@ describe("integration: multi-tenant", () => {
 
   const registry = auth.buildRegistry({ project: projectResource });
 
-  // Org-context principal (org_1, role: member)
   const orgMember: Principal = {
     id: "usr_org_member",
     roles: ["member"],
@@ -339,7 +328,6 @@ describe("integration: multi-tenant", () => {
     organizationId: "org_2",
   };
 
-  // Test 10: Org-scoped resource: user in matching org -> ALLOW
   it("org member in matching org can list project", async () => {
     const decision = await registry.can(orgMember, "project", "list", {
       resource: project1,
@@ -361,7 +349,6 @@ describe("integration: multi-tenant", () => {
     expect(decision.allowed).toBe(true);
   });
 
-  // Test 11: Org-scoped resource: user in wrong org -> DENY
   it("org member in wrong org is denied", async () => {
     const decision = await registry.can(orgMember, "project", "list", {
       resource: projectOtherOrg,
@@ -376,7 +363,6 @@ describe("integration: multi-tenant", () => {
     expect(decision.allowed).toBe(false);
   });
 
-  // Test 12: Org-scoped resource: no active org -> DENY
   it("user with no org context is denied for org-scoped resource", async () => {
     const decision = await registry.can(noOrgUser, "project", "list", {
       resource: project1,
@@ -396,7 +382,6 @@ describe("integration: multi-tenant", () => {
     }
   });
 
-  // Test 13: Org-scoped resource: system admin bypasses org check
   it("system admin bypasses org check and can access any org resource", async () => {
     // sysAdmin has no org context but is a system admin role
     const decision = await registry.can(sysAdmin, "project", "delete", {
