@@ -49,8 +49,8 @@ jobs:
       - name: Type-check
         run: bun run check-types
 
-      # - name: Knip
-      #   run: bun run knip
+      - name: Knip
+        run: bun run knip
 
       - name: Test
         run: bun run test
