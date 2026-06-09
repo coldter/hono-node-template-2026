@@ -63,29 +63,14 @@ Also add `REDIS_URL` to the Zod schema in `apps/server/src/env.ts` (currently re
 
 ## 4. Shared-bucket IP keying
 
-**Where:** `apps/server/src/middlewares/rate-limit.ts:9` — `keyGenerator: (c) => c.req.header("x-forwarded-for") ?? ""`.
-
-**Behavior:** When the `X-Forwarded-For` header is absent (direct connections, misconfigured proxy), the rate-limit key falls back to an empty string. Every unheadered caller then shares the same 1000 req/min bucket — trivial DoS of all anonymous traffic by a single hostile client.
-
-When present, the raw header is used unparsed. `X-Forwarded-For` is a comma-separated chain (`client, proxy1, proxy2`); an attacker can rotate arbitrary prefix values to avoid per-IP limits.
-
-**Recommended mitigation path:** Parse the proxy chain and pick the *last trusted* IP (or use Hono's `getConnInfo()` helper). Never fall back to empty:
-
-```ts
-import { getConnInfo } from "@hono/node-server/conninfo";
-
-keyGenerator: (c) => {
-  const forwarded = c.req.header("x-forwarded-for");
-  if (forwarded) {
-    // Pick the leftmost non-trusted IP; drop trusted proxies from the right.
-    const parts = forwarded.split(",").map((p) => p.trim());
-    return parts[0] ?? c.req.header("cf-connecting-ip") ?? getConnInfo(c).remote.address ?? "unknown";
-  }
-  return c.req.header("cf-connecting-ip") ?? getConnInfo(c).remote.address ?? "unknown";
-},
-```
-
-If the resolved key is `"unknown"`, consider failing closed (throw 429) rather than sharing a bucket.
+**Status: FIXED (2026-06).** The limiter keys on `resolveRateLimitKey()`
+(`apps/server/src/lib/client-ip.ts`): with `TRUST_PROXY=true` it uses the
+rightmost `X-Forwarded-For` entry (appended by our own proxy — leftmost values
+are attacker-rotatable and are never trusted); otherwise it uses the socket
+address from `getConnInfo()`. Requests with no resolvable IP are rejected with
+429 (fail closed) instead of sharing an anonymous bucket. Set `TRUST_PROXY=true`
+only when the app is deployed behind a trusted reverse proxy (the shipped Caddy
+config qualifies).
 
 ---
 
@@ -96,6 +81,6 @@ If the resolved key is `"unknown"`, consider failing closed (throw 429) rather t
 | 1 | Single-session enforcement | Product-behavior | Decide: keep, remove, or gate behind env flag. |
 | 2 | UA-based trust bypass | **Security bug** | Replace with origin- or signature-based mobile auth. |
 | 3 | Memory rate limiter | Ops-correctness | Switch to Redis-backed storage for multi-instance deploys. |
-| 4 | Shared-bucket IP keying | **Security bug** | Fix the `?? ""` fallback and parse the proxy chain. |
+| 4 | Shared-bucket IP keying | **Security bug** | Fixed — keyed via TRUST_PROXY-aware resolver, fail closed. |
 
 Items marked **Security bug** should be fixed before any public exposure — documentation alone does not mitigate them.
