@@ -124,29 +124,6 @@ function getSessionUserId(ctx: unknown): string | undefined {
   return parsed.data.context?.session?.user?.id;
 }
 
-function resolveTrustedOrigins(request: Request | undefined): string[] {
-  // request is undefined during initialization or auth.api calls
-  if (!request) {
-    return env.CORS_ORIGIN;
-  }
-
-  const userAgent = request.headers.get("user-agent");
-  const origin = request.headers.get("origin");
-
-  if (origin) {
-    return env.CORS_ORIGIN;
-  }
-
-  // Mobile clients send no Origin header; trust the request URL origin
-  // only after verifying a mobile UA so this cannot be spoofed by browsers.
-  if (userAgent && detectPlatform(userAgent) === "mobile") {
-    const url = new URL(request.url);
-    return [url.origin];
-  }
-
-  return env.CORS_ORIGIN;
-}
-
 function resolveClientIp(headers: Headers | undefined): string | null {
   const forwarded = headers?.get("x-forwarded-for");
   if (forwarded) {
@@ -243,9 +220,9 @@ const authConfig = {
     usePlural: true,
     schema,
   }),
-  // Mobile clients send no Origin header; resolveTrustedOrigins detects them via user-agent.
-  trustedOrigins: (request: Request | undefined) =>
-    resolveTrustedOrigins(request),
+  // Mobile clients must send an explicit Origin header included in CORS_ORIGIN.
+  // detectPlatform() is used for session lifetimes only and never for trust.
+  trustedOrigins: env.CORS_ORIGIN,
 
   // Global rate-limit must sit above the per-account lockout so our lockout fires first.
   rateLimit: {

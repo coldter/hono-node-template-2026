@@ -26,18 +26,11 @@ if (env.AUTH_SINGLE_SESSION) {
 
 ## 2. User-Agent-based mobile trust bypass
 
-**Where:** `apps/server/src/modules/auth/instance.ts`, the `trustedOrigins` function.
-
-**Behavior:** When an incoming request has NO `Origin` header AND its `User-Agent` matches `/android|iphone|ipad|mobile|okhttp|dart|flutter|react-native|expo/i`, the request is auto-trusted against its own URL origin (effectively bypassing CORS).
-
-**Threat model:** `User-Agent` is client-controlled. Any attacker can send `User-Agent: iPhone` from curl and bypass the CORS check entirely.
-
-**Recommended mitigation path:** Replace the UA bypass with one of:
-
-- **Proper origin checks.** Expo, React Native, and most modern mobile frameworks let you set `Origin: https://my-app.mobile` or similar. Add that origin to `CORS_ORIGIN`. Drop the UA branch entirely.
-- **Signed client header.** Require mobile builds to send `X-Client-Id: <uuid>` + `X-Client-Signature: <hmac>` verified against a server secret. Rejects UA-spoofed callers.
-
-Until mitigated, treat the auth API as web-only in production and expose mobile endpoints through a separately-authenticated gateway.
+**Status: FIXED (2026-06).** The UA-sniffing branch was removed; `trustedOrigins`
+is now exactly `CORS_ORIGIN`. Mobile clients (Expo / React Native) must send an
+explicit `Origin` header (e.g. `https://my-app.mobile`) and that origin must be
+added to `CORS_ORIGIN`. User-Agent now influences only session lifetimes
+(web 1h / mobile 7d), never trust.
 
 ---
 
@@ -79,7 +72,7 @@ config qualifies).
 | # | Issue | Severity | Action before production |
 |---|-------|----------|--------------------------|
 | 1 | Single-session enforcement | Product-behavior | Decide: keep, remove, or gate behind env flag. |
-| 2 | UA-based trust bypass | **Security bug** | Replace with origin- or signature-based mobile auth. |
+| 2 | UA-based trust bypass | **Security bug** | Fixed — UA branch removed; explicit Origin required. |
 | 3 | Memory rate limiter | Ops-correctness | Switch to Redis-backed storage for multi-instance deploys. |
 | 4 | Shared-bucket IP keying | **Security bug** | Fixed — keyed via TRUST_PROXY-aware resolver, fail closed. |
 
