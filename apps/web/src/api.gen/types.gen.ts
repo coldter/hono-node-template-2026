@@ -190,7 +190,7 @@ export type ListAuditLogsResponses = {
             id: string;
             event: 'auth.login.success' | 'auth.login.failed' | 'auth.logout' | 'auth.password.changed' | 'auth.session.revoked' | 'user.created' | 'user.updated' | 'user.deleted' | 'user.deactivated' | 'user.activated' | 'user.unlocked' | 'user.viewed' | 'user.listed' | 'role.created' | 'role.updated' | 'role.deleted' | 'role.assigned' | 'role.unassigned';
             actorId: string | null;
-            actorType: 'USER' | 'GLOBAL_ADMIN' | 'SYSTEM';
+            actorType: 'user' | 'system' | 'api';
             targetId: string | null;
             targetType: 'user' | 'role' | 'session' | null;
             ipAddress: string | null;
@@ -1873,7 +1873,7 @@ export type ListUsersData = {
         /**
          * Filter by status
          */
-        status?: 'active' | 'inactive' | 'locked';
+        status?: 'active' | 'inactive' | 'locked' | 'deleted';
         /**
          * Filter by role slug
          */
@@ -2004,7 +2004,7 @@ export type ListUsersResponses = {
             email: string;
             emailVerified: boolean;
             image: string | null;
-            status: 'active' | 'inactive' | 'locked';
+            status: 'active' | 'inactive' | 'locked' | 'deleted';
             roleSlugs: Array<string>;
             createdAt: string;
             updatedAt: string;
@@ -2178,7 +2178,7 @@ export type CreateUserResponses = {
             email: string;
             emailVerified: boolean;
             image: string | null;
-            status: 'active' | 'inactive' | 'locked';
+            status: 'active' | 'inactive' | 'locked' | 'deleted';
             roleSlugs: Array<string>;
             createdAt: string;
             updatedAt: string;
@@ -2431,7 +2431,7 @@ export type GetUserResponses = {
             email: string;
             emailVerified: boolean;
             image: string | null;
-            status: 'active' | 'inactive' | 'locked';
+            status: 'active' | 'inactive' | 'locked' | 'deleted';
             roleSlugs: Array<string>;
             createdAt: string;
             updatedAt: string;
@@ -2567,7 +2567,7 @@ export type UpdateUserResponses = {
             email: string;
             emailVerified: boolean;
             image: string | null;
-            status: 'active' | 'inactive' | 'locked';
+            status: 'active' | 'inactive' | 'locked' | 'deleted';
             roleSlugs: Array<string>;
             createdAt: string;
             updatedAt: string;
@@ -2700,7 +2700,7 @@ export type UpdateUserRolesResponses = {
             email: string;
             emailVerified: boolean;
             image: string | null;
-            status: 'active' | 'inactive' | 'locked';
+            status: 'active' | 'inactive' | 'locked' | 'deleted';
             roleSlugs: Array<string>;
             createdAt: string;
             updatedAt: string;

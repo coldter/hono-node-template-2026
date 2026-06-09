@@ -22,7 +22,7 @@ export const zListAuditLogsQuery = z.object({
     endDate: z.iso.datetime().optional(),
     page: z.number().gte(1).optional().default(1),
     perPage: z.number().gte(1).lte(100).optional().default(20),
-    sort: z.string().optional(),
+    sort: z.string().max(64).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/).optional(),
     order: z.enum(['asc', 'desc']).optional().default('desc')
 });
 
@@ -54,9 +54,9 @@ export const zListAuditLogsResponse = z.object({
         ]),
         actorId: z.string().nullable(),
         actorType: z.enum([
-            'USER',
-            'GLOBAL_ADMIN',
-            'SYSTEM'
+            'user',
+            'system',
+            'api'
         ]),
         targetId: z.string().nullable(),
         targetType: z.enum([
@@ -368,10 +368,11 @@ export const zListUsersQuery = z.object({
     status: z.enum([
         'active',
         'inactive',
-        'locked'
+        'locked',
+        'deleted'
     ]).optional(),
     role: z.string().optional(),
-    sort: z.string().optional(),
+    sort: z.string().max(64).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/).optional(),
     page: z.number().gte(1).optional().default(1),
     perPage: z.number().gte(1).lte(100).optional().default(20),
     order: z.enum(['asc', 'desc']).optional().default('desc')
@@ -390,7 +391,8 @@ export const zListUsersResponse = z.object({
         status: z.enum([
             'active',
             'inactive',
-            'locked'
+            'locked',
+            'deleted'
         ]),
         roleSlugs: z.array(z.string()),
         createdAt: z.iso.datetime(),
@@ -428,7 +430,8 @@ export const zCreateUserResponse = z.object({
         status: z.enum([
             'active',
             'inactive',
-            'locked'
+            'locked',
+            'deleted'
         ]),
         roleSlugs: z.array(z.string()),
         createdAt: z.iso.datetime(),
@@ -472,7 +475,8 @@ export const zGetUserResponse = z.object({
         status: z.enum([
             'active',
             'inactive',
-            'locked'
+            'locked',
+            'deleted'
         ]),
         roleSlugs: z.array(z.string()),
         createdAt: z.iso.datetime(),
@@ -507,7 +511,8 @@ export const zUpdateUserResponse = z.object({
         status: z.enum([
             'active',
             'inactive',
-            'locked'
+            'locked',
+            'deleted'
         ]),
         roleSlugs: z.array(z.string()),
         createdAt: z.iso.datetime(),
@@ -536,7 +541,8 @@ export const zUpdateUserRolesResponse = z.object({
         status: z.enum([
             'active',
             'inactive',
-            'locked'
+            'locked',
+            'deleted'
         ]),
         roleSlugs: z.array(z.string()),
         createdAt: z.iso.datetime(),
