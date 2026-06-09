@@ -49,10 +49,12 @@ CI minimally, add release automation, and ship an env-gated sign-up flow.
 - New `apps/server/src/lib/redis.ts`: lazy singleton node-redis (v5) client;
   closed on graceful shutdown. Connection failure is fatal only when `REDIS_URL`
   was explicitly set (misconfiguration is loud; absence is fine).
-- Better Auth (`instance.ts`): when `REDIS_URL` is set, provide a small
-  `secondaryStorage` adapter (`get` / `set` with TTL via `EX` / `delete`) and
-  switch `rateLimit.storage` to `"secondary-storage"`. Otherwise keep `"memory"`.
-  (Better Auth 1.6.x passes TTL to `set`; upstream TTL-leak issue #4472 is fixed.)
+- Better Auth (`instance.ts`): when `REDIS_URL` is set, provide a small Redis
+  adapter via `rateLimit.customStorage` (`get` / `set`, TTL via `SETEX`).
+  Otherwise keep `"memory"`. `customStorage` is used instead of
+  `secondaryStorage` deliberately: configuring `secondaryStorage` also moves
+  Better Auth session storage into it, which would break the template's
+  DB-row-based single-session enforcement.
 - Global limiter: `rate-limit-redis` store over the same client when `REDIS_URL`
   is set; in-memory otherwise. One client library total (node-redis); no ioredis.
 - Startup `logger.warn` when `NODE_ENV=production` and `REDIS_URL` is unset.
