@@ -1,13 +1,6 @@
-import { initializeOpenTelemetry, shutdownOpenTelemetry } from "./otel-sdk";
+import { initializeOpenTelemetry } from "./otel-sdk";
 
-initializeOpenTelemetry();
-
-process.on("SIGTERM", async () => {
-  await shutdownOpenTelemetry();
-  process.exit(0);
-});
-
-process.on("SIGINT", async () => {
-  await shutdownOpenTelemetry();
-  process.exit(0);
-});
+// Imported for its side effect as the first import of the entrypoint so
+// auto-instrumentation registers before app modules load. Shutdown is owned by
+// the orchestrator in index.ts.
+await initializeOpenTelemetry();

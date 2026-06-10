@@ -133,9 +133,6 @@ describe("notificationPushTokenService.registerPushToken", () => {
       platform: "android",
     });
 
-    // service issues two selects (cross-user conflict check, then same-user lookup)
-    // before the update; queue order matters.
-    selectResults.push([existing]);
     selectResults.push([existing]);
     updateResults.push([updated]);
 
@@ -151,7 +148,6 @@ describe("notificationPushTokenService.registerPushToken", () => {
   });
 
   it("should create a new row when the token is brand new", async () => {
-    selectResults.push([]);
     selectResults.push([]);
     const created = makeRow({
       id: "tok_new",

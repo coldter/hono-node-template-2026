@@ -2,6 +2,7 @@ import {
   type Attributes,
   type Span,
   type SpanOptions,
+  SpanStatusCode,
   trace,
 } from "@opentelemetry/api";
 import {
@@ -42,10 +43,13 @@ export async function withSpan<T>(
       const err = error instanceof Error ? error : new Error(String(error));
 
       span.setAttribute("error.type", err.constructor.name);
-
+      // Message and stack are recorded as-is: REDACTION_CONFIG covers
+      // attributes, not exception events, and winston already logs error
+      // messages unredacted.
+      span.recordException(err);
       span.setStatus({
-        code: 2,
-        message: "Error occurred",
+        code: SpanStatusCode.ERROR,
+        message: err.message,
       });
 
       span.end();
@@ -98,10 +102,10 @@ export function recordSpanException(error: Error): void {
   }
 
   span.setAttribute("error.type", error.constructor.name);
-
+  span.recordException(error);
   span.setStatus({
-    code: 2,
-    message: "Error occurred",
+    code: SpanStatusCode.ERROR,
+    message: error.message,
   });
 }
 

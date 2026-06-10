@@ -1,7 +1,7 @@
 import * as schema from "@repo/db/schema";
 import type { BetterAuthPlugin } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNotNull, or } from "drizzle-orm";
 
 import { db } from "@/db";
 
@@ -172,13 +172,23 @@ export const loginSecurityPlugin = () =>
               });
             }
 
+            // Guard the reset so clean sign-ins skip a no-op write (one dead
+            // tuple per login otherwise).
             await db
               .update(schema.users)
               .set({
                 failedLoginAttempts: 0,
                 lockedUntil: null,
               })
-              .where(eq(schema.users.email, extracted.rawEmail));
+              .where(
+                and(
+                  eq(schema.users.email, extracted.rawEmail),
+                  or(
+                    gt(schema.users.failedLoginAttempts, 0),
+                    isNotNull(schema.users.lockedUntil)
+                  )
+                )
+              );
           }),
         },
       ],

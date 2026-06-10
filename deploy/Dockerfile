@@ -77,6 +77,18 @@ ENV VITE_SERVER_URL=$VITE_SERVER_URL
 ENV VITE_ENABLE_SIGNUP=$VITE_ENABLE_SIGNUP
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile && bun run generate-client && bun run build
 
+# Max-level build-time compression: Caddy's file_server serves these .gz/.zst
+# sidecars directly (precompressed), so the SPA costs zero compression CPU at
+# runtime and gets better ratios than per-request encode. GNU gzip is installed
+# because busybox gzip does not reliably support -9/-k; both tools keep the
+# originals for clients without Accept-Encoding. This stage is intermediate, so
+# the packages never ship. Binary formats (images, woff2) are already
+# compressed and are deliberately excluded.
+RUN apk add --no-cache zstd gzip && \
+    find dist -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' -o -name '*.svg' \
+        -o -name '*.json' -o -name '*.txt' -o -name '*.xml' -o -name '*.webmanifest' \) \
+        -exec gzip -9 -k -f {} \; -exec zstd -19 -q -f {} \;
+
 # =============================================================================
 # Caddy target (serves web SPA + reverse proxies API services)
 # =============================================================================

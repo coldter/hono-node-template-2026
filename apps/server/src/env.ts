@@ -1,17 +1,59 @@
 import "dotenv/config";
 import { z } from "zod";
 
+/**
+ * Parses OTLP exporter headers from the OTEL-standard comma-separated
+ * `key=value,key2=value2` format, falling back to a JSON object for
+ * backward compatibility. Throws on malformed input.
+ */
+export function parseOtlpHeaders(value: string): Record<string, string> {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("{")) {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      throw new Error("JSON form must be an object of string values");
+    }
+    const headers: Record<string, string> = {};
+    for (const [key, headerValue] of Object.entries(parsed)) {
+      if (typeof headerValue !== "string") {
+        throw new Error(`header "${key}" must be a string`);
+      }
+      headers[key] = headerValue;
+    }
+    return headers;
+  }
+
+  const headers: Record<string, string> = {};
+  for (const pair of trimmed.split(",")) {
+    // Split on the first "=" only: header values like "Bearer a=b" are legal.
+    const separatorIndex = pair.indexOf("=");
+    const key = separatorIndex > 0 ? pair.slice(0, separatorIndex).trim() : "";
+    const headerValue = pair.slice(separatorIndex + 1).trim();
+    if (!(key && headerValue)) {
+      throw new Error(`malformed header pair "${pair.trim()}"`);
+    }
+    headers[key] = headerValue;
+  }
+  return headers;
+}
+
 const envSchema = z
   .object({
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
     PORT: z.coerce.number().default(3000),
+    // Winston npm levels only; pino-style values (fatal/trace/silent) would
+    // silently suppress all output because winston treats them as unknown.
     LOG_LEVEL: z
-      .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+      .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
       .default("info"),
     WORK_FLOWS_LOG_LEVEL: z
-      .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+      .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
       .default("warn"),
     APP_NAME: z.string().default("App"),
     COMPANY_NAME: z.string().default("Acme Inc."),
@@ -29,6 +71,7 @@ const envSchema = z
       .transform((val) => val === "true" || val === "1"),
     DATABASE_URL: z.string().min(1).max(1000),
     DATABASE_TEST_URL: z.string().optional(),
+    DB_POOL_MAX: z.coerce.number().default(10),
     SKIP_DB: z
       .string()
       .transform((val) => val === "true" || val === "1")
@@ -77,7 +120,20 @@ const envSchema = z
     OTEL_EXPORTER_OTLP_HEADERS: z
       .string()
       .optional()
-      .transform((val) => (val ? JSON.parse(val) : undefined)),
+      .transform((val, ctx) => {
+        if (!val || val.trim() === "") {
+          return;
+        }
+        try {
+          return parseOtlpHeaders(val);
+        } catch (error) {
+          ctx.addIssue({
+            code: "custom",
+            message: `OTEL_EXPORTER_OTLP_HEADERS must be comma-separated key=value pairs (or a JSON object): ${error instanceof Error ? error.message : String(error)}`,
+          });
+          return z.NEVER;
+        }
+      }),
 
     EMAIL_PROVIDER: z.enum(["nodemailer", "console"]).default("console"),
     EMAIL_FROM: z.email().default("noreply@example.com"),

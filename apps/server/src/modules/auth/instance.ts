@@ -330,19 +330,24 @@ const authConfig = {
           const platform = detectPlatform(userAgent);
           const config = SESSION_CONFIG[platform];
 
-          const [previousSession] = await db
-            .select({
-              userAgent: schema.sessions.userAgent,
-              ipAddress: schema.sessions.ipAddress,
-            })
-            .from(schema.sessions)
-            .where(eq(schema.sessions.userId, session.userId))
-            .limit(1);
-
           // Single session per user: revoke any existing rows before inserting.
-          await db
-            .delete(schema.sessions)
-            .where(eq(schema.sessions.userId, session.userId));
+          // RETURNING feeds new-device detection, saving a separate SELECT;
+          // the membership lookup is independent, so both run concurrently.
+          const [revokedSessions, orgContext] = await Promise.all([
+            db
+              .delete(schema.sessions)
+              .where(eq(schema.sessions.userId, session.userId))
+              .returning({
+                userAgent: schema.sessions.userAgent,
+                ipAddress: schema.sessions.ipAddress,
+                createdAt: schema.sessions.createdAt,
+              }),
+            resolveInitialOrganizationContext(session.userId),
+          ]);
+
+          const [previousSession] = revokedSessions.sort(
+            (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+          );
 
           if (previousSession) {
             const isNewDevice =
@@ -360,10 +365,6 @@ const authConfig = {
           }
 
           const expiresAt = new Date(Date.now() + config.expiresIn * 1000);
-
-          const orgContext = await resolveInitialOrganizationContext(
-            session.userId
-          );
 
           return {
             data: {

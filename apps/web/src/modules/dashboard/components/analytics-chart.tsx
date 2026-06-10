@@ -1,77 +1,18 @@
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { lazy, Suspense } from "react";
+import { Skeleton } from "@/modules/ui/skeleton";
 
-const data = [
-  {
-    name: "Mon",
-    clicks: Math.floor(Math.random() * 900) + 100,
-    uniques: Math.floor(Math.random() * 700) + 80,
-  },
-  {
-    name: "Tue",
-    clicks: Math.floor(Math.random() * 900) + 100,
-    uniques: Math.floor(Math.random() * 700) + 80,
-  },
-  {
-    name: "Wed",
-    clicks: Math.floor(Math.random() * 900) + 100,
-    uniques: Math.floor(Math.random() * 700) + 80,
-  },
-  {
-    name: "Thu",
-    clicks: Math.floor(Math.random() * 900) + 100,
-    uniques: Math.floor(Math.random() * 700) + 80,
-  },
-  {
-    name: "Fri",
-    clicks: Math.floor(Math.random() * 900) + 100,
-    uniques: Math.floor(Math.random() * 700) + 80,
-  },
-  {
-    name: "Sat",
-    clicks: Math.floor(Math.random() * 900) + 100,
-    uniques: Math.floor(Math.random() * 700) + 80,
-  },
-  {
-    name: "Sun",
-    clicks: Math.floor(Math.random() * 900) + 100,
-    uniques: Math.floor(Math.random() * 700) + 80,
-  },
-];
+// recharts is ~99KB gzip; loading it lazily lets the dashboard shell paint
+// before the chart code arrives.
+const AnalyticsChartContent = lazy(() =>
+  import("./analytics-chart-content").then((module) => ({
+    default: module.AnalyticsChartContent,
+  }))
+);
 
 export function AnalyticsChart() {
   return (
-    <ResponsiveContainer height={300} width="100%">
-      <AreaChart data={data}>
-        <XAxis
-          axisLine={false}
-          dataKey="name"
-          fontSize={12}
-          stroke="#888888"
-          tickLine={false}
-        />
-        <YAxis
-          axisLine={false}
-          fontSize={12}
-          stroke="#888888"
-          tickLine={false}
-        />
-        <Area
-          className="text-primary"
-          dataKey="clicks"
-          fill="currentColor"
-          fillOpacity={0.15}
-          stroke="currentColor"
-          type="monotone"
-        />
-        <Area
-          className="text-muted-foreground"
-          dataKey="uniques"
-          fill="currentColor"
-          fillOpacity={0.1}
-          stroke="currentColor"
-          type="monotone"
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <Suspense fallback={<Skeleton className="h-[300px] w-full" />}>
+      <AnalyticsChartContent />
+    </Suspense>
   );
 }

@@ -2,7 +2,7 @@ import { useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Home, LogOut, ShieldX } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
-import { clearSession } from "@/modules/auth";
+import { clearSession } from "@/modules/auth/helpers";
 import { Button } from "@/modules/ui/button";
 import { queryClient } from "@/query/query-client";
 import { sessionQueryOptions } from "@/query/session-query";

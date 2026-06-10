@@ -1,4 +1,5 @@
 import type { HttpBindings } from "@hono/node-server";
+import type { RequestIdVariables } from "hono/request-id";
 import type { AuditContext } from "@/lib/audit-context";
 import type { auth } from "@/modules/auth/instance";
 
@@ -15,7 +16,7 @@ type Bindings = HttpBindings & {
  * @link https://hono.dev/docs/middleware/builtin/context-storage#usage
  */
 export type Env = {
-  Variables: {
+  Variables: RequestIdVariables & {
     user: typeof auth.$Infer.Session.user | null;
     session: typeof auth.$Infer.Session.session | null;
     otel: { traceId: string | null; spanId: string | null } | null;

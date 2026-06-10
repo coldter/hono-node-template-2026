@@ -6,6 +6,7 @@ import { PostgresError } from "pg-error-enum";
 import { env } from "@/env";
 import type { Env } from "@/lib/context";
 import { logger } from "@/lib/logger";
+import { getTraceIdFromContext } from "@/lib/otel-utils";
 
 function errorResponse(
   code: string,
@@ -21,6 +22,17 @@ function errorResponse(
   };
 }
 
+// Lets a 500 log line be joined to its structured request log entry.
+function requestCorrelation(c: Context<Env>): {
+  request_id: string | null;
+  trace_id: string | null;
+} {
+  return {
+    request_id: c.get("requestId") ?? null,
+    trace_id: getTraceIdFromContext(c),
+  };
+}
+
 export function handleError(err: Error, c: Context<Env>): Response {
   if (err instanceof HTTPException) {
     if (err.status >= 500) {
@@ -30,6 +42,7 @@ export function handleError(err: Error, c: Context<Env>): Response {
         path: c.req.path,
         method: c.req.method,
         contentType: c.req.header("content-type") ?? null,
+        ...requestCorrelation(c),
       });
     }
     const causeCode =
@@ -65,7 +78,7 @@ export function handleError(err: Error, c: Context<Env>): Response {
   }
 
   if (err instanceof DrizzleQueryError) {
-    logger.error("DatabaseError", { error: err });
+    logger.error("DatabaseError", { error: err, ...requestCorrelation(c) });
     if (!(err.cause instanceof pg.DatabaseError)) {
       return c.json(
         errorResponse("DATABASE_ERROR", "database error occurred"),
@@ -86,6 +99,7 @@ export function handleError(err: Error, c: Context<Env>): Response {
     cause: err?.cause,
     stack: err?.stack,
     constructor: err?.constructor.name,
+    ...requestCorrelation(c),
   });
 
   return c.json(

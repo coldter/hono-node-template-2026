@@ -1,11 +1,11 @@
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/inter/wght-italic.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
-import type { Session } from "@/lib/auth-client";
 import AppError from "@/modules/common/app-error";
 import { FullPageLoadingState } from "@/modules/common/full-page-loading-state";
 import { queryClient } from "@/query/query-client";
-import { sessionQueryOptions } from "@/query/session-query";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
@@ -17,6 +17,9 @@ const router = createRouter({
   defaultErrorComponent: AppError,
   context: {
     queryClient,
+    // Session is resolved per-navigation by route beforeLoad hooks, never at
+    // boot: awaiting it here would blank-screen every cold load and freeze a
+    // stale session for the lifetime of the tab.
     session: null,
   },
   defaultPendingMinMs: 0,
@@ -37,22 +40,9 @@ if (!rootElement) {
 }
 
 if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-
-  const bootstrap = async () => {
-    let session: Session | null = null;
-    try {
-      session = await queryClient.ensureQueryData(sessionQueryOptions);
-    } catch (error) {
-      console.error("Failed to bootstrap session:", error);
-    }
-
-    root.render(
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider context={{ queryClient, session }} router={router} />
-      </QueryClientProvider>
-    );
-  };
-
-  bootstrap();
+  ReactDOM.createRoot(rootElement).render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
 }

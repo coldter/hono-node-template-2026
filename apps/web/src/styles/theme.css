@@ -156,15 +156,18 @@
   --color-transaction-failed: oklch(0.538 0.218 25.74);
   --color-transaction-processing: oklch(0.623 0.187 259.815);
 
-  /* Fonts */
-  --font-inter: "Inter", sans-serif;
-  --font-caption: "Inter", sans-serif;
-  --font-caption-bold: "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-body-bold: "Inter", sans-serif;
-  --font-heading-3: "Inter", sans-serif;
-  --font-heading-2: "Inter", sans-serif;
-  --font-heading-1: "Inter", sans-serif;
+  /* Fonts. "Inter Variable" is the self-hosted @fontsource-variable/inter
+     face imported in main.tsx; overriding --font-sans makes preflight apply
+     it app-wide via --default-font-family. */
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter Variable", "Inter", sans-serif;
+  --font-caption: "Inter Variable", "Inter", sans-serif;
+  --font-caption-bold: "Inter Variable", "Inter", sans-serif;
+  --font-body: "Inter Variable", "Inter", sans-serif;
+  --font-body-bold: "Inter Variable", "Inter", sans-serif;
+  --font-heading-3: "Inter Variable", "Inter", sans-serif;
+  --font-heading-2: "Inter Variable", "Inter", sans-serif;
+  --font-heading-1: "Inter Variable", "Inter", sans-serif;
   --font-monospace-body: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 
   /* Text sizes */

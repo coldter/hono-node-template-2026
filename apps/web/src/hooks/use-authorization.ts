@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { getAuthorizationCapabilities } from "@/api.gen/sdk.gen";
 
@@ -14,16 +14,18 @@ function normalizeCapabilities(capabilities: unknown): Record<string, boolean> {
   );
 }
 
+export const capabilitiesQueryOptions = queryOptions({
+  queryKey: ["authorization", "capabilities"],
+  queryFn: async () => {
+    const response = await getAuthorizationCapabilities();
+    return normalizeCapabilities(response.capabilities);
+  },
+  staleTime: 5 * 60 * 1000,
+  retry: 1,
+});
+
 export function useAuthorization() {
-  const query = useQuery({
-    queryKey: ["authorization", "capabilities"],
-    queryFn: async () => {
-      const response = await getAuthorizationCapabilities();
-      return normalizeCapabilities(response.capabilities);
-    },
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
+  const query = useQuery(capabilitiesQueryOptions);
 
   const capabilities = useMemo(() => query.data ?? {}, [query.data]);
 

@@ -1,6 +1,8 @@
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { clearSession } from "@/modules/auth";
+// Deep import: the auth barrel pulls framer-motion-heavy components into the
+// eagerly loaded query-client chunk.
+import { clearSession } from "@/modules/auth/helpers";
 import { useAlertStore } from "@/store/alert";
 
 const FALLBACK_MESSAGES: Record<number, string> = {

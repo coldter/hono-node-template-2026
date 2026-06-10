@@ -1,4 +1,8 @@
 {$API_DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
 	encode zstd gzip
 	request_body {
 		max_size 10MB
@@ -20,16 +24,30 @@
 }
 
 {$MAIL_DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
 	encode zstd gzip
 	reverse_proxy mailpit:8025
 }
 
 {$HATCHET_DASHBOARD_DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
 	encode zstd gzip
 	reverse_proxy hatchet-dashboard:80
 }
 
 {$APP_DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
+	# encode stays as fallback for anything without a build-time sidecar; it
+	# skips responses that already carry Content-Encoding from file_server.
 	encode zstd gzip
 	root * /srv/web
 
@@ -42,7 +60,11 @@
 	header @dynamic Cache-Control "no-cache"
 
 	try_files {path} /index.html
-	file_server
+	# Sidecar .zst/.gz files are produced at max level in the Docker web-build
+	# stage; serving them avoids per-request compression CPU entirely.
+	file_server {
+		precompressed zstd gzip
+	}
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"

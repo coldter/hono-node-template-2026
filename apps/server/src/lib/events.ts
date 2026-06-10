@@ -2,6 +2,7 @@ import type { PushEventOptions } from "@hatchet-dev/typescript-sdk/clients/event
 import { env } from "@/env";
 import { getHatchet } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";
+import { recordHatchetEventPush } from "@/lib/metrics";
 import { redactSensitiveFields } from "@/lib/otel-config";
 import { addSpanEvent } from "@/lib/otel-utils";
 
@@ -53,9 +54,11 @@ export async function pushEvent<K extends keyof EventPayloads>(
   try {
     addSpanEvent("hatchet.event.push", { eventName });
     await hatchet.events.push(eventName, payload, options);
+    recordHatchetEventPush(eventName, "success");
     logger.debug(`Event pushed: ${eventName}`, { payload });
     return { success: true };
   } catch (error) {
+    recordHatchetEventPush(eventName, "failure");
     const err = error instanceof Error ? error : new Error(String(error));
 
     if (env.NODE_ENV === "development") {

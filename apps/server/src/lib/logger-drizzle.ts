@@ -1,11 +1,23 @@
 import chalk from "chalk";
-import { highlight } from "cli-highlight";
 import type { Logger } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 
 // Created once: the label is static, so there is no need to allocate a child
 // logger per query.
 const drizzleLogger = logger.child({ label: "drizzle" });
+
+// cli-highlight pulls in highlight.js (~150ms import, several MB RSS), so only
+// load it when debug logging can actually emit queries.
+const highlight = drizzleLogger.isDebugEnabled()
+  ? (await import("cli-highlight")).highlight
+  : null;
+
+function highlightSql(query: string): string {
+  if (!highlight) {
+    return query;
+  }
+  return highlight(query, { language: "sql", ignoreIllegals: true });
+}
 
 export class DrizzleLogger implements Logger {
   logQuery(query: string, params: unknown[]): void {
@@ -18,22 +30,15 @@ export class DrizzleLogger implements Logger {
 
     if (process.env.NODE_ENV === "production") {
       drizzleLogger.debug(
-        `${chalk.cyanBright("DB Query:")} ${highlight(query, {
-          language: "sql",
-          ignoreIllegals: true,
-        })}`,
+        `${chalk.cyanBright("DB Query:")} ${highlightSql(query)}`,
         { paramsCount: params.length }
       );
       return;
     }
 
     drizzleLogger.debug(
-      `${chalk.cyanBright("DB Query Escaped:")} ${highlight(
-        this.replaceSqlPlaceholders(query, params),
-        {
-          language: "sql",
-          ignoreIllegals: true,
-        }
+      `${chalk.cyanBright("DB Query Escaped:")} ${highlightSql(
+        this.replaceSqlPlaceholders(query, params)
       )}`
     );
   }

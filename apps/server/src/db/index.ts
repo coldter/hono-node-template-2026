@@ -1,7 +1,9 @@
 import { createNodeDrizzleClient, type DrizzleClient } from "@repo/db";
-import type { NodePgClient } from "drizzle-orm/node-postgres";
+import type { Pool } from "pg";
 import { env } from "@/env";
+import { logger } from "@/lib/logger";
 import { DrizzleLogger } from "@/lib/logger-drizzle";
+import { registerDbPoolGauges } from "@/lib/metrics";
 import { OTEL_ENABLED } from "@/lib/otel-config";
 
 let instrumentDrizzleClient:
@@ -15,7 +17,9 @@ if (OTEL_ENABLED) {
 
 type DBCore = DrizzleClient;
 export type DB = DBCore & {
-  $client: NodePgClient;
+  // drizzle types $client as Pool | PoolClient | Client; we always construct
+  // from a PoolConfig, so it is a Pool at runtime.
+  $client: Pool;
 };
 
 export type { Executor, Transaction } from "@repo/db/client";
@@ -43,7 +47,7 @@ if (isDbSkipped) {
       connectionString,
       connectionTimeoutMillis: 10_000,
       idleTimeoutMillis: 30_000,
-      max: 10,
+      max: env.DB_POOL_MAX,
       min: 0,
       // Defensive server-side timeouts so a stuck query or an abandoned open
       // transaction cannot hold a pooled connection indefinitely.
@@ -53,10 +57,29 @@ if (isDbSkipped) {
     new DrizzleLogger()
   ) as DB;
 
+  // node-postgres emits 'error' on the pool when an idle client dies (e.g.
+  // Postgres restart); without a listener that is an unhandled 'error' event
+  // and crashes the process.
+  db.$client.on("error", (error) => {
+    logger.error("Postgres pool idle client error", {
+      message: error.message,
+      stack: error.stack,
+    });
+  });
+
   if (OTEL_ENABLED && instrumentDrizzleClient) {
     instrumentDrizzleClient(db, {
       captureQueryText: true,
       tracerName: "db-drizzle",
     });
   }
+
+  registerDbPoolGauges(db.$client);
+}
+
+export async function closeDb(): Promise<void> {
+  if (isDbSkipped) {
+    return;
+  }
+  await db.$client.end();
 }

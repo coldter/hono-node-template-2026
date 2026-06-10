@@ -62,23 +62,19 @@ export async function startWorker(): Promise<void> {
     return;
   }
 
-  const shutdown = async (signal: string) => {
-    logger.info(`Received ${signal}, shutting down worker gracefully...`);
-    try {
-      await workerInstance.stop();
-      logger.info("Worker stopped successfully");
-    } catch (error) {
-      logger.error("Error stopping worker", { error });
-    }
-  };
-
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
-
   logger.info("Starting Hatchet worker...", {
     slots: env.HATCHET_WORKER_SLOTS,
     workflows: workflowsToRegister.length,
   });
 
   await workerInstance.start();
+}
+
+export async function stopWorker(): Promise<void> {
+  if (!worker) {
+    return;
+  }
+  const workerInstance = worker;
+  worker = null;
+  await workerInstance.stop();
 }

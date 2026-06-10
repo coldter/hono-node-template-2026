@@ -38,12 +38,15 @@ export const customOtelMiddleware = createMiddleware<Env>(async (c, next) => {
     },
     async (businessSpan: Span) => {
       try {
+        await next();
+
+        // Auth context is populated downstream of this middleware, so the
+        // user is only readable after next(); the span ends in finally and
+        // is still recording here.
         const user = c.get("user");
         if (user) {
           businessSpan.setAttribute("user.id", user.id);
         }
-
-        await next();
 
         const status = c.res.status;
         businessSpan.setAttribute("http.response.status_code", status);

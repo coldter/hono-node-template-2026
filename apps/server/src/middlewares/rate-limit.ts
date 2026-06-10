@@ -1,4 +1,3 @@
-import { getConnInfo } from "@hono/node-server/conninfo";
 import { HTTPException } from "hono/http-exception";
 import type { Store } from "hono-rate-limiter";
 import { rateLimiter } from "hono-rate-limiter";
@@ -8,13 +7,20 @@ import { RedisStore } from "rate-limit-redis";
 import { env } from "@/env";
 import { resolveRateLimitKey } from "@/lib/client-ip";
 import type { Env } from "@/lib/context";
+import { logger } from "@/lib/logger";
+import { recordRateLimitRejection } from "@/lib/metrics";
 import { getRedis, isRedisEnabled } from "@/lib/redis";
+import {
+  getClientAddressInfo,
+  isHealthCheckPath,
+  resolveClientIp,
+} from "@/middlewares/request-log";
 
-const tooManyRequests = () => {
-  throw new HTTPException(429, {
-    message: "Too many requests, please try again later.",
-  });
-};
+// Sample 429 logs with a plain counter (first rejection, then 1-in-N): an
+// attack can produce thousands of 429s per second, and per-key dedup would
+// need an evicting map whose memory scales with attacker IP diversity.
+const REJECTION_LOG_SAMPLE_RATE = 50;
+let rejectionCount = 0;
 
 export const globalRateLimitMW = rateLimiter<Env>({
   windowMs: ms("1 minutes"),
@@ -37,17 +43,13 @@ export const globalRateLimitMW = rateLimiter<Env>({
         }) as unknown as Store<Env>,
       }
     : {}),
+  // Docker healthchecks hit status every 30s; counting them burns the shared
+  // local bucket and Redis round-trips, and readiness must never 429.
+  skip: (c) => isHealthCheckPath(c.req.path),
   keyGenerator: (c) => {
-    let remoteAddress: string | undefined;
-    try {
-      remoteAddress = getConnInfo(c).remote.address ?? undefined;
-    } catch {
-      // getConnInfo throws outside the node-server runtime (tests, workers).
-      remoteAddress = undefined;
-    }
-
+    const { forwardedFor, remoteAddress } = getClientAddressInfo(c);
     const key = resolveRateLimitKey({
-      forwardedFor: c.req.header("x-forwarded-for"),
+      forwardedFor,
       remoteAddress,
       trustProxy: env.TRUST_PROXY,
     });
@@ -57,9 +59,33 @@ export const globalRateLimitMW = rateLimiter<Env>({
     if (key) {
       return key;
     }
+    // This branch firing in production almost always means TRUST_PROXY does
+    // not match the deployment's proxy chain.
+    logger.warn("rate limit key unresolvable, failing closed with 429", {
+      path: c.req.path,
+      method: c.req.method,
+      hasForwardedFor: Boolean(forwardedFor),
+      hasRemoteAddress: Boolean(remoteAddress),
+      trustProxy: env.TRUST_PROXY,
+    });
+    recordRateLimitRejection("fail_closed");
     throw new HTTPException(429, {
       message: "Too many requests, please try again later.",
     });
   },
-  handler: tooManyRequests,
+  handler: (c) => {
+    recordRateLimitRejection("limit_exceeded");
+    rejectionCount += 1;
+    if (rejectionCount % REJECTION_LOG_SAMPLE_RATE === 1) {
+      logger.warn("rate limit exceeded", {
+        path: c.req.path,
+        method: c.req.method,
+        key: resolveClientIp(c),
+        rejectionCount,
+      });
+    }
+    throw new HTTPException(429, {
+      message: "Too many requests, please try again later.",
+    });
+  },
 });

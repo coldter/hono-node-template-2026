@@ -18,13 +18,14 @@ const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === "true";
 
 export const Route = createFileRoute("/signup")({
   component: RouteComponent,
-  beforeLoad: ({ context }) => {
+  beforeLoad: async ({ context }) => {
     if (!signupEnabled) {
       throw redirect({ to: "/login" });
     }
-    const session = context.queryClient.getQueryData(
-      sessionQueryOptions.queryKey
-    );
+    // Fail open to the form: a failed session probe must not block sign-up.
+    const session = await context.queryClient
+      .ensureQueryData(sessionQueryOptions)
+      .catch(() => null);
     if (session) {
       throw redirect({ to: "/dashboard" });
     }

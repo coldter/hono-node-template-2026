@@ -46,18 +46,18 @@ export const notificationQueryService = {
 
     const where = and(...conditions);
 
-    const notificationsList = await db
-      .select()
-      .from(notifications)
-      .where(where)
-      .orderBy(buildOrderBy(SORT_COLUMNS, sort, order, SORT_COLUMNS.createdAt))
-      .limit(perPage)
-      .offset(offset);
-
-    const [countResult] = await db
-      .select({ total: count() })
-      .from(notifications)
-      .where(where);
+    const [notificationsList, [countResult]] = await Promise.all([
+      db
+        .select()
+        .from(notifications)
+        .where(where)
+        .orderBy(
+          buildOrderBy(SORT_COLUMNS, sort, order, SORT_COLUMNS.createdAt)
+        )
+        .limit(perPage)
+        .offset(offset),
+      db.select({ total: count() }).from(notifications).where(where),
+    ]);
 
     return createPaginatedResponse({
       data: notificationsList,

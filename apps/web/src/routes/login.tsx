@@ -6,7 +6,9 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 import { useState } from "react";
-import { z } from "zod";
+// zod/mini: autoCodeSplitting cannot extract validateSearch, so classic zod
+// here would ship in the eager entry chunk for every visitor.
+import * as z from "zod/mini";
 import { Logo } from "@/assets/logo";
 import {
   AuthStepTransition,
@@ -23,12 +25,13 @@ import { useLastUserStore } from "@/store";
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
   validateSearch: z.object({
-    redirect: z.string().optional(),
+    redirect: z.optional(z.string()),
   }),
-  beforeLoad: ({ context, search }) => {
-    const session = context.queryClient.getQueryData(
-      sessionQueryOptions.queryKey
-    );
+  beforeLoad: async ({ context, search }) => {
+    // Fail open to the form: a failed session probe must not block sign-in.
+    const session = await context.queryClient
+      .ensureQueryData(sessionQueryOptions)
+      .catch(() => null);
     if (session) {
       throw redirect({ to: search.redirect ?? "/dashboard" });
     }

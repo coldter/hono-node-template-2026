@@ -13,17 +13,16 @@ let hatchetClient: HatchetClient | null = null;
 
 function toHatchetLogLevel(level: typeof env.LOG_LEVEL): LogLevel {
   switch (level) {
-    case "silent":
-      return "OFF";
-    case "fatal":
     case "error":
       return "ERROR";
     case "warn":
       return "WARN";
     case "info":
+    case "http":
       return "INFO";
+    case "verbose":
     case "debug":
-    case "trace":
+    case "silly":
       return "DEBUG";
 
     default:

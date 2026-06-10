@@ -18,26 +18,19 @@ export const notificationPushTokenService = {
     sessionId: string,
     input: RegisterPushTokenInput
   ): Promise<PushTokenRecord> {
-    // Cross-user check to prevent silent token take-over.
-    const [conflicting] = await db
+    // Token is unique, so a single lookup serves both the cross-user
+    // take-over check and the same-user upsert decision.
+    const [existing] = await db
       .select()
       .from(pushTokens)
       .where(eq(pushTokens.token, input.token))
       .limit(1);
 
-    if (conflicting && conflicting.userId !== userId) {
+    if (existing && existing.userId !== userId) {
       throw new HTTPException(409, {
         message: "Token already registered to a different user",
       });
     }
-
-    const [existing] = await db
-      .select()
-      .from(pushTokens)
-      .where(
-        and(eq(pushTokens.token, input.token), eq(pushTokens.userId, userId))
-      )
-      .limit(1);
 
     if (existing) {
       const [updated] = await db

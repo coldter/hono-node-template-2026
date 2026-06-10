@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
-import { clearSession } from "@/modules/auth";
+import { clearSession } from "@/modules/auth/helpers";
 import { ConfirmDialog } from "@/modules/common/confirm-dialog";
 import { queryClient } from "@/query/query-client";
 import { sessionQueryOptions } from "@/query/session-query";

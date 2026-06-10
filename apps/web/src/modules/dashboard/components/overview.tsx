@@ -1,33 +1,18 @@
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { lazy, Suspense } from "react";
+import { Skeleton } from "@/modules/ui/skeleton";
 
-const data: { name: string; total: number }[] = [];
+// recharts is ~99KB gzip and Overview sits on the dashboard's default tab;
+// loading it lazily lets the post-login shell paint before the chart code arrives.
+const OverviewContent = lazy(() =>
+  import("./overview-content").then((module) => ({
+    default: module.OverviewContent,
+  }))
+);
 
 export function Overview() {
   return (
-    <ResponsiveContainer height={350} width="100%">
-      <BarChart data={data}>
-        <XAxis
-          axisLine={false}
-          dataKey="name"
-          fontSize={12}
-          stroke="#888888"
-          tickLine={false}
-        />
-        <YAxis
-          axisLine={false}
-          direction="ltr"
-          fontSize={12}
-          stroke="#888888"
-          tickFormatter={(value) => `${value}`}
-          tickLine={false}
-        />
-        <Bar
-          className="fill-primary"
-          dataKey="total"
-          fill="currentColor"
-          radius={[4, 4, 0, 0]}
-        />
-      </BarChart>
-    </ResponsiveContainer>
+    <Suspense fallback={<Skeleton className="h-[350px] w-full" />}>
+      <OverviewContent />
+    </Suspense>
   );
 }

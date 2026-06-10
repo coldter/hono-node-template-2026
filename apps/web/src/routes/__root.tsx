@@ -11,6 +11,7 @@ import { StrictMode } from "react";
 import { ThemeProvider } from "@/context/theme-provider";
 import type { Session } from "@/lib/auth-client";
 import { brand } from "@/lib/brand";
+import { initErrorReporting } from "@/lib/report-error";
 import AppError from "@/modules/common/app-error";
 import { DownAlert } from "@/modules/common/down-alert";
 import { NavigationProgress } from "@/modules/common/navigation-progress";
@@ -21,6 +22,8 @@ export type RouterAppContext = {
   queryClient: QueryClient;
   session: Session | null;
 };
+
+initErrorReporting();
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,

@@ -1,4 +1,5 @@
 import { env } from "@/env";
+import packageJson from "../../package.json";
 
 /**
  * OpenTelemetry Configuration - PCI DSS Compliant.
@@ -7,7 +8,8 @@ import { env } from "@/env";
  */
 
 export const SERVICE_NAME = "server" as const;
-export const SERVICE_VERSION = "1.0.0" as const;
+// Changesets bumps package.json, so telemetry tracks the released version.
+export const SERVICE_VERSION: string = packageJson.version;
 
 export const OTEL_ENABLED = env.OTEL_ENABLED;
 
