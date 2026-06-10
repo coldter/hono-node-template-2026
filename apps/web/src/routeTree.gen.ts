@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as protectedRouteRouteImport } from './routes/(protected)/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +28,11 @@ import { Route as protectedUsersUserIdRouteImport } from './routes/(protected)/u
 import { Route as protectedSettingsNotificationsRouteImport } from './routes/(protected)/settings/notifications'
 import { Route as protectedSettingsAppearanceRouteImport } from './routes/(protected)/settings/appearance'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -118,6 +124,7 @@ const protectedSettingsAppearanceRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/help-center': typeof protectedHelpCenterRouteRoute
   '/settings': typeof protectedSettingsRouteRouteWithChildren
   '/errors/401': typeof Errors401Route
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/help-center': typeof protectedHelpCenterRouteRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/(protected)': typeof protectedRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/(protected)/help-center': typeof protectedHelpCenterRouteRoute
   '/(protected)/settings': typeof protectedSettingsRouteRouteWithChildren
   '/errors/401': typeof Errors401Route
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/signup'
     | '/help-center'
     | '/settings'
     | '/errors/401'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/signup'
     | '/help-center'
     | '/errors/401'
     | '/errors/403'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/'
     | '/(protected)'
     | '/login'
+    | '/signup'
     | '/(protected)/help-center'
     | '/(protected)/settings'
     | '/errors/401'
@@ -231,6 +243,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   protectedRouteRoute: typeof protectedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
   Errors401Route: typeof Errors401Route
   Errors403Route: typeof Errors403Route
   Errors404Route: typeof Errors404Route
@@ -240,6 +253,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -406,6 +426,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   protectedRouteRoute: protectedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
   Errors401Route: Errors401Route,
   Errors403Route: Errors403Route,
   Errors404Route: Errors404Route,

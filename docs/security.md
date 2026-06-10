@@ -36,21 +36,18 @@ added to `CORS_ORIGIN`. User-Agent now influences only session lifetimes
 
 ## 3. In-memory rate limiter
 
-**Where:** `apps/server/src/modules/auth/instance.ts`, `rateLimit.storage: "memory"`.
+**Status: FIXED (2026-06), env-gated.** When `REDIS_URL` is set, both Better Auth
+(`rateLimit.customStorage`, `apps/server/src/modules/auth/rate-limit-storage.ts`)
+and the global Hono limiter store counters in Redis, so limits hold across
+replicas. Without `REDIS_URL` the previous in-memory behavior applies and the
+server logs a warning at boot in production. `customStorage` is used instead of
+`secondaryStorage` deliberately: `secondaryStorage` would also relocate session
+storage and break single-session enforcement.
 
-**Behavior:** Better Auth's rate limiter uses an in-process Map. Each replica has its own counter. In a multi-instance deployment, a caller can exhaust N × limit requests before any single replica throttles them.
-
-**Recommended mitigation path:** Swap to Redis-backed storage behind a `REDIS_URL` env flag:
-
-```ts
-rateLimit: {
-  enabled: true,
-  storage: env.REDIS_URL ? "database" : "memory", // or a custom Redis store
-  // ...
-}
-```
-
-Also add `REDIS_URL` to the Zod schema in `apps/server/src/env.ts` (currently referenced but not validated).
+Failure mode: if Redis goes down mid-traffic, limiter operations fail closed —
+requests get 500s or queue until reconnect rather than bypassing limits. An
+extended Redis outage therefore degrades API availability; the shipped compose
+colocates Redis with `restart: always` and a healthcheck to bound that risk.
 
 ---
 
@@ -73,7 +70,7 @@ config qualifies).
 |---|-------|----------|--------------------------|
 | 1 | Single-session enforcement | Product-behavior | Decide: keep, remove, or gate behind env flag. |
 | 2 | UA-based trust bypass | **Security bug** | Fixed — UA branch removed; explicit Origin required. |
-| 3 | Memory rate limiter | Ops-correctness | Switch to Redis-backed storage for multi-instance deploys. |
+| 3 | Memory rate limiter | Ops-correctness | Fixed — Redis-backed when REDIS_URL is set; warns in prod otherwise. |
 | 4 | Shared-bucket IP keying | **Security bug** | Fixed — keyed via TRUST_PROXY-aware resolver, fail closed. |
 
 Items marked **Security bug** should be fixed before any public exposure — documentation alone does not mitigate them.

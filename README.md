@@ -71,6 +71,13 @@ bun run db:push                      # Push schema (local dev)
 bun run db:studio                    # Open Drizzle Studio
 ```
 
+## Releases
+
+Versioning uses [Changesets](https://github.com/changesets/changesets). Add a
+changeset to any user-facing PR with `bunx changeset`. On merge to `main`, CI
+opens a "Version packages" PR; merging that PR tags a release and updates
+changelogs.
+
 ## Requirements
 
 - Bun 1.3.14 (matches `packageManager` in root `package.json`)
@@ -98,6 +105,15 @@ bun run db:studio                    # Open Drizzle Studio
 - **Email**: React Email + Nodemailer
 - **Web**: React, TanStack Router, TanStack Query, Zustand, Tailwind CSS
 - **Notifications**: Firebase Cloud Messaging
+
+### Secrets vault (available primitive)
+
+`apps/server/src/lib/vault/` ships an envelope-encryption vault
+(AES-256-GCM via a local master key; AWS/GCP/Azure KMS provider stubs).
+It has no default consumer — wire it wherever you store third-party
+credentials or other secrets at rest. See the `vault:debug` script and
+`apps/server/tests/vault/` for usage examples. Configure via
+`VAULT_PROVIDER` / `VAULT_MASTER_KEY`.
 
 ## Documentation
 

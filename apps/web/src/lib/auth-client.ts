@@ -1,4 +1,5 @@
 import {
+  emailOTPClient,
   inferAdditionalFields,
   organizationClient,
   twoFactorClient,
@@ -12,19 +13,22 @@ export const authClient = createAuthClient({
   baseURL: parsedUrl.origin,
   basePath: pathname === "/" ? "/api/auth" : `${pathname}/api/auth`,
   plugins: [
+    emailOTPClient(),
     organizationClient(),
     twoFactorClient(),
     inferAdditionalFields({
+      // input: false mirrors the server's user-status plugin so server-managed
+      // fields are not demanded in signUp.email's typed body.
       user: {
-        status: { type: "string" },
-        deactivatedAt: { type: "date" },
-        deactivatedBy: { type: "string" },
-        deactivatedReason: { type: "string" },
-        failedLoginAttempts: { type: "number" },
-        lockedUntil: { type: "date" },
-        roleSlugs: { type: "string[]" },
-        permissions: { type: "string[]" },
-        twoFactorEnabled: { type: "boolean" },
+        status: { type: "string", input: false },
+        deactivatedAt: { type: "date", input: false },
+        deactivatedBy: { type: "string", input: false },
+        deactivatedReason: { type: "string", input: false },
+        failedLoginAttempts: { type: "number", input: false },
+        lockedUntil: { type: "date", input: false },
+        roleSlugs: { type: "string[]", input: false },
+        permissions: { type: "string[]", input: false },
+        twoFactorEnabled: { type: "boolean", input: false },
       },
       session: {
         platform: { type: "string" },

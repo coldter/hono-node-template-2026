@@ -46,7 +46,7 @@ CI minimally, add release automation, and ship an env-gated sign-up flow.
 ## 3. Redis-backed rate limiting (env-gated)
 
 - `REDIS_URL` added to `apps/server/src/env.ts` as optional.
-- New `apps/server/src/lib/redis.ts`: lazy singleton node-redis (v5) client;
+- New `apps/server/src/lib/redis.ts`: lazy singleton node-redis (v6) client;
   closed on graceful shutdown. Connection failure is fatal only when `REDIS_URL`
   was explicitly set (misconfiguration is loud; absence is fine).
 - Better Auth (`instance.ts`): when `REDIS_URL` is set, provide a small Redis

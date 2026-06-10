@@ -1,5 +1,6 @@
 import {
   createFileRoute,
+  Link,
   redirect,
   useNavigate,
   useSearch,
@@ -102,6 +103,14 @@ function RouteComponent() {
                   onSuccess={handleSuccess}
                   onTwoFactorRequired={handleTwoFactorRequired}
                 />
+                {import.meta.env.VITE_ENABLE_SIGNUP === "true" && (
+                  <p className="text-muted-foreground text-sm">
+                    No account?{" "}
+                    <Link className="text-primary underline" to="/signup">
+                      Create one
+                    </Link>
+                  </p>
+                )}
               </div>
             )}
 

@@ -38,13 +38,7 @@ const config: KnipConfig = {
         "tests/**/*.ts",
         "*.ts",
       ],
-      ignoreFiles: [
-        "src/rcp-client.ts",
-        // Vault module: env vars declared; keep until first consumer wires it up.
-        "src/lib/vault/**",
-        // Auth guard: not yet applied to any route; keep until first protected route lands.
-        "src/middlewares/guard/is-authenticated.ts",
-      ],
+      ignoreFiles: ["src/rcp-client.ts"],
       paths: {
         "@/*": ["./src/*"],
       },

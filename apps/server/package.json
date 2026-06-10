@@ -1,5 +1,7 @@
 {
   "name": "server",
+  "version": "0.0.0",
+  "private": true,
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
@@ -56,8 +58,10 @@
     "itty-time": "^2.0.2",
     "pg": "^8.21.0",
     "pg-error-enum": "^2.0.1",
+    "rate-limit-redis": "^5.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "redis": "^6.0.0",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },

@@ -52,5 +52,16 @@ jobs:
       - name: Knip
         run: bun run knip
 
+      - name: Build
+        run: bun run build
+
+      - name: Migration drift check
+        run: |
+          bun run db:generate
+          git add -N packages/db/src/migrations
+          git diff --exit-code -- packages/db/src/migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
       - name: Test
         run: bun run test

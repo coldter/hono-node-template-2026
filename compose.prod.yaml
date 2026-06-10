@@ -133,7 +133,10 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       SMTP_SECURE: ${SMTP_SECURE}
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # Behind the bundled Caddy proxy the limiter must key on X-Forwarded-For.
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      ENABLE_SIGNUP: ${ENABLE_SIGNUP:-false}
       HATCHET_ENABLED: ${HATCHET_ENABLED}
       HATCHET_CLIENT_TOKEN: ${HATCHET_CLIENT_TOKEN}
       HATCHET_CLIENT_TLS_STRATEGY: ${HATCHET_CLIENT_TLS_STRATEGY}
@@ -279,6 +282,7 @@ services:
       target: caddy
       args:
         VITE_SERVER_URL: ${VITE_SERVER_URL}
+        VITE_ENABLE_SIGNUP: ${VITE_ENABLE_SIGNUP:-false}
     restart: always
     ports:
       - "80:80"

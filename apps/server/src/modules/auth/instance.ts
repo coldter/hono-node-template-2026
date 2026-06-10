@@ -19,12 +19,14 @@ import { db } from "@/db";
 import { env } from "@/env";
 import { generateIdForModel } from "@/lib/ids";
 import { logger } from "@/lib/logger";
+import { getRedis, isRedisEnabled } from "@/lib/redis";
 import { adminPlugin } from "@/modules/auth/plugins/admin";
 import { loginSecurityPlugin } from "@/modules/auth/plugins/login-security";
 import {
   enhancedUserPlugin,
   type UserWithStatusFields,
 } from "@/modules/auth/plugins/user-status";
+import { createRedisRateLimitStorage } from "@/modules/auth/rate-limit-storage";
 import { SYSTEM_ROLES } from "@/modules/auth/roles";
 import { RATE_LIMIT_CONFIG, TWO_FACTOR_CONFIG } from "./constants";
 import { hashPassword, verifyPasswordHash } from "./helpers/argon2id";
@@ -225,11 +227,20 @@ const authConfig = {
   trustedOrigins: env.CORS_ORIGIN,
 
   // Global rate-limit must sit above the per-account lockout so our lockout fires first.
+  // customStorage (not secondaryStorage): secondaryStorage would also move session
+  // storage into Redis and break DB-row-based single-session enforcement.
   rateLimit: {
     enabled: true,
     window: RATE_LIMIT_CONFIG.global.window,
     max: RATE_LIMIT_CONFIG.global.max,
-    storage: "memory",
+    ...(isRedisEnabled()
+      ? {
+          customStorage: createRedisRateLimitStorage(
+            getRedis,
+            RATE_LIMIT_CONFIG.global.window
+          ),
+        }
+      : { storage: "memory" as const }),
     customRules: {
       "/sign-in/email": {
         window: RATE_LIMIT_CONFIG.signIn.window,
@@ -240,7 +251,7 @@ const authConfig = {
 
   emailAndPassword: {
     enabled: true,
-    disableSignUp: false,
+    disableSignUp: !env.ENABLE_SIGNUP,
     requireEmailVerification: true,
     // Password reset uses emailOTP plugin, not magic links.
     password: {

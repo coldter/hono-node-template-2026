@@ -58,6 +58,7 @@ FROM oven/bun:1.3.14-alpine AS web-build
 WORKDIR /app
 
 ARG VITE_SERVER_URL
+ARG VITE_ENABLE_SIGNUP
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./
@@ -73,6 +74,7 @@ COPY apps/server/openapi.cache.json ./apps/server/openapi.cache.json
 WORKDIR /app/apps/web
 
 ENV VITE_SERVER_URL=$VITE_SERVER_URL
+ENV VITE_ENABLE_SIGNUP=$VITE_ENABLE_SIGNUP
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile && bun run generate-client && bun run build
 
 # =============================================================================
