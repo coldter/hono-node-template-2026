@@ -11,6 +11,7 @@ import {
   SignUpForm,
   SignUpVerifyStep,
 } from "@/modules/auth";
+import { resetSessionQuery } from "@/modules/auth/helpers";
 import { LoginLeftPanel } from "@/modules/auth/login-left-panel";
 import { sessionQueryOptions } from "@/query/session-query";
 
@@ -85,7 +86,10 @@ function RouteComponent() {
                   email={credentials.email}
                   onBack={() => setStep("form")}
                   onSignInFallback={() => navigate({ to: "/login" })}
-                  onSuccess={() => navigate({ to: "/dashboard" })}
+                  onSuccess={() => {
+                    resetSessionQuery();
+                    navigate({ to: "/dashboard" });
+                  }}
                   password={credentials.password}
                 />
               </div>

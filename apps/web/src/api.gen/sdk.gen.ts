@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ActivateUserData, ActivateUserErrors, ActivateUserResponses, CreateUserData, CreateUserErrors, CreateUserResponses, DeactivateUserData, DeactivateUserErrors, DeactivateUserResponses, DeletePushTokenData, DeletePushTokenErrors, DeletePushTokenResponses, GetAuthorizationCapabilitiesData, GetAuthorizationCapabilitiesErrors, GetAuthorizationCapabilitiesResponses, GetMyAccountData, GetMyAccountErrors, GetMyAccountResponses, GetNotificationData, GetNotificationErrors, GetNotificationPreferencesData, GetNotificationPreferencesErrors, GetNotificationPreferencesResponses, GetNotificationResponses, GetStatusData, GetStatusResponses, GetUnreadNotificationCountData, GetUnreadNotificationCountErrors, GetUnreadNotificationCountResponses, GetUserData, GetUserErrors, GetUserResponses, ListAuditLogsData, ListAuditLogsErrors, ListAuditLogsResponses, ListNotificationsData, ListNotificationsErrors, ListNotificationsResponses, ListPushTokensData, ListPushTokensErrors, ListPushTokensResponses, ListRolesData, ListRolesErrors, ListRolesResponses, ListUsersData, ListUsersErrors, ListUsersResponses, MarkAllNotificationsAsReadData, MarkAllNotificationsAsReadErrors, MarkAllNotificationsAsReadResponses, MarkNotificationAsReadData, MarkNotificationAsReadErrors, MarkNotificationAsReadResponses, RegisterPushTokenData, RegisterPushTokenErrors, RegisterPushTokenResponses, UnlockUserData, UnlockUserErrors, UnlockUserResponses, UpdateNotificationPreferencesData, UpdateNotificationPreferencesErrors, UpdateNotificationPreferencesResponses, UpdateUserData, UpdateUserErrors, UpdateUserResponses, UpdateUserRolesData, UpdateUserRolesErrors, UpdateUserRolesResponses } from './types.gen';
+import type { ActivateUserData, ActivateUserErrors, ActivateUserResponses, CreateUserData, CreateUserErrors, CreateUserResponses, DeactivateUserData, DeactivateUserErrors, DeactivateUserResponses, DeletePushTokenData, DeletePushTokenErrors, DeletePushTokenResponses, GetAuthorizationCapabilitiesData, GetAuthorizationCapabilitiesErrors, GetAuthorizationCapabilitiesResponses, GetMyAccountData, GetMyAccountErrors, GetMyAccountResponses, GetNotificationData, GetNotificationErrors, GetNotificationPreferencesData, GetNotificationPreferencesErrors, GetNotificationPreferencesResponses, GetNotificationResponses, GetReadinessData, GetReadinessErrors, GetReadinessResponses, GetStatusData, GetStatusResponses, GetUnreadNotificationCountData, GetUnreadNotificationCountErrors, GetUnreadNotificationCountResponses, GetUserData, GetUserErrors, GetUserResponses, ListAuditLogsData, ListAuditLogsErrors, ListAuditLogsResponses, ListNotificationsData, ListNotificationsErrors, ListNotificationsResponses, ListPushTokensData, ListPushTokensErrors, ListPushTokensResponses, ListRolesData, ListRolesErrors, ListRolesResponses, ListUsersData, ListUsersErrors, ListUsersResponses, MarkAllNotificationsAsReadData, MarkAllNotificationsAsReadErrors, MarkAllNotificationsAsReadResponses, MarkNotificationAsReadData, MarkNotificationAsReadErrors, MarkNotificationAsReadResponses, RegisterPushTokenData, RegisterPushTokenErrors, RegisterPushTokenResponses, UnlockUserData, UnlockUserErrors, UnlockUserResponses, UpdateNotificationPreferencesData, UpdateNotificationPreferencesErrors, UpdateNotificationPreferencesResponses, UpdateUserData, UpdateUserErrors, UpdateUserResponses, UpdateUserRolesData, UpdateUserRolesErrors, UpdateUserRolesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -175,6 +175,17 @@ export const listRoles = <ThrowOnError extends boolean = true>(options?: Options
 export const getStatus = <ThrowOnError extends boolean = true>(options?: Options<GetStatusData, ThrowOnError>): RequestResult<GetStatusResponses, unknown, ThrowOnError, 'data'> => (options?.client ?? client).get<GetStatusResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/status',
+    ...options
+});
+
+/**
+ * Dependency readiness check
+ *
+ * Probes Postgres (and Redis when configured) with short timeouts; returns 503 when any dependency is unreachable
+ */
+export const getReadiness = <ThrowOnError extends boolean = true>(options?: Options<GetReadinessData, ThrowOnError>): RequestResult<GetReadinessResponses, GetReadinessErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetReadinessResponses, GetReadinessErrors, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/status/ready',
     ...options
 });
 

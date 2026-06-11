@@ -1862,6 +1862,49 @@ export type GetStatusResponses = {
 
 export type GetStatusResponse = GetStatusResponses[keyof GetStatusResponses];
 
+export type GetReadinessData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/status/ready';
+};
+
+export type GetReadinessErrors = {
+    /**
+     * One or more dependencies are unreachable
+     */
+    503: {
+        status: 'ok' | 'unavailable';
+        checks: {
+            database: boolean;
+            /**
+             * null when Redis is not configured
+             */
+            redis: boolean | null;
+        };
+    };
+};
+
+export type GetReadinessError = GetReadinessErrors[keyof GetReadinessErrors];
+
+export type GetReadinessResponses = {
+    /**
+     * All dependencies are reachable
+     */
+    200: {
+        status: 'ok' | 'unavailable';
+        checks: {
+            database: boolean;
+            /**
+             * null when Redis is not configured
+             */
+            redis: boolean | null;
+        };
+    };
+};
+
+export type GetReadinessResponse = GetReadinessResponses[keyof GetReadinessResponses];
+
 export type ListUsersData = {
     body?: never;
     path?: never;

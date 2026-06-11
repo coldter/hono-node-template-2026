@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { activateUser, createUser, deactivateUser, deletePushToken, getAuthorizationCapabilities, getMyAccount, getNotification, getNotificationPreferences, getStatus, getUnreadNotificationCount, getUser, listAuditLogs, listNotifications, listPushTokens, listRoles, listUsers, markAllNotificationsAsRead, markNotificationAsRead, type Options, registerPushToken, unlockUser, updateNotificationPreferences, updateUser, updateUserRoles } from '../sdk.gen';
-import type { ActivateUserData, ActivateUserError, ActivateUserResponse, CreateUserData, CreateUserError, CreateUserResponse, DeactivateUserData, DeactivateUserError, DeactivateUserResponse, DeletePushTokenData, DeletePushTokenError, DeletePushTokenResponse, GetAuthorizationCapabilitiesData, GetAuthorizationCapabilitiesError, GetAuthorizationCapabilitiesResponse, GetMyAccountData, GetMyAccountError, GetMyAccountResponse, GetNotificationData, GetNotificationError, GetNotificationPreferencesData, GetNotificationPreferencesError, GetNotificationPreferencesResponse, GetNotificationResponse, GetStatusData, GetStatusResponse, GetUnreadNotificationCountData, GetUnreadNotificationCountError, GetUnreadNotificationCountResponse, GetUserData, GetUserError, GetUserResponse, ListAuditLogsData, ListAuditLogsError, ListAuditLogsResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListPushTokensData, ListPushTokensError, ListPushTokensResponse, ListRolesData, ListRolesError, ListRolesResponse, ListUsersData, ListUsersError, ListUsersResponse, MarkAllNotificationsAsReadData, MarkAllNotificationsAsReadError, MarkAllNotificationsAsReadResponse, MarkNotificationAsReadData, MarkNotificationAsReadError, MarkNotificationAsReadResponse, RegisterPushTokenData, RegisterPushTokenError, RegisterPushTokenResponse, UnlockUserData, UnlockUserError, UnlockUserResponse, UpdateNotificationPreferencesData, UpdateNotificationPreferencesError, UpdateNotificationPreferencesResponse, UpdateUserData, UpdateUserError, UpdateUserResponse, UpdateUserRolesData, UpdateUserRolesError, UpdateUserRolesResponse } from '../types.gen';
+import { activateUser, createUser, deactivateUser, deletePushToken, getAuthorizationCapabilities, getMyAccount, getNotification, getNotificationPreferences, getReadiness, getStatus, getUnreadNotificationCount, getUser, listAuditLogs, listNotifications, listPushTokens, listRoles, listUsers, markAllNotificationsAsRead, markNotificationAsRead, type Options, registerPushToken, unlockUser, updateNotificationPreferences, updateUser, updateUserRoles } from '../sdk.gen';
+import type { ActivateUserData, ActivateUserError, ActivateUserResponse, CreateUserData, CreateUserError, CreateUserResponse, DeactivateUserData, DeactivateUserError, DeactivateUserResponse, DeletePushTokenData, DeletePushTokenError, DeletePushTokenResponse, GetAuthorizationCapabilitiesData, GetAuthorizationCapabilitiesError, GetAuthorizationCapabilitiesResponse, GetMyAccountData, GetMyAccountError, GetMyAccountResponse, GetNotificationData, GetNotificationError, GetNotificationPreferencesData, GetNotificationPreferencesError, GetNotificationPreferencesResponse, GetNotificationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetStatusData, GetStatusResponse, GetUnreadNotificationCountData, GetUnreadNotificationCountError, GetUnreadNotificationCountResponse, GetUserData, GetUserError, GetUserResponse, ListAuditLogsData, ListAuditLogsError, ListAuditLogsResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListPushTokensData, ListPushTokensError, ListPushTokensResponse, ListRolesData, ListRolesError, ListRolesResponse, ListUsersData, ListUsersError, ListUsersResponse, MarkAllNotificationsAsReadData, MarkAllNotificationsAsReadError, MarkAllNotificationsAsReadResponse, MarkNotificationAsReadData, MarkNotificationAsReadError, MarkNotificationAsReadResponse, RegisterPushTokenData, RegisterPushTokenError, RegisterPushTokenResponse, UnlockUserData, UnlockUserError, UnlockUserResponse, UpdateNotificationPreferencesData, UpdateNotificationPreferencesError, UpdateNotificationPreferencesResponse, UpdateUserData, UpdateUserError, UpdateUserResponse, UpdateUserRolesData, UpdateUserRolesError, UpdateUserRolesResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -353,6 +353,23 @@ export const getStatusOptions = (options?: Options<GetStatusData>) => queryOptio
         throwOnError: true
     }),
     queryKey: getStatusQueryKey(options)
+});
+
+export const getReadinessQueryKey = (options?: Options<GetReadinessData>) => createQueryKey('getReadiness', options);
+
+/**
+ * Dependency readiness check
+ *
+ * Probes Postgres (and Redis when configured) with short timeouts; returns 503 when any dependency is unreachable
+ */
+export const getReadinessOptions = (options?: Options<GetReadinessData>) => queryOptions<GetReadinessResponse, GetReadinessError, GetReadinessResponse, ReturnType<typeof getReadinessQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => await getReadiness({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true
+    }),
+    queryKey: getReadinessQueryKey(options)
 });
 
 export const listUsersQueryKey = (options?: Options<ListUsersData>) => createQueryKey('listUsers', options);

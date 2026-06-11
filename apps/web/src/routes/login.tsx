@@ -17,6 +17,7 @@ import {
   TwoFactorVerifyStep,
   WelcomeBackCard,
 } from "@/modules/auth";
+import { resetSessionQuery } from "@/modules/auth/helpers";
 import { LoginLeftPanel } from "@/modules/auth/login-left-panel";
 import { Skeleton } from "@/modules/ui/skeleton";
 import { sessionQueryOptions } from "@/query/session-query";
@@ -52,6 +53,7 @@ function RouteComponent() {
   const [twoFactorEmail, setTwoFactorEmail] = useState("");
 
   const handleSuccess = () => {
+    resetSessionQuery();
     navigate({ to: redirect ?? "/dashboard" });
   };
 

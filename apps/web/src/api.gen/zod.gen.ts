@@ -363,6 +363,17 @@ export const zGetStatusResponse = z.object({
     status: z.enum(['ok'])
 });
 
+/**
+ * All dependencies are reachable
+ */
+export const zGetReadinessResponse = z.object({
+    status: z.enum(['ok', 'unavailable']),
+    checks: z.object({
+        database: z.boolean(),
+        redis: z.boolean().nullable()
+    })
+});
+
 export const zListUsersQuery = z.object({
     search: z.string().optional(),
     status: z.enum([

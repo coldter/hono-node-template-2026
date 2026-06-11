@@ -1,9 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
-import { clearSession } from "@/modules/auth/helpers";
+import { clearSession, resetSessionQuery } from "@/modules/auth/helpers";
 import { ConfirmDialog } from "@/modules/common/confirm-dialog";
-import { queryClient } from "@/query/query-client";
-import { sessionQueryOptions } from "@/query/session-query";
+import { useAlertStore } from "@/store/alert";
+import { useUserStore } from "@/store/user";
 
 interface SignOutDialogProps {
   onOpenChange: (open: boolean) => void;
@@ -17,14 +17,22 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
     await authClient.signOut({
       fetchOptions: {
         onSuccess: async () => {
-          clearSession();
-          await queryClient.invalidateQueries({
-            queryKey: sessionQueryOptions.queryKey,
-          });
-          navigate({
+          // Arm the global 401 guard before anything can refetch against the
+          // revoked cookie (e.g. a poll firing during the route transition).
+          useUserStore.getState().clearUser();
+          // Drop only the session entry so the login guard refetches instead
+          // of redirecting back on the stale cached session.
+          resetSessionQuery();
+          // A persisted down alert (e.g. an earlier expiry) must not greet the
+          // user on the login page after an intentional sign-out.
+          useAlertStore.getState().clearDownAlert();
+          await navigate({
             to: "/login",
             replace: true,
           });
+          // Only after the protected tree unmounts: clear() refires mounted
+          // observers, whose refetches would 401 against the revoked cookie.
+          clearSession();
         },
       },
     });

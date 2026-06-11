@@ -4,6 +4,7 @@ import { authClient } from "@/lib/auth-client";
 // eagerly loaded query-client chunk.
 import { clearSession } from "@/modules/auth/helpers";
 import { useAlertStore } from "@/store/alert";
+import { useUserStore } from "@/store/user";
 
 const FALLBACK_MESSAGES: Record<number, string> = {
   400: "Bad request. Please check your input.",
@@ -80,6 +81,14 @@ const isSessionCheckPath = (path?: string): boolean => {
 };
 
 const handleAuthError = async (): Promise<void> => {
+  // Intentional sign-out clears the user store first, then in-flight refetches
+  // 401 as the cookie is already revoked; without this guard those 401s would
+  // show "Session expired" right after logging out. It also dedupes the
+  // alert/redirect when several queries 401 at once on genuine expiry, since
+  // clearSession below empties the store before the next 401 arrives.
+  if (!useUserStore.getState().user) {
+    return;
+  }
   useAlertStore.getState().setDownAlert("auth_expired");
 
   try {
