@@ -13,14 +13,13 @@
     "./brand": "./src/brand.ts"
   },
   "scripts": {
-    "check-types": "tsgo --noEmit",
+    "check-types": "tsc --noEmit",
     "check-types:backup": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/authorization": "workspace:*"
   },
   "devDependencies": {
-    "@typescript/native-preview": "beta",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {

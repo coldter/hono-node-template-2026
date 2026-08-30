@@ -10,7 +10,7 @@
     "./ids": "./src/ids.ts"
   },
   "scripts": {
-    "check-types": "tsgo --noEmit",
+    "check-types": "tsc --noEmit",
     "check-types:backup": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,7 +20,6 @@
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",
-    "@typescript/native-preview": "beta",
     "typescript": "^7.0.2"
   }
 }

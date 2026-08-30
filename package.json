@@ -10,7 +10,6 @@
     "build:storybook": "turbo -F web build-storybook",
     "check": "ultracite check",
     "check-types": "turbo check-types",
-    "check-types:backup": "turbo check-types:backup",
     "clean": "rm -rf .turbo && git clean -xdf node_modules apps/*/node_modules && rm -f bun.lock",
     "db:generate": "turbo -F server db:generate",
     "db:migrate": "turbo -F server db:migrate",

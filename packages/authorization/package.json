@@ -9,12 +9,11 @@
     "./drizzle": "./src/drizzle.ts"
   },
   "scripts": {
-    "check-types": "tsgo --noEmit",
+    "check-types": "tsc --noEmit",
     "check-types:backup": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
-    "@typescript/native-preview": "beta",
     "hono": "^4.13.5",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"

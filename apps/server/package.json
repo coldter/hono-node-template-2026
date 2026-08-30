@@ -6,8 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "tsdown",
-    "check-types": "tsgo --noEmit",
-    "check-types:backup": "tsc --noEmit",
+    "check-types": "tsc --noEmit",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -71,7 +70,6 @@
     "@inquirer/prompts": "^8.7.0",
     "@types/node": "^26.4.0",
     "@types/pg": "^8.23.1",
-    "@typescript/native-preview": "beta",
     "@vitest/coverage-v8": "^4.1.11",
     "drizzle-kit": "^1.0.0-rc.5-ab785fc",
     "tsdown": "^0.22.14",

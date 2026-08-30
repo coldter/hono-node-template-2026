@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsdown src/index.ts --format esm --dts",
-    "check-types": "tsgo --noEmit",
+    "check-types": "tsc --noEmit",
     "check-types:backup": "tsc --noEmit",
     "dev": "email dev --dir ./src/templates --port 3003"
   },
@@ -25,7 +25,6 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
-    "@typescript/native-preview": "beta",
     "tsdown": "^0.22.14",
     "typescript": "^7.0.2"
   },
