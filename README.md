@@ -110,7 +110,7 @@ changelogs.
 
 `apps/server/src/lib/vault/` ships an envelope-encryption vault
 (AES-256-GCM via a local master key; AWS/GCP/Azure KMS provider stubs).
-It has no default consumer — wire it wherever you store third-party
+It has no default consumer - wire it wherever you store third-party
 credentials or other secrets at rest. See the `vault:debug` script and
 `apps/server/tests/vault/` for usage examples. Configure via
 `VAULT_PROVIDER` / `VAULT_MASTER_KEY`.

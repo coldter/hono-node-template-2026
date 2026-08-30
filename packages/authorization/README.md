@@ -90,7 +90,7 @@ The fluent policy builder fails fast when a policy is malformed:
 
 ### Capability maps are optimistic
 
-`registry.evaluateCapabilities(principal)` returns a typed map keyed by `${resourceName}:${action}`. It is **optimistic by design**: conditional allows (`whereOwner`, `whereTargetIsSelf`, custom `where`) resolve to `true`, and conditional denies are skipped. Use it for UI gating — navigation visibility, page entry points, broad action visibility. Use `registry.can(...)` against a loaded resource for any record-level decision.
+`registry.evaluateCapabilities(principal)` returns a typed map keyed by `${resourceName}:${action}`. It is **optimistic by design**: conditional allows (`whereOwner`, `whereTargetIsSelf`, custom `where`) resolve to `true`, and conditional denies are skipped. Use it for UI gating - navigation visibility, page entry points, broad action visibility. Use `registry.can(...)` against a loaded resource for any record-level decision.
 
 ### Drizzle adapter
 

@@ -40,7 +40,7 @@ if (isDbSkipped) {
       ? env.DATABASE_TEST_URL
       : env.DATABASE_URL;
 
-  // boundary: drizzle SDK variance — NodePgDatabase does not expose `$client` on its public surface
+  // boundary: drizzle SDK variance - NodePgDatabase does not expose `$client` on its public surface
   db = createNodeDrizzleClient(
     {
       connectionString,

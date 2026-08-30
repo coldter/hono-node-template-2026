@@ -12,7 +12,7 @@ When you add or change tables/columns/indexes in `packages/db/src/schema/`:
 bun run db:generate   # generates migration in packages/db/src/migrations/
 ```
 
-This produces a timestamped directory with `migration.sql` + `snapshot.json`. Both files are required — the snapshot tracks Drizzle's internal schema state. Do not edit generated files.
+This produces a timestamped directory with `migration.sql` + `snapshot.json`. Both files are required - the snapshot tracks Drizzle's internal schema state. Do not edit generated files.
 
 ## Custom Migrations
 
@@ -24,7 +24,7 @@ Use a custom migration **only** for SQL that Drizzle cannot generate from the sc
 
 ### How to Create
 
-Use the `--custom` flag — this generates a proper migration directory with an empty `migration.sql` and a valid `snapshot.json`:
+Use the `--custom` flag - this generates a proper migration directory with an empty `migration.sql` and a valid `snapshot.json`:
 
 ```bash
 # From apps/server/:
@@ -57,11 +57,11 @@ Result:
 20260315103143_geo_areas_postgis/       # custom: PostGIS geom column + GiST index (runs last)
 ```
 
-**Do not rename migration directories** — the `snapshot.json` chain must match the directory order.
+**Do not rename migration directories** - the `snapshot.json` chain must match the directory order.
 
 ## Common Mistakes
 
 - **Creating migration directories by hand.** Always use `drizzle-kit generate` (schema) or `drizzle-kit generate --custom` (custom SQL). Hand-created directories lack a valid `snapshot.json`, which breaks Drizzle's schema state tracking and causes incorrect diffs on future generates.
-- **Writing migration SQL by hand instead of generating.** The generated SQL is the source of truth — it matches the Drizzle schema exactly (enum values, column types, index names, constraint names). Hand-written SQL drifts.
+- **Writing migration SQL by hand instead of generating.** The generated SQL is the source of truth - it matches the Drizzle schema exactly (enum values, column types, index names, constraint names). Hand-written SQL drifts.
 - **Renaming migration directories to fix ordering.** This breaks the `snapshot.json` chain (`id`/`prevIds`). Instead, delete and regenerate in the correct order.
 - **Putting extensions in the schema file.** `CREATE EXTENSION` is not supported by Drizzle schema declarations. Use a custom migration that runs before the generated one.

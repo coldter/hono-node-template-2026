@@ -11,7 +11,7 @@ export interface ApiKeyData {
 export const apiKeySchema: VaultSchema<ApiKeyData> = {
   description: "API key with scopes and metadata",
 
-  // boundary: deserialize is the inverse of serialize on the same schema — runtime shape trusted
+  // boundary: deserialize is the inverse of serialize on the same schema - runtime shape trusted
   deserialize: (plaintext: string): ApiKeyData =>
     JSON.parse(plaintext) as ApiKeyData,
 

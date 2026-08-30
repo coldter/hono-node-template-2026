@@ -442,7 +442,7 @@ const authConfig = {
         });
       },
     }),
-    // Two-factor: email OTP only — no TOTP authenticator support.
+    // Two-factor: email OTP only - no TOTP authenticator support.
     twoFactor({
       otpOptions: {
         period: TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes,

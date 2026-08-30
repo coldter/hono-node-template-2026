@@ -21,21 +21,21 @@ const [user] = await db.select().from(users).where(eq(users.id, id));
 return user.name; // error: user is T | undefined
 ```
 
-Use the `firstOrThrow` helper exported from `@repo/db` (`packages/db/src/helpers.ts`) — it takes a resolved row array and throws when the array is empty.
+Use the `firstOrThrow` helper exported from `@repo/db` (`packages/db/src/helpers.ts`) - it takes a resolved row array and throws when the array is empty.
 
 ```ts
 import { firstOrThrow } from "@repo/db";
 
 import { db } from "@/db";
 
-// returns T — throws with the given message if the row is missing
+// returns T - throws with the given message if the row is missing
 const user = firstOrThrow(
   await db.select().from(users).where(eq(users.id, id)),
   "User not found"
 );
 ```
 
-When the destructure pattern is unavoidable (for example because you need more than one column object), keep the existing `if (!row)` guard — TypeScript will narrow it correctly.
+When the destructure pattern is unavoidable (for example because you need more than one column object), keep the existing `if (!row)` guard - TypeScript will narrow it correctly.
 
 ## Allowed casts
 

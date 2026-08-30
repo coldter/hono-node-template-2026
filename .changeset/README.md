@@ -2,10 +2,10 @@
 
 This repo uses [Changesets](https://github.com/changesets/changesets) to version
 the `server` and `web` packages and cut releases. It does **not** require
-Conventional Commits — you describe each change in a small markdown file instead.
+Conventional Commits - you describe each change in a small markdown file instead.
 
 Both packages are `private`, so releases produce **git tags + GitHub Releases
-only — nothing is published to npm** (see `privatePackages` in `config.json`).
+only - nothing is published to npm** (see `privatePackages` in `config.json`).
 
 ## The flow in three steps
 
@@ -19,7 +19,7 @@ only — nothing is published to npm** (see `privatePackages` in `config.json`).
 ```
 
 Changeset files pile up in this folder as PRs merge. The "Version packages" PR
-stays open and keeps updating itself until you merge it — that merge is what
+stays open and keeps updating itself until you merge it - that merge is what
 actually tags the release.
 
 ## Step 1: add a changeset (do this in your feature PR)
@@ -40,11 +40,11 @@ Add API-key auth and fix a redirect loop on the login page.
 ```
 
 - **Which packages** changed (`server`, `web`).
-- **Bump level** — `patch` (fixes), `minor` (new features), `major` (breaking).
-- **Summary** — becomes the CHANGELOG entry. Write it for a reader, not a diff.
+- **Bump level** - `patch` (fixes), `minor` (new features), `major` (breaking).
+- **Summary** - becomes the CHANGELOG entry. Write it for a reader, not a diff.
 
 Commit that file alongside your code. A PR with no changeset is fine for changes
-that need no release (docs, CI tweaks) — for those run `bunx changeset --empty`
+that need no release (docs, CI tweaks) - for those run `bunx changeset --empty`
 or just skip it.
 
 ## Step 2: merge to main

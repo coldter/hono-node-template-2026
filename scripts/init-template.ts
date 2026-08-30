@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// biome-ignore-all lint/suspicious/noConsole: CLI script — console output is the interface.
+// biome-ignore-all lint/suspicious/noConsole: CLI script - console output is the interface.
 /**
  * Template initialization script.
  *

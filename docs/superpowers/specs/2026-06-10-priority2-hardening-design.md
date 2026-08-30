@@ -1,4 +1,4 @@
-# Priority 2 Hardening — Design
+# Priority 2 Hardening - Design
 
 Date: 2026-06-10
 Status: Approved
@@ -31,7 +31,7 @@ CI minimally, add release automation, and ship an env-gated sign-up flow.
 
 - New env `TRUST_PROXY` (boolean string, default `false`).
   - `true` (deployed behind Caddy): key on the **rightmost** `X-Forwarded-For`
-    entry — the value appended by our own proxy. Leftmost is attacker-rotatable
+    entry - the value appended by our own proxy. Leftmost is attacker-rotatable
     and is deliberately NOT used (deviation from the snippet in
     `docs/security.md`, which suggested leftmost).
   - `false`: key on the socket address via `getConnInfo()` from
@@ -89,7 +89,7 @@ CI minimally, add release automation, and ship an env-gated sign-up flow.
 - Same single fast `validate` job, two added steps:
   - `bun run build` (Turbo-cached).
   - Migration drift check: `bun run db:generate` then
-    `git diff --exit-code` over `packages/db/src/migrations` — catches schema
+    `git diff --exit-code` over `packages/db/src/migrations` - catches schema
     edits committed without generated migrations.
 - No Docker-build job (minimal/fast by decision).
 - New `.github/workflows/release.yml` using `changesets/action`:
@@ -100,7 +100,7 @@ CI minimally, add release automation, and ship an env-gated sign-up flow.
 
 ## 7. Sign-up behind env flag
 
-- Server: `ENABLE_SIGNUP` env (boolean string, schema default `false` — secure /
+- Server: `ENABLE_SIGNUP` env (boolean string, schema default `false` - secure /
   invite-only by default) → `emailAndPassword.disableSignUp: !env.ENABLE_SIGNUP`.
   `.env.example` sets `true` so the template demos the flow out of the box.
 - Web: `VITE_ENABLE_SIGNUP` gates a new `/signup` route (redirects to `/login`

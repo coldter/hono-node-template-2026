@@ -12,7 +12,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Popover-backed single-date picker. Controlled — pass `selected` and an `onSelect` handler.",
+          "Popover-backed single-date picker. Controlled - pass `selected` and an `onSelect` handler.",
       },
     },
     layout: "centered",

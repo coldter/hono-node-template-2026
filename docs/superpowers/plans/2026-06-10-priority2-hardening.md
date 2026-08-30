@@ -14,7 +14,7 @@
 - Run `bun run fix` from repo root before addressing lint/type errors.
 - No emojis. Comments only for WHY. No `any`, no non-null `!`.
 - Run server tests from repo root with `bun run test` or scoped: `cd apps/server && bun run test -- tests/<file>`.
-- Commit after every task (small commits, message style: imperative, no conventional-commit prefix — match `git log` style like "Add ClientMeta and deleted status to generated API").
+- Commit after every task (small commits, message style: imperative, no conventional-commit prefix - match `git log` style like "Add ClientMeta and deleted status to generated API").
 
 ---
 
@@ -59,7 +59,7 @@ ENABLE_SIGNUP=true
 
 - [ ] **Step 3: Verify**
 
-Run: `bun run check-types` — expect PASS (vars are additive, nothing consumes them yet).
+Run: `bun run check-types` - expect PASS (vars are additive, nothing consumes them yet).
 
 - [ ] **Step 4: Commit**
 
@@ -135,7 +135,7 @@ describe("resolveRateLimitKey", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `cd apps/server && bunx vitest run tests/server/client-ip.test.ts`
-Expected: FAIL — cannot resolve `@/lib/client-ip`.
+Expected: FAIL - cannot resolve `@/lib/client-ip`.
 
 - [ ] **Step 3: Implement the helper**
 
@@ -241,7 +241,7 @@ Note: `keyGenerator` must return `string`; `tooManyRequests()` throws so the cas
 - [ ] **Step 2: Verify types and existing tests**
 
 Run: `bun run check-types && cd apps/server && bunx vitest run`
-Expected: PASS — existing tests mock this middleware, so nothing else changes.
+Expected: PASS - existing tests mock this middleware, so nothing else changes.
 
 - [ ] **Step 3: Update `docs/security.md` item 4**
 
@@ -250,7 +250,7 @@ Replace section "## 4. Shared-bucket IP keying" body with:
 ```markdown
 **Status: FIXED (2026-06).** The limiter keys on `resolveRateLimitKey()`
 (`apps/server/src/lib/client-ip.ts`): with `TRUST_PROXY=true` it uses the
-rightmost `X-Forwarded-For` entry (appended by our own proxy — leftmost values
+rightmost `X-Forwarded-For` entry (appended by our own proxy - leftmost values
 are attacker-rotatable and are never trusted); otherwise it uses the socket
 address from `getConnInfo()`. Requests with no resolvable IP are rejected with
 429 (fail closed) instead of sharing an anonymous bucket. Set `TRUST_PROXY=true`
@@ -258,7 +258,7 @@ only when the app is deployed behind a trusted reverse proxy (the shipped Caddy
 config qualifies).
 ```
 
-Also update its row in the summary table to `Fixed — keyed via TRUST_PROXY-aware resolver, fail closed.`
+Also update its row in the summary table to `Fixed - keyed via TRUST_PROXY-aware resolver, fail closed.`
 
 - [ ] **Step 4: Commit**
 
@@ -309,7 +309,7 @@ added to `CORS_ORIGIN`. User-Agent now influences only session lifetimes
 (web 1h / mobile 7d), never trust.
 ```
 
-Update its summary-table row to `Fixed — UA branch removed; explicit Origin required.`
+Update its summary-table row to `Fixed - UA branch removed; explicit Origin required.`
 
 - [ ] **Step 4: Commit**
 
@@ -402,7 +402,7 @@ process.on("SIGTERM", shutdown);
 - [ ] **Step 4: Verify**
 
 Run: `bun run check-types && bun run check`
-Expected: PASS. (No Redis server needed — nothing connects unless `REDIS_URL` is set.)
+Expected: PASS. (No Redis server needed - nothing connects unless `REDIS_URL` is set.)
 
 - [ ] **Step 5: Commit**
 
@@ -421,7 +421,7 @@ git commit -m "Add env-gated Redis client with boot validation and shutdown"
 - Modify: `apps/server/src/modules/auth/instance.ts` (rateLimit block)
 - Modify: `docs/security.md` (item 3)
 
-**IMPORTANT — do NOT use Better Auth `secondaryStorage`:** when `secondaryStorage` is configured, Better Auth also moves session storage into it, which would break this template's DB-row-based single-session enforcement. Use `rateLimit.customStorage` instead, which scopes Redis to rate limiting only. Verify the exact `customStorage` type against `better-auth` 1.6.14 types (`RateLimit` is `{ key: string; count: number; lastRequest: number }`).
+**IMPORTANT - do NOT use Better Auth `secondaryStorage`:** when `secondaryStorage` is configured, Better Auth also moves session storage into it, which would break this template's DB-row-based single-session enforcement. Use `rateLimit.customStorage` instead, which scopes Redis to rate limiting only. Verify the exact `customStorage` type against `better-auth` 1.6.14 types (`RateLimit` is `{ key: string; count: number; lastRequest: number }`).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -484,7 +484,7 @@ describe("createRedisRateLimitStorage", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `cd apps/server && bunx vitest run tests/auth/rate-limit-storage.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Implement the storage**
 
@@ -591,7 +591,7 @@ server logs a warning at boot in production. `customStorage` is used instead of
 storage and break single-session enforcement.
 ```
 
-Update its summary-table row to `Fixed — Redis-backed when REDIS_URL is set; warns in prod otherwise.`
+Update its summary-table row to `Fixed - Redis-backed when REDIS_URL is set; warns in prod otherwise.`
 
 - [ ] **Step 8: Commit**
 
@@ -682,7 +682,7 @@ In `knip.config.ts`, remove these two lines from `apps/server.ignoreFiles`:
 
 - [ ] **Step 2: Verify nothing referenced it**
 
-Run: `grep -rn "is-authenticated\|isAuthenticated" apps/server/src apps/web/src` — expect no hits.
+Run: `grep -rn "is-authenticated\|isAuthenticated" apps/server/src apps/web/src` - expect no hits.
 Run: `bun run check-types && bun run knip`
 Expected: PASS.
 
@@ -702,7 +702,7 @@ git commit -m "Delete unused isAuthenticated guard"
 - Modify: `knip.config.ts`
 - Modify: `README.md`
 
-- [ ] **Step 1: Write the tests** (they should pass immediately — this is characterization of existing code)
+- [ ] **Step 1: Write the tests** (they should pass immediately - this is characterization of existing code)
 
 Create `apps/server/tests/vault/local-provider.test.ts`:
 
@@ -785,7 +785,7 @@ describe("Vault", () => {
 - [ ] **Step 2: Run the tests**
 
 Run: `cd apps/server && bunx vitest run tests/vault/local-provider.test.ts`
-Expected: PASS (6 tests). If the tamper test does not throw, the bit flip landed in the salt region — flip `combined[combined.length - 1]` only (as written) which is always ciphertext for non-empty plaintext.
+Expected: PASS (6 tests). If the tamper test does not throw, the bit flip landed in the salt region - flip `combined[combined.length - 1]` only (as written) which is always ciphertext for non-empty plaintext.
 
 - [ ] **Step 3: Try removing the vault knip ignore**
 
@@ -807,7 +807,7 @@ In `README.md`, add a short subsection under the features/architecture area (mat
 
 `apps/server/src/lib/vault/` ships an envelope-encryption vault
 (AES-256-GCM via a local master key; AWS/GCP/Azure KMS provider stubs).
-It has no default consumer — wire it wherever you store third-party
+It has no default consumer - wire it wherever you store third-party
 credentials or other secrets at rest. See `vault:debug` script and
 `apps/server/tests/vault/` for usage examples. Configure via
 `VAULT_PROVIDER` / `VAULT_MASTER_KEY`.
@@ -825,7 +825,7 @@ git commit -m "Add vault local provider tests and document it as a primitive"
 
 ---
 
-### Task 10: Test infra — hermetic env defaults + Postgres in CI
+### Task 10: Test infra - hermetic env defaults + Postgres in CI
 
 **Files:**
 - Modify: `apps/server/vitest.config.ts`
@@ -889,8 +889,8 @@ And change the test step to:
 
 - [ ] **Step 4: Verify locally (both modes)**
 
-Run without DB: `cd apps/server && bunx vitest run` — expect PASS (db tests skipped, none exist yet).
-Run with DB (requires local compose postgres): `cd apps/server && DATABASE_TEST_URL=postgresql://postgres:postgres@localhost:5432/postgres bunx vitest run` — expect PASS.
+Run without DB: `cd apps/server && bunx vitest run` - expect PASS (db tests skipped, none exist yet).
+Run with DB (requires local compose postgres): `cd apps/server && DATABASE_TEST_URL=postgresql://postgres:postgres@localhost:5432/postgres bunx vitest run` - expect PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -1266,7 +1266,7 @@ export function SignUpVerifyStep({
 }
 ```
 
-Adapt to the project's existing OTP input if `two-factor-verify-step.tsx` uses a dedicated OTP component (e.g. `InputOTP`) — match that pattern instead of a plain `Input`.
+Adapt to the project's existing OTP input if `two-factor-verify-step.tsx` uses a dedicated OTP component (e.g. `InputOTP`) - match that pattern instead of a plain `Input`.
 
 - [ ] **Step 4: Export from the auth module barrel**
 
@@ -1380,7 +1380,7 @@ function RouteComponent() {
 }
 ```
 
-Check `AuthStepTransition`'s `step` prop type — if it's typed to the login steps union, widen it to `string` or pass a compatible value.
+Check `AuthStepTransition`'s `step` prop type - if it's typed to the login steps union, widen it to `string` or pass a compatible value.
 
 - [ ] **Step 6: Add the conditional link on the login page**
 
@@ -1447,7 +1447,7 @@ Notes: `drizzle-kit generate` is offline (no DB connection) but `drizzle.config.
 - [ ] **Step 2: Verify locally**
 
 Run: `bun run db:generate && git status --porcelain packages/db/src/migrations`
-Expected: empty output (no drift on a clean tree). If drizzle-kit generates a new migration on a clean tree, STOP and report — that is pre-existing drift the user must resolve (migrations are generate-only per project policy; never hand-edit).
+Expected: empty output (no drift on a clean tree). If drizzle-kit generates a new migration on a clean tree, STOP and report - that is pre-existing drift the user must resolve (migrations are generate-only per project policy; never hand-edit).
 
 - [ ] **Step 3: Commit**
 
@@ -1464,7 +1464,7 @@ git commit -m "Add build and migration drift check to CI"
 - Create: `.changeset/config.json` (via init)
 - Create: `.github/workflows/release.yml`
 - Modify: `README.md`
-- Modify: `knip.config.ts` (only if knip flags @changesets/cli — it has built-in changesets detection)
+- Modify: `knip.config.ts` (only if knip flags @changesets/cli - it has built-in changesets detection)
 
 - [ ] **Step 1: Install and init**
 
@@ -1559,8 +1559,8 @@ changelogs.
 
 - [ ] **Step 5: Verify**
 
-Run: `bunx changeset status` — expect "No changesets present" (clean state, exit 0).
-Run: `bun run knip` — if `@changesets/cli` is flagged, add `"@changesets/cli"` to the root workspace `ignoreDependencies` in `knip.config.ts` with no comment needed.
+Run: `bunx changeset status` - expect "No changesets present" (clean state, exit 0).
+Run: `bun run knip` - if `@changesets/cli` is flagged, add `"@changesets/cli"` to the root workspace `ignoreDependencies` in `knip.config.ts` with no comment needed.
 
 - [ ] **Step 6: Commit**
 
@@ -1627,4 +1627,4 @@ git commit -m "Finalize Priority 2 hardening docs"
 ## Known deviations from spec
 
 - No integration regression test for the trusted-origins fix: after removal the option is a static allowlist; a test would restate configuration (minimalism rule). The sign-up flag test covers the auth-instance-boots-against-real-DB path instead.
-- Better Auth Redis storage uses `rateLimit.customStorage`, not `secondaryStorage` — `secondaryStorage` would also move session storage to Redis and silently break DB-row single-session enforcement. Spec section 3 said "secondaryStorage"; `customStorage` achieves the spec's intent (Redis-backed rate limiting) without the session side effect.
+- Better Auth Redis storage uses `rateLimit.customStorage`, not `secondaryStorage` - `secondaryStorage` would also move session storage to Redis and silently break DB-row single-session enforcement. Spec section 3 said "secondaryStorage"; `customStorage` achieves the spec's intent (Redis-backed rate limiting) without the session side effect.
