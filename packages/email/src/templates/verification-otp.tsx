@@ -10,18 +10,18 @@ export interface VerificationOtpEmailProps {
 }
 
 const TYPE_TITLES: Record<VerificationOtpEmailProps["type"], string> = {
-  "sign-in": "Sign In Verification",
   "email-verification": "Verify Your Email",
   "forget-password": "Reset Your Password",
+  "sign-in": "Sign In Verification",
 };
 
 const TYPE_DESCRIPTIONS: Record<VerificationOtpEmailProps["type"], string> = {
-  "sign-in":
-    "Use the code below to complete your sign-in. If you did not request this, you can safely ignore this email.",
   "email-verification":
     "Use the code below to verify your email address. If you did not create an account, you can safely ignore this email.",
   "forget-password":
     "Use the code below to reset your password. If you did not request a password reset, you can safely ignore this email.",
+  "sign-in":
+    "Use the code below to complete your sign-in. If you did not request this, you can safely ignore this email.",
 };
 
 export function VerificationOtpEmail({
@@ -67,8 +67,8 @@ export function VerificationOtpEmail({
 }
 
 VerificationOtpEmail.PreviewProps = {
-  userName: "Ada",
+  expiresIn: "10 minutes",
   otp: "123456",
   type: "forget-password",
-  expiresIn: "10 minutes",
+  userName: "Ada",
 } satisfies VerificationOtpEmailProps;

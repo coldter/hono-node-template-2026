@@ -37,41 +37,41 @@ export type NotificationPriority = (typeof NOTIFICATION_PRIORITY)[number];
 export const notifications = pgTable(
   "notifications",
   {
-    id: varchar("id", { length: 255 })
-      .primaryKey()
-      .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.notification)),
-
-    userId: varchar("user_id", { length: 255 })
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-
-    // Notification type (e.g., "user.welcome", "security.login_new_device")
-    type: varchar("type", { length: 100 }).notNull(),
+    body: text("body"),
 
     channel: text("channel", { enum: NOTIFICATION_CHANNEL }).notNull(),
 
-    status: text("status", { enum: NOTIFICATION_STATUS })
-      .notNull()
-      .default("pending"),
+    createdAt: createdAt(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    errorMessage: text("error_message"),
+    id: varchar("id", { length: 255 })
+      .primaryKey()
+      .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.notification)),
     priority: text("priority", { enum: NOTIFICATION_PRIORITY })
       .notNull()
       .default("medium"),
 
-    // Content (for audit/debugging)
-    subject: text("subject"),
-    body: text("body"),
-
-    providerMessageId: varchar("provider_message_id", { length: 255 }),
-    errorMessage: text("error_message"),
-    sentAt: timestamp("sent_at", { withTimezone: true }),
-    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
-    readAt: timestamp("read_at", { withTimezone: true }),
-
     // Context for re-rendering if needed
     props: jsonb("props").$type<Record<string, unknown>>(),
 
-    createdAt: createdAt(),
+    providerMessageId: varchar("provider_message_id", { length: 255 }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+
+    status: text("status", { enum: NOTIFICATION_STATUS })
+      .notNull()
+      .default("pending"),
+
+    // Content (for audit/debugging)
+    subject: text("subject"),
+
+    // Notification type (e.g., "user.welcome", "security.login_new_device")
+    type: varchar("type", { length: 100 }).notNull(),
     updatedAt: updatedAt(),
+
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
   },
   (table) => [
     index("notifications_user_id_idx").on(table.userId),

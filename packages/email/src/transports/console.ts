@@ -31,8 +31,8 @@ export class ConsoleTransport implements EmailTransport {
     console.log("---------------------------------------");
 
     return {
-      success: true,
       messageId: `console-${crypto.randomUUID()}`,
+      success: true,
     };
   }
 }

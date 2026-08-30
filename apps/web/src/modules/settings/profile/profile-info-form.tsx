@@ -42,10 +42,10 @@ export function ProfileInfoForm() {
   const updateUser = useUserStore((s) => s.updateUser);
 
   const form = useForm<ProfileInfoValues>({
-    resolver: zodResolver(profileInfoSchema),
     defaultValues: {
       name: user?.name ?? "",
     },
+    resolver: zodResolver(profileInfoSchema),
   });
 
   async function onSubmit(data: ProfileInfoValues) {

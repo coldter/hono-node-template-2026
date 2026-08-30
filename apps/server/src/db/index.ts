@@ -11,8 +11,7 @@ let instrumentDrizzleClient:
   | undefined;
 
 if (OTEL_ENABLED) {
-  instrumentDrizzleClient = (await import("@kubiks/otel-drizzle"))
-    .instrumentDrizzleClient;
+  ({ instrumentDrizzleClient } = await import("@kubiks/otel-drizzle"));
 }
 
 type DBCore = DrizzleClient;
@@ -46,13 +45,13 @@ if (isDbSkipped) {
     {
       connectionString,
       connectionTimeoutMillis: 10_000,
+      idle_in_transaction_session_timeout: 30_000,
       idleTimeoutMillis: 30_000,
       max: env.DB_POOL_MAX,
       min: 0,
       // Defensive server-side timeouts so a stuck query or an abandoned open
       // transaction cannot hold a pooled connection indefinitely.
       statement_timeout: 30_000,
-      idle_in_transaction_session_timeout: 30_000,
     },
     new DrizzleLogger()
   ) as DB;

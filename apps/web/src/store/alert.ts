@@ -28,15 +28,15 @@ export const useAlertStore = create<AlertStoreState>()(
     persist(
       (set) => ({
         ...initialState,
-        setDownAlert: (downAlert) => set({ downAlert }),
-        clearDownAlert: () => set({ downAlert: null }),
         clearAlertStore: () => set(initialState),
+        clearDownAlert: () => set({ downAlert: null }),
+        setDownAlert: (downAlert) => set({ downAlert }),
       }),
       {
         name: "alert-store",
-        version: 1,
-        storage: createJSONStorage(() => sessionStorage),
         partialize: (state) => ({ downAlert: state.downAlert }),
+        storage: createJSONStorage(() => sessionStorage),
+        version: 1,
       }
     ),
     { name: "AlertStore" }

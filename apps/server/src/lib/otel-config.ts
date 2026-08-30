@@ -11,7 +11,7 @@ export const SERVICE_NAME = "server" as const;
 // Changesets bumps package.json, so telemetry tracks the released version.
 export const SERVICE_VERSION: string = packageJson.version;
 
-export const OTEL_ENABLED = env.OTEL_ENABLED;
+export const { OTEL_ENABLED } = env;
 
 const SENSITIVE_HEADER_PATTERNS = [
   /^authorization$/i,
@@ -147,13 +147,13 @@ export function shouldCaptureCookies(): boolean {
 }
 
 export const REDACTION_CONFIG = {
+  blockAllCookies: BLOCK_ALL_COOKIES,
   isHeaderSafe,
   redactSensitiveFields,
-  sanitizeUrl,
-  shouldCaptureCookies,
-  sensitiveHeaderPatterns: SENSITIVE_HEADER_PATTERNS,
   safeHeaderPatterns: SAFE_HEADER_PATTERNS,
+  sanitizeUrl,
   sensitiveBodyFields: SENSITIVE_BODY_FIELDS,
+  sensitiveHeaderPatterns: SENSITIVE_HEADER_PATTERNS,
   sensitiveQueryParams: SENSITIVE_QUERY_PARAMS,
-  blockAllCookies: BLOCK_ALL_COOKIES,
+  shouldCaptureCookies,
 } as const;

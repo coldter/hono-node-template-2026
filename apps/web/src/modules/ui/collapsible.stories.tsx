@@ -8,18 +8,18 @@ import {
 } from "./collapsible";
 
 const meta = {
-  title: "UI/Collapsible",
   component: Collapsible,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Radix Collapsible primitive for show/hide content regions. Compose your own trigger and content; this module is styling-free.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Collapsible",
 } satisfies Meta<typeof Collapsible>;
 
 export default meta;

@@ -4,7 +4,7 @@ import {
   CaretSortIcon,
   EyeNoneIcon,
 } from "@radix-ui/react-icons";
-import type { Column } from "@tanstack/react-table";
+import type { Column, RowData } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import { Button } from "@/modules/ui/button";
 import {
@@ -14,14 +14,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/modules/ui/dropdown-menu";
+import type { DataTableFeatures } from "./features";
 
-type DataTableColumnHeaderProps<TData, TValue> =
-  React.HTMLAttributes<HTMLDivElement> & {
-    column: Column<TData, TValue>;
-    title: string;
-  };
+type DataTableColumnHeaderProps<
+  TData extends RowData,
+  TValue,
+> = React.HTMLAttributes<HTMLDivElement> & {
+  column: Column<DataTableFeatures, TData, TValue>;
+  title: string;
+};
 
-export function DataTableColumnHeader<TData, TValue>({
+export function DataTableColumnHeader<TData extends RowData, TValue>({
   column,
   title,
   className,
@@ -67,10 +70,10 @@ export function DataTableColumnHeader<TData, TValue>({
   );
 }
 
-function SortIcon<TData, TValue>({
+function SortIcon<TData extends RowData, TValue>({
   column,
 }: {
-  column: Column<TData, TValue>;
+  column: Column<DataTableFeatures, TData, TValue>;
 }) {
   const isSorted = column.getIsSorted();
   if (isSorted === "desc") {

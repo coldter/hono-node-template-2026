@@ -24,10 +24,6 @@ import { sessionQueryOptions } from "@/query/session-query";
 import { useLastUserStore } from "@/store";
 
 export const Route = createFileRoute("/login")({
-  component: RouteComponent,
-  validateSearch: z.object({
-    redirect: z.optional(z.string()),
-  }),
   beforeLoad: async ({ context, search }) => {
     // Fail open to the form: a failed session probe must not block sign-in.
     const session = await context.queryClient
@@ -37,7 +33,11 @@ export const Route = createFileRoute("/login")({
       throw redirect({ to: search.redirect ?? "/dashboard" });
     }
   },
+  component: RouteComponent,
   pendingComponent: () => <Skeleton className="h-full w-full" />,
+  validateSearch: z.object({
+    redirect: z.optional(z.string()),
+  }),
 });
 
 type LoginStep = "welcome" | "password" | "fresh" | "verify-otp";

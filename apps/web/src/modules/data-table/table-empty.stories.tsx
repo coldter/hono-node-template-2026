@@ -33,18 +33,18 @@ function EmptyHost({ message, colSpan }: EmptyHostProps) {
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/TableEmpty",
   component: EmptyHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Row-level empty state rendered inside the table body when there are no rows.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/TableEmpty",
 } satisfies Meta<typeof EmptyHost>;
 
 export default meta;

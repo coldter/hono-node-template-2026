@@ -2,18 +2,18 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs";
 
 const meta = {
-  title: "UI/Tabs",
   component: Tabs,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Radix Tabs composition. Use for grouping related content at the same level of navigation; set defaultValue for the initially active tab.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "UI/Tabs",
 } satisfies Meta<typeof Tabs>;
 
 export default meta;

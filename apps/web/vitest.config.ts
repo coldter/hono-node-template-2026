@@ -4,15 +4,13 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      "@": resolve(import.meta.dirname, "./src"),
+    },
+  },
   test: {
-    globals: false,
-    environment: "jsdom",
-    setupFiles: ["./src/__tests__/setup.tsx"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["node_modules", "dist", "src/routeTree.gen.ts", "src/api.gen/**"],
     coverage: {
-      provider: "v8",
-      reporter: ["text", "json", "html"],
       exclude: [
         "node_modules/",
         "src/__tests__/",
@@ -21,11 +19,13 @@ export default defineConfig({
         "**/*.d.ts",
         "**/*.config.*",
       ],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
     },
-  },
-  resolve: {
-    alias: {
-      "@": resolve(import.meta.dirname, "./src"),
-    },
+    environment: "jsdom",
+    exclude: ["node_modules", "dist", "src/routeTree.gen.ts", "src/api.gen/**"],
+    globals: false,
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    setupFiles: ["./src/__tests__/setup.tsx"],
   },
 });

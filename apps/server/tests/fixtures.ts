@@ -5,12 +5,12 @@ export const defaultHeaders = {
 
 export const testUser = {
   email: "test@example.com",
-  password: "TestPassword123!",
   name: "Test User",
+  password: "TestPassword123!",
 } as const;
 
 export const adminUser = {
   email: "admin@example.com",
-  password: "AdminPassword123!",
   name: "Admin User",
+  password: "AdminPassword123!",
 } as const;

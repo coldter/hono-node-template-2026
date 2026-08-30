@@ -117,11 +117,11 @@ export async function checkRelationBatch(
 
   const results = await db
     .select<RelationTuple>({
-      subjectType: table.subjectType,
-      subjectId: table.subjectId,
-      relation: table.relation,
-      objectType: table.objectType,
       objectId: table.objectId,
+      objectType: table.objectType,
+      relation: table.relation,
+      subjectId: table.subjectId,
+      subjectType: table.subjectType,
     })
     .from(table)
     .where(
@@ -155,12 +155,12 @@ export async function createRelation(
   await db
     .insert(table)
     .values({
-      subjectType: input.subject.type,
-      subjectId: input.subject.id,
-      relation: input.relation,
-      objectType: input.object.type,
-      objectId: input.object.id,
       createdBy: input.createdBy,
+      objectId: input.object.id,
+      objectType: input.object.type,
+      relation: input.relation,
+      subjectId: input.subject.id,
+      subjectType: input.subject.type,
     })
     .onConflictDoNothing();
 }
@@ -206,11 +206,11 @@ export async function listRelations(
 
   const results = await db
     .select<RelationTuple>({
-      subjectType: table.subjectType,
-      subjectId: table.subjectId,
-      relation: table.relation,
-      objectType: table.objectType,
       objectId: table.objectId,
+      objectType: table.objectType,
+      relation: table.relation,
+      subjectId: table.subjectId,
+      subjectType: table.subjectType,
     })
     .from(table)
     .where(conditions.length > 0 ? and(...conditions) : undefined);

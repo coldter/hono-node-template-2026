@@ -24,6 +24,39 @@ function buildUnreadConditions(): SQL[] {
 }
 
 export const notificationQueryService = {
+  async findById(notificationId: string): Promise<NotificationRecord | null> {
+    const [notification] = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.id, notificationId))
+      .limit(1);
+    return notification ?? null;
+  },
+
+  async findByIdAndUser(
+    notificationId: string,
+    userId: string
+  ): Promise<NotificationRecord | null> {
+    const [notification] = await db
+      .select()
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        )
+      )
+      .limit(1);
+    return notification ?? null;
+  },
+
+  async getUnreadCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), ...buildUnreadConditions()));
+    return result?.count ?? 0;
+  },
   async listByUser(userId: string, query: ListNotificationsQuery) {
     const { perPage, offset, sort, order } = getPaginationParams(query);
 
@@ -61,43 +94,27 @@ export const notificationQueryService = {
 
     return createPaginatedResponse({
       data: notificationsList,
-      total: countResult?.total ?? 0,
       query,
+      total: countResult?.total ?? 0,
     });
   },
 
-  async findById(notificationId: string): Promise<NotificationRecord | null> {
-    const [notification] = await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.id, notificationId))
-      .limit(1);
-    return notification ?? null;
-  },
-
-  async findByIdAndUser(
-    notificationId: string,
-    userId: string
-  ): Promise<NotificationRecord | null> {
-    const [notification] = await db
-      .select()
-      .from(notifications)
+  async markAllAsRead(userId: string): Promise<number> {
+    const result = await db
+      .update(notifications)
+      .set({
+        readAt: new Date(),
+      })
       .where(
         and(
-          eq(notifications.id, notificationId),
-          eq(notifications.userId, userId)
+          eq(notifications.userId, userId),
+          eq(notifications.channel, "push"),
+          sql`${notifications.readAt} IS NULL`,
+          sql`${notifications.status} IN ('sent', 'delivered')`
         )
       )
-      .limit(1);
-    return notification ?? null;
-  },
-
-  async getUnreadCount(userId: string): Promise<number> {
-    const [result] = await db
-      .select({ count: count() })
-      .from(notifications)
-      .where(and(eq(notifications.userId, userId), ...buildUnreadConditions()));
-    return result?.count ?? 0;
+      .returning({ id: notifications.id });
+    return result.length;
   },
 
   async markAsRead(
@@ -119,23 +136,5 @@ export const notificationQueryService = {
       )
       .returning();
     return updated ?? null;
-  },
-
-  async markAllAsRead(userId: string): Promise<number> {
-    const result = await db
-      .update(notifications)
-      .set({
-        readAt: new Date(),
-      })
-      .where(
-        and(
-          eq(notifications.userId, userId),
-          eq(notifications.channel, "push"),
-          sql`${notifications.readAt} IS NULL`,
-          sql`${notifications.status} IN ('sent', 'delivered')`
-        )
-      )
-      .returning({ id: notifications.id });
-    return result.length;
   },
 };

@@ -16,11 +16,11 @@ import { Input } from "./input";
 import { Textarea } from "./textarea";
 
 const schema = z.object({
+  bio: z.string().max(160, "Bio must be 160 characters or fewer").optional(),
   username: z
     .string()
     .min(2, "Username must be at least 2 characters")
     .max(32, "Username must be at most 32 characters"),
-  bio: z.string().max(160, "Bio must be 160 characters or fewer").optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -33,18 +33,18 @@ type DemoFormProps = {
 
 function DemoForm({ defaultValues, disabled, forceErrors }: DemoFormProps) {
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
     defaultValues: {
-      username: defaultValues?.username ?? "",
       bio: defaultValues?.bio ?? "",
+      username: defaultValues?.username ?? "",
     },
     mode: "onChange",
+    resolver: zodResolver(schema),
   });
 
   if (forceErrors) {
     form.setError("username", {
-      type: "manual",
       message: "Username is already taken",
+      type: "manual",
     });
   }
 
@@ -97,22 +97,22 @@ function DemoForm({ defaultValues, disabled, forceErrors }: DemoFormProps) {
 }
 
 const meta = {
-  title: "UI/Form",
+  argTypes: {
+    disabled: { control: "boolean" },
+    forceErrors: { control: "boolean" },
+  },
   component: DemoForm,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Form primitives wired to react-hook-form. Compose FormField, FormItem, FormLabel, FormControl, FormDescription, and FormMessage to wire up accessible, validated inputs. Stories below use a zod resolver.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    disabled: { control: "boolean" },
-    forceErrors: { control: "boolean" },
-  },
+  title: "UI/Form",
 } satisfies Meta<typeof DemoForm>;
 
 export default meta;
@@ -123,7 +123,7 @@ export const Default: Story = {};
 
 export const Prefilled: Story = {
   args: {
-    defaultValues: { username: "kuldeep", bio: "Building things on the web." },
+    defaultValues: { bio: "Building things on the web.", username: "kuldeep" },
   },
 };
 
@@ -136,7 +136,7 @@ export const ValidationError: Story = {
 
 export const Disabled: Story = {
   args: {
-    defaultValues: { username: "readonly", bio: "Cannot edit this form." },
+    defaultValues: { bio: "Cannot edit this form.", username: "readonly" },
     disabled: true,
   },
 };

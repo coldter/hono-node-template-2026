@@ -13,14 +13,22 @@ import {
 
 export const listAuditLogsQuerySchema = z
   .object({
-    event: z
-      .string()
-      .optional()
-      .openapi({ description: "Filter by event (supports wildcard: auth.*)" }),
     actorId: z
       .string()
       .optional()
       .openapi({ description: "Filter by actor ID" }),
+    endDate: z.iso
+      .datetime()
+      .optional()
+      .openapi({ description: "End date (ISO 8601)" }),
+    event: z
+      .string()
+      .optional()
+      .openapi({ description: "Filter by event (supports wildcard: auth.*)" }),
+    startDate: z.iso
+      .datetime()
+      .optional()
+      .openapi({ description: "Start date (ISO 8601)" }),
     targetId: z
       .string()
       .optional()
@@ -29,30 +37,22 @@ export const listAuditLogsQuerySchema = z
       .enum(TARGET_TYPE_VALUES)
       .optional()
       .openapi({ description: "Filter by target type" }),
-    startDate: z.iso
-      .datetime()
-      .optional()
-      .openapi({ description: "Start date (ISO 8601)" }),
-    endDate: z.iso
-      .datetime()
-      .optional()
-      .openapi({ description: "End date (ISO 8601)" }),
   })
   .extend(paginationQuerySchema.shape);
 
 export const auditEventKeySchema = z.enum(AUDIT_EVENT_KEYS);
 
 export const auditLogSchema = z.object({
-  id: z.string(),
-  event: auditEventKeySchema,
   actorId: z.string().nullable(),
   actorType: z.enum(ACTOR_TYPE_VALUES),
+  createdAt: z.string().datetime(),
+  event: auditEventKeySchema,
+  id: z.string(),
+  ipAddress: z.string().nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   targetId: z.string().nullable(),
   targetType: z.enum(TARGET_TYPE_VALUES).nullable(),
-  ipAddress: z.string().nullable(),
   userAgent: z.string().nullable(),
-  metadata: z.record(z.string(), z.unknown()).nullable(),
-  createdAt: z.string().datetime(),
 });
 
 export const listAuditLogsResponseSchema = createPaginatedResponseSchema(

@@ -18,7 +18,6 @@ import { sessionQueryOptions } from "@/query/session-query";
 const signupEnabled = import.meta.env.VITE_ENABLE_SIGNUP === "true";
 
 export const Route = createFileRoute("/signup")({
-  component: RouteComponent,
   beforeLoad: async ({ context }) => {
     if (!signupEnabled) {
       throw redirect({ to: "/login" });
@@ -31,6 +30,7 @@ export const Route = createFileRoute("/signup")({
       throw redirect({ to: "/dashboard" });
     }
   },
+  component: RouteComponent,
 });
 
 type SignupStep = "form" | "verify";

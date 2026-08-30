@@ -3,21 +3,10 @@ import { useState } from "react";
 import { PasswordInput } from "./password-input";
 
 const meta = {
-  title: "Common/PasswordInput",
-  component: PasswordInput,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Password field with a trailing toggle that switches between masked and visible text.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   args: {
     placeholder: "Password",
   },
+  component: PasswordInput,
   decorators: [
     (Story) => (
       <div className="w-80">
@@ -25,6 +14,17 @@ const meta = {
       </div>
     ),
   ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Password field with a trailing toggle that switches between masked and visible text.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Common/PasswordInput",
 } satisfies Meta<typeof PasswordInput>;
 
 export default meta;
@@ -60,5 +60,5 @@ export const ToggleShown: Story = {
 };
 
 export const Disabled: Story = {
-  args: { disabled: true, defaultValue: "hunter2" },
+  args: { defaultValue: "hunter2", disabled: true },
 };

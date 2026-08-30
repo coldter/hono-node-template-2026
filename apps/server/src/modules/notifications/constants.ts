@@ -7,9 +7,9 @@ import type {
  * Pattern: "domain.event"
  */
 export const NOTIFICATION_TYPES = {
-  USER_WELCOME: "user.welcome",
   SECURITY_LOGIN_NEW_DEVICE: "security.login_new_device",
   SECURITY_PASSWORD_CHANGED: "security.password_changed",
+  USER_WELCOME: "user.welcome",
 } as const;
 
 export type NotificationType =

@@ -70,11 +70,11 @@ export class LocalEncryptionProvider implements EncryptionProvider {
     const combined = Buffer.concat([salt, iv, authTag, encrypted]);
 
     return {
-      v: 1,
       alg: ALGORITHM,
       ct: combined.toString("base64"),
       kid: this.keyId,
       ts: Date.now(),
+      v: 1,
     };
   }
 

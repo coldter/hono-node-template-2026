@@ -1,6 +1,7 @@
 export { DataTableColumnHeader } from "./column-header";
 export { DataTable } from "./data-table";
 export { DataTableFacetedFilter } from "./faceted-filter";
+export { dataTableFeatures } from "./features";
 export { DataTablePagination } from "./pagination";
 export { TableEmpty } from "./table-empty";
 export { TableError } from "./table-error";

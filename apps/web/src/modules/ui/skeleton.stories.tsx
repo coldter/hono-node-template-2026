@@ -2,18 +2,18 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Skeleton } from "./skeleton";
 
 const meta = {
-  title: "UI/Skeleton",
   component: Skeleton,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Animated placeholder shown while content is loading. Size via Tailwind classes.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "UI/Skeleton",
 } satisfies Meta<typeof Skeleton>;
 
 export default meta;

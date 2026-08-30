@@ -15,8 +15,6 @@ function parseBooleanString(value: string | undefined): boolean | undefined {
   if (["false", "0", "no", "off", ""].includes(normalized)) {
     return false;
   }
-
-  return;
 }
 
 function parseSmtpPort(value: string | undefined): number | undefined {
@@ -33,20 +31,20 @@ function parseSmtpPort(value: string | undefined): number | undefined {
 }
 
 const emailConfigSchema = z.object({
-  provider: z.enum(["nodemailer", "console"]).optional(),
   from: z.object({
     default: z.email().default("noreply@example.com"),
     name: z.string().default(BRAND_DEFAULTS.appName),
   }),
+  provider: z.enum(["nodemailer", "console"]).optional(),
   smtp: z
     .object({
+      auth: z.object({
+        pass: z.string(),
+        user: z.string(),
+      }),
       host: z.string(),
       port: z.coerce.number().default(587),
       secure: z.boolean().default(false),
-      auth: z.object({
-        user: z.string(),
-        pass: z.string(),
-      }),
     })
     .optional(),
 });
@@ -76,20 +74,20 @@ export function getEmailConfig(): EmailConfig {
   }
 
   const parsed = emailConfigSchema.safeParse({
-    provider: process.env.EMAIL_PROVIDER,
     from: {
       default: process.env.EMAIL_FROM,
       name: process.env.EMAIL_FROM_NAME,
     },
+    provider: process.env.EMAIL_PROVIDER,
     smtp: process.env.SMTP_HOST
       ? {
+          auth: {
+            pass: process.env.SMTP_PASS,
+            user: process.env.SMTP_USER,
+          },
           host: process.env.SMTP_HOST,
           port: smtpPort,
           secure: isMailpitHost ? false : resolvedSecure,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
         }
       : undefined,
   });
@@ -103,11 +101,11 @@ export function getEmailConfig(): EmailConfig {
       throw new Error("Invalid email configuration");
     }
     return emailConfigSchema.parse({
-      provider: "console",
       from: {
         default: "noreply@example.com",
         name: `${brand.appName} (Dev)`,
       },
+      provider: "console",
     });
   }
 

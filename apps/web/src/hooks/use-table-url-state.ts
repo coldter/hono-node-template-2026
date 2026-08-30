@@ -132,7 +132,7 @@ export function useTableUrlState(
     const rawOrder = (search as SearchRecord)[orderKey];
     const id = typeof rawSort === "string" ? rawSort : defaultSort;
     const desc = rawOrder === "desc" || (!rawOrder && defaultOrder === "desc");
-    return id ? [{ id, desc }] : [];
+    return id ? [{ desc, id }] : [];
   }, [search, sortKey, orderKey, defaultSort, defaultOrder]);
 
   const onPaginationChange: OnChangeFn<PaginationState> = (updater) => {
@@ -151,7 +151,7 @@ export function useTableUrlState(
 
   const onSortingChange: OnChangeFn<SortingState> = (updater) => {
     const next = typeof updater === "function" ? updater(sorting) : updater;
-    const first = next[0];
+    const [first] = next;
 
     let nextOrder: string | undefined;
     if (first) {
@@ -249,14 +249,14 @@ export function useTableUrlState(
   };
 
   return {
-    globalFilter: globalFilterEnabled ? (globalFilter ?? "") : undefined,
-    onGlobalFilterChange,
     columnFilters,
-    onColumnFiltersChange,
-    pagination,
-    onPaginationChange,
-    sorting,
-    onSortingChange,
     ensurePageInRange,
+    globalFilter: globalFilterEnabled ? (globalFilter ?? "") : undefined,
+    onColumnFiltersChange,
+    onGlobalFilterChange,
+    onPaginationChange,
+    onSortingChange,
+    pagination,
+    sorting,
   };
 }

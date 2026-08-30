@@ -7,11 +7,11 @@ import { redactSensitiveFields } from "@/lib/otel-config";
 import { addSpanEvent } from "@/lib/otel-utils";
 
 export const EVENTS = {
-  USER_CREATED: "user.created",
-  USER_UPDATED: "user.updated",
-  USER_DEACTIVATED: "user.deactivated",
   NOTIFICATION_EMAIL_SEND: "notification.email.send",
   NOTIFICATION_PUSH_SEND: "notification.push.send",
+  USER_CREATED: "user.created",
+  USER_DEACTIVATED: "user.deactivated",
+  USER_UPDATED: "user.updated",
 } as const;
 
 export type EventPayloads = {
@@ -64,10 +64,10 @@ export async function pushEvent<K extends keyof EventPayloads>(
     if (env.NODE_ENV === "development") {
       logger.error(`[HATCHET] Failed to push event: ${eventName}`, {
         error: err.message,
-        stack: err.stack,
         payload: redactSensitiveFields(
           payload as unknown as Record<string, unknown>
         ),
+        stack: err.stack,
       });
     } else {
       logger.error(`Failed to push event: ${eventName}`, {
@@ -79,7 +79,7 @@ export async function pushEvent<K extends keyof EventPayloads>(
       throw err;
     }
 
-    return { success: false, error: err };
+    return { error: err, success: false };
   }
 }
 
@@ -97,8 +97,8 @@ export async function pushEvents<K extends keyof EventPayloads>(
 
   try {
     addSpanEvent("hatchet.event.bulk_push", {
-      eventName,
       count: payloads.length,
+      eventName,
     });
     await hatchet.events.bulkPush(
       eventName,
@@ -115,10 +115,10 @@ export async function pushEvents<K extends keyof EventPayloads>(
     if (env.NODE_ENV === "development") {
       logger.error(`[HATCHET] Failed to bulk push events: ${eventName}`, {
         error: err.message,
-        stack: err.stack,
         payloads: payloads.map((payload) =>
           redactSensitiveFields(payload as unknown as Record<string, unknown>)
         ),
+        stack: err.stack,
       });
     } else {
       logger.error(`Failed to bulk push events: ${eventName}`, {
@@ -130,6 +130,6 @@ export async function pushEvents<K extends keyof EventPayloads>(
       throw err;
     }
 
-    return { success: false, error: err };
+    return { error: err, success: false };
   }
 }

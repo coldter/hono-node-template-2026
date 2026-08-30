@@ -19,11 +19,11 @@ describe("validateRegistry", () => {
 
   it("throws when registry key does not match resource name", () => {
     const auth = createAuthSchema({
+      globalPolicies: () => [],
+      principal: { status: principalAttribute<string>() },
+      relations: [],
       roles: ["admin"],
       systemAdminRoles: ["admin"],
-      relations: [],
-      principal: { status: principalAttribute<string>() },
-      globalPolicies: () => [],
     });
 
     const res = auth.createResource<{ id: string }>("user", {
@@ -38,15 +38,15 @@ describe("validateRegistry", () => {
 
   it("throws when a policy references a role not in the schema", () => {
     const policy: PolicyRule = {
-      effect: "allow",
-      roles: ["ghost"],
       actions: ["read"],
       conditions: [],
+      effect: "allow",
       label: "allow:ghost:read",
+      roles: ["ghost"],
     };
     const res: AnyResourceDef = {
-      name: "doc",
       actions: ["read"],
+      name: "doc",
       policies: [policy],
     };
 
@@ -57,15 +57,15 @@ describe("validateRegistry", () => {
 
   it("does not throw when policy roles are wildcard", () => {
     const policy: PolicyRule = {
-      effect: "deny",
-      roles: "*",
       actions: "*",
       conditions: [],
+      effect: "deny",
       label: "deny:*:*",
+      roles: "*",
     };
     const res: AnyResourceDef = {
-      name: "doc",
       actions: ["read"],
+      name: "doc",
       policies: [policy],
     };
 
@@ -83,15 +83,15 @@ describe("validateRegistry", () => {
       (r) => r.id
     );
     const policy: PolicyRule = {
-      effect: "allow",
-      roles: ["user"],
       actions: ["read"],
       conditions: [badRelation],
+      effect: "allow",
       label: "allow:user:read:withRelation:ghost:doc",
+      roles: ["user"],
     };
     const res: AnyResourceDef = {
-      name: "doc",
       actions: ["read"],
+      name: "doc",
       policies: [policy],
     };
 
@@ -103,15 +103,15 @@ describe("validateRegistry", () => {
   it("throws when withOrgRole references an org role not in the schema", () => {
     const badOrgRole = createOrgRoleCondition(["ghost"]);
     const policy: PolicyRule = {
-      effect: "allow",
-      roles: ["user"],
       actions: ["read"],
       conditions: [badOrgRole],
+      effect: "allow",
       label: "allow:user:read:withOrgRole:ghost",
+      roles: ["user"],
     };
     const res: AnyResourceDef = {
-      name: "doc",
       actions: ["read"],
+      name: "doc",
       policies: [policy],
       resolveOrganization: () => "org_1",
     };
@@ -124,15 +124,15 @@ describe("validateRegistry", () => {
   it("throws when a resource uses withOrgRole but lacks resolveOrganization", () => {
     const orgRoleCondition = createOrgRoleCondition(["owner"]);
     const policy: PolicyRule = {
-      effect: "allow",
-      roles: ["user"],
       actions: ["read"],
       conditions: [orgRoleCondition],
+      effect: "allow",
       label: "allow:user:read:withOrgRole:owner",
+      roles: ["user"],
     };
     const res: AnyResourceDef = {
-      name: "doc",
       actions: ["read"],
+      name: "doc",
       policies: [policy],
       // resolveOrganization intentionally omitted
     };
@@ -145,15 +145,15 @@ describe("validateRegistry", () => {
   it("does not throw when withOrgRole is paired with resolveOrganization", () => {
     const orgRoleCondition = createOrgRoleCondition(["owner"]);
     const policy: PolicyRule = {
-      effect: "allow",
-      roles: ["user"],
       actions: ["read"],
       conditions: [orgRoleCondition],
+      effect: "allow",
       label: "allow:user:read:withOrgRole:owner",
+      roles: ["user"],
     };
     const res: AnyResourceDef = {
-      name: "doc",
       actions: ["read"],
+      name: "doc",
       policies: [policy],
       resolveOrganization: () => "org_1",
     };
@@ -170,15 +170,15 @@ describe("validateRegistry", () => {
       (r) => r.id
     );
     const policy: PolicyRule = {
-      effect: "allow",
-      roles: ["user"],
       actions: ["read"],
       conditions: [relationCondition],
+      effect: "allow",
       label: "allow:user:read:withRelation:any:doc",
+      roles: ["user"],
     };
     const res: AnyResourceDef = {
-      name: "doc",
       actions: ["read"],
+      name: "doc",
       policies: [policy],
     };
 

@@ -35,6 +35,155 @@ import type {
 import { onUserStatusChange } from "./user-status-hooks";
 
 export const userService = {
+  async activate(
+    id: string,
+    actorId: string,
+    auditContext: AuditContext,
+    executor: Executor = db
+  ): Promise<void> {
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new UserNotFoundError(id);
+    }
+
+    await executor.transaction(async (tx) => {
+      const updatedUsers = await tx
+        .update(users)
+        .set({
+          deactivatedAt: null,
+          deactivatedBy: null,
+          deactivatedReason: null,
+          status: USER_STATUS.ACTIVE,
+        })
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
+
+      if (updatedUsers.length === 0) {
+        throw new UserNotFoundError(id);
+      }
+
+      await auditLogService.create(
+        {
+          actorId,
+          actorType: "user",
+          event: AUDIT_EVENTS.USER.ACTIVATED.event,
+          ipAddress: auditContext.ipAddress,
+          targetId: id,
+          targetType: TARGET_TYPES.USER,
+          userAgent: auditContext.userAgent,
+        },
+        tx
+      );
+    });
+
+    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
+  },
+
+  async create(
+    input: CreateUserInput,
+    actorId: string,
+    auditContext: AuditContext,
+    executor: Executor = db
+  ): Promise<UserRecord> {
+    const hashedPassword = await hashPassword(input.password);
+
+    return executor.transaction(async (tx) => {
+      const user = firstOrThrow(
+        await tx
+          .insert(users)
+          .values({
+            email: input.email,
+            emailVerified: false,
+            failedLoginAttempts: 0,
+            name: input.name,
+            roleSlugs: input.roleSlugs,
+            status: USER_STATUS.ACTIVE,
+          })
+          .returning(),
+        "Failed to create user"
+      );
+
+      await tx.insert(accounts).values({
+        accountId: user.id,
+        password: hashedPassword,
+        providerId: "credential",
+        userId: user.id,
+      });
+
+      await auditLogService.create(
+        {
+          actorId,
+          actorType: "user",
+          event: AUDIT_EVENTS.USER.CREATED.event,
+          ipAddress: auditContext.ipAddress,
+          metadata: {
+            email: input.email,
+            name: input.name,
+            roleSlugs: input.roleSlugs,
+          },
+          targetId: user.id,
+          targetType: TARGET_TYPES.USER,
+          userAgent: auditContext.userAgent,
+        },
+        tx
+      );
+
+      return user;
+    });
+  },
+
+  async deactivate(
+    id: string,
+    reason: string | null,
+    actorId: string,
+    auditContext: AuditContext,
+    executor: Executor = db
+  ): Promise<void> {
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new UserNotFoundError(id);
+    }
+
+    await executor.transaction(async (tx) => {
+      const updatedUsers = await tx
+        .update(users)
+        .set({
+          deactivatedAt: new Date(),
+          deactivatedBy: actorId,
+          deactivatedReason: reason,
+          status: USER_STATUS.INACTIVE,
+        })
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
+
+      if (updatedUsers.length === 0) {
+        throw new UserNotFoundError(id);
+      }
+
+      await tx.delete(sessions).where(eq(sessions.userId, id));
+
+      await auditLogService.create(
+        {
+          actorId,
+          actorType: "user",
+          event: AUDIT_EVENTS.USER.DEACTIVATED.event,
+          ipAddress: auditContext.ipAddress,
+          metadata: { reason },
+          targetId: id,
+          targetType: TARGET_TYPES.USER,
+          userAgent: auditContext.userAgent,
+        },
+        tx
+      );
+    });
+
+    await onUserStatusChange(
+      id,
+      USER_STATUS.INACTIVE,
+      existingUser.status,
+      reason
+    );
+  },
   async find(query: ListUsersQuery) {
     const { search, status, role } = query;
     const { perPage, offset, sort, order } = getPaginationParams(query);
@@ -72,14 +221,14 @@ export const userService = {
     const [data, [countResult]] = await Promise.all([
       db
         .select({
-          id: users.id,
-          name: users.name,
+          createdAt: users.createdAt,
           email: users.email,
           emailVerified: users.emailVerified,
+          id: users.id,
           image: users.image,
-          status: users.status,
+          name: users.name,
           roleSlugs: users.roleSlugs,
-          createdAt: users.createdAt,
+          status: users.status,
           updatedAt: users.updatedAt,
         })
         .from(users)
@@ -92,9 +241,28 @@ export const userService = {
 
     return createPaginatedResponse({
       data,
-      total: countResult?.total ?? 0,
       query,
+      total: countResult?.total ?? 0,
     });
+  },
+
+  async findAccountSummaryById(id: string) {
+    const [user] = await db
+      .select({
+        createdAt: users.createdAt,
+        email: users.email,
+        emailVerified: users.emailVerified,
+        id: users.id,
+        image: users.image,
+        name: users.name,
+        onboardingCompletedAt: users.onboardingCompletedAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    return user ?? null;
   },
 
   async findById(id: string): Promise<UserRecord | null> {
@@ -106,76 +274,47 @@ export const userService = {
     return user ?? null;
   },
 
-  async findAccountSummaryById(id: string) {
-    const [user] = await db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        emailVerified: users.emailVerified,
-        image: users.image,
-        onboardingCompletedAt: users.onboardingCompletedAt,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      })
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
-
-    return user ?? null;
-  },
-
-  async create(
-    input: CreateUserInput,
+  async unlock(
+    id: string,
     actorId: string,
     auditContext: AuditContext,
     executor: Executor = db
-  ): Promise<UserRecord> {
-    const hashedPassword = await hashPassword(input.password);
+  ): Promise<void> {
+    const existingUser = await this.findById(id);
+    if (!existingUser) {
+      throw new UserNotFoundError(id);
+    }
 
-    return executor.transaction(async (tx) => {
-      const user = firstOrThrow(
-        await tx
-          .insert(users)
-          .values({
-            name: input.name,
-            email: input.email,
-            emailVerified: false,
-            status: USER_STATUS.ACTIVE,
-            roleSlugs: input.roleSlugs,
-            failedLoginAttempts: 0,
-          })
-          .returning(),
-        "Failed to create user"
-      );
+    await executor.transaction(async (tx) => {
+      const updatedUsers = await tx
+        .update(users)
+        .set({
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          status: USER_STATUS.ACTIVE,
+        })
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
 
-      await tx.insert(accounts).values({
-        userId: user.id,
-        accountId: user.id,
-        providerId: "credential",
-        password: hashedPassword,
-      });
+      if (updatedUsers.length === 0) {
+        throw new UserNotFoundError(id);
+      }
 
       await auditLogService.create(
         {
-          event: AUDIT_EVENTS.USER.CREATED.event,
           actorId,
           actorType: "user",
-          targetId: user.id,
-          targetType: TARGET_TYPES.USER,
+          event: AUDIT_EVENTS.USER.UNLOCKED.event,
           ipAddress: auditContext.ipAddress,
+          targetId: id,
+          targetType: TARGET_TYPES.USER,
           userAgent: auditContext.userAgent,
-          metadata: {
-            name: input.name,
-            email: input.email,
-            roleSlugs: input.roleSlugs,
-          },
         },
         tx
       );
-
-      return user;
     });
+
+    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
   },
 
   async update(
@@ -204,7 +343,7 @@ export const userService = {
       );
 
       const metadata = createChangeMetadata(
-        { name: existingUser.name, email: existingUser.email },
+        { email: existingUser.email, name: existingUser.name },
         input,
         ["name", "email"]
       );
@@ -212,14 +351,14 @@ export const userService = {
       if (metadata.changedFields && metadata.changedFields.length > 0) {
         await auditLogService.create(
           {
-            event: AUDIT_EVENTS.USER.UPDATED.event,
             actorId,
             actorType: "user",
+            event: AUDIT_EVENTS.USER.UPDATED.event,
+            ipAddress: auditContext.ipAddress,
+            metadata,
             targetId: id,
             targetType: TARGET_TYPES.USER,
-            ipAddress: auditContext.ipAddress,
             userAgent: auditContext.userAgent,
-            metadata,
           },
           tx
         );
@@ -252,170 +391,30 @@ export const userService = {
       );
 
       const metadata: AuditLogMetadata = {
+        changedFields: ["roleSlugs"],
         changes: {
           roleSlugs: {
             from: existingUser.roleSlugs,
             to: input.roleSlugs,
           },
         },
-        changedFields: ["roleSlugs"],
       };
 
       await auditLogService.create(
         {
-          event: AUDIT_EVENTS.ROLE.ASSIGNED.event,
           actorId,
           actorType: "user",
+          event: AUDIT_EVENTS.ROLE.ASSIGNED.event,
+          ipAddress: auditContext.ipAddress,
+          metadata,
           targetId: id,
           targetType: TARGET_TYPES.USER,
-          ipAddress: auditContext.ipAddress,
           userAgent: auditContext.userAgent,
-          metadata,
         },
         tx
       );
 
       return updatedUser;
     });
-  },
-
-  async deactivate(
-    id: string,
-    reason: string | null,
-    actorId: string,
-    auditContext: AuditContext,
-    executor: Executor = db
-  ): Promise<void> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
-    }
-
-    await executor.transaction(async (tx) => {
-      const updatedUsers = await tx
-        .update(users)
-        .set({
-          status: USER_STATUS.INACTIVE,
-          deactivatedAt: new Date(),
-          deactivatedBy: actorId,
-          deactivatedReason: reason,
-        })
-        .where(eq(users.id, id))
-        .returning({ id: users.id });
-
-      if (updatedUsers.length === 0) {
-        throw new UserNotFoundError(id);
-      }
-
-      await tx.delete(sessions).where(eq(sessions.userId, id));
-
-      await auditLogService.create(
-        {
-          event: AUDIT_EVENTS.USER.DEACTIVATED.event,
-          actorId,
-          actorType: "user",
-          targetId: id,
-          targetType: TARGET_TYPES.USER,
-          ipAddress: auditContext.ipAddress,
-          userAgent: auditContext.userAgent,
-          metadata: { reason },
-        },
-        tx
-      );
-    });
-
-    await onUserStatusChange(
-      id,
-      USER_STATUS.INACTIVE,
-      existingUser.status,
-      reason
-    );
-  },
-
-  async activate(
-    id: string,
-    actorId: string,
-    auditContext: AuditContext,
-    executor: Executor = db
-  ): Promise<void> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
-    }
-
-    await executor.transaction(async (tx) => {
-      const updatedUsers = await tx
-        .update(users)
-        .set({
-          status: USER_STATUS.ACTIVE,
-          deactivatedAt: null,
-          deactivatedBy: null,
-          deactivatedReason: null,
-        })
-        .where(eq(users.id, id))
-        .returning({ id: users.id });
-
-      if (updatedUsers.length === 0) {
-        throw new UserNotFoundError(id);
-      }
-
-      await auditLogService.create(
-        {
-          event: AUDIT_EVENTS.USER.ACTIVATED.event,
-          actorId,
-          actorType: "user",
-          targetId: id,
-          targetType: TARGET_TYPES.USER,
-          ipAddress: auditContext.ipAddress,
-          userAgent: auditContext.userAgent,
-        },
-        tx
-      );
-    });
-
-    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
-  },
-
-  async unlock(
-    id: string,
-    actorId: string,
-    auditContext: AuditContext,
-    executor: Executor = db
-  ): Promise<void> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
-    }
-
-    await executor.transaction(async (tx) => {
-      const updatedUsers = await tx
-        .update(users)
-        .set({
-          status: USER_STATUS.ACTIVE,
-          lockedUntil: null,
-          failedLoginAttempts: 0,
-        })
-        .where(eq(users.id, id))
-        .returning({ id: users.id });
-
-      if (updatedUsers.length === 0) {
-        throw new UserNotFoundError(id);
-      }
-
-      await auditLogService.create(
-        {
-          event: AUDIT_EVENTS.USER.UNLOCKED.event,
-          actorId,
-          actorType: "user",
-          targetId: id,
-          targetType: TARGET_TYPES.USER,
-          ipAddress: auditContext.ipAddress,
-          userAgent: auditContext.userAgent,
-        },
-        tx
-      );
-    });
-
-    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
   },
 };

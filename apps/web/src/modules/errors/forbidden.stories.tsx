@@ -10,25 +10,25 @@ import { ForbiddenError } from "./forbidden";
 function renderWithRouter() {
   const rootRoute = createRootRoute({ component: ForbiddenError });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Errors/Forbidden",
   component: ForbiddenError,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "403 page shown when the user is authenticated but lacks permission for the resource.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Errors/Forbidden",
 } satisfies Meta<typeof ForbiddenError>;
 
 export default meta;

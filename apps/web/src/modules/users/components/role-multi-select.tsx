@@ -57,11 +57,11 @@ export function RoleMultiSelect({ value, onChange }: RoleMultiSelectProps) {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["roles"],
     queryFn: async () => {
       const response = await listRoles();
       return response.roles;
     },
+    queryKey: ["roles"],
   });
 
   const roles = rolesData ?? [];
@@ -83,7 +83,7 @@ export function RoleMultiSelect({ value, onChange }: RoleMultiSelectProps) {
           role="combobox"
           variant="outline"
         >
-          {renderTriggerLabel({ isError, value, roles })}
+          {renderTriggerLabel({ isError, roles, value })}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

@@ -22,30 +22,30 @@ function StoryRouter({ error }: { error: Error }) {
     ),
   });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Common/AppError",
+  args: {
+    error: new Error("Placeholder"),
+    info: { componentStack: "" },
+    reset: () => undefined,
+  },
   component: AppError,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Top-level error boundary UI. Shows a user-facing message, a stack trace in non-dev builds, and actions to retry or return home.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
-  args: {
-    error: new Error("Placeholder"),
-    reset: () => undefined,
-    info: { componentStack: "" },
-  },
+  title: "Common/AppError",
 } satisfies Meta<typeof AppError>;
 
 export default meta;

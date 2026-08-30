@@ -3,22 +3,22 @@ import { useState } from "react";
 import { DatePicker } from "./date-picker";
 
 const meta = {
-  title: "Common/DatePicker",
+  args: {
+    onSelect: () => undefined,
+    selected: undefined,
+  },
   component: DatePicker,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Popover-backed single-date picker. Controlled — pass `selected` and an `onSelect` handler.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  args: {
-    selected: undefined,
-    onSelect: () => undefined,
-  },
+  title: "Common/DatePicker",
 } satisfies Meta<typeof DatePicker>;
 
 export default meta;

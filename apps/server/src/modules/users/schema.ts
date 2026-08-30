@@ -12,57 +12,57 @@ export const userParamsSchema = z.object({
     .string()
     .min(1)
     .openapi({
-      param: { name: "userId", in: "path" },
       description: "User ID",
+      param: { in: "path", name: "userId" },
     }),
 });
 
 export const listUsersQuerySchema = z
   .object({
+    role: z.string().optional().openapi({ description: "Filter by role slug" }),
     search: z
       .string()
       .optional()
       .openapi({ description: "Search by name or email" }),
-    status: z
-      .enum(USER_STATUS_VALUES)
-      .optional()
-      .openapi({ description: "Filter by status" }),
-    role: z.string().optional().openapi({ description: "Filter by role slug" }),
     sort: z
       .enum(USERS_SORT_COLUMN_VALUES)
       .optional()
       .openapi({ description: "Sort column" }),
+    status: z
+      .enum(USER_STATUS_VALUES)
+      .optional()
+      .openapi({ description: "Filter by status" }),
   })
   .extend(paginationQuerySchema.shape);
 
 export const userSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  createdAt: z.string().datetime(),
   email: z.string().email(),
   emailVerified: z.boolean(),
+  id: z.string(),
   image: z.string().nullable(),
-  status: z.enum(USER_STATUS_VALUES),
+  name: z.string(),
   roleSlugs: z.array(z.string()),
-  createdAt: z.string().datetime(),
+  status: z.enum(USER_STATUS_VALUES),
   updatedAt: z.string().datetime(),
 });
 
 export const userDetailSchema = userSchema.extend({
-  failedLoginAttempts: z.number(),
-  lockedUntil: z.string().datetime().nullable(),
   deactivatedAt: z.string().datetime().nullable(),
   deactivatedBy: z.string().nullable(),
   deactivatedReason: z.string().nullable(),
+  failedLoginAttempts: z.number(),
+  lockedUntil: z.string().datetime().nullable(),
 });
 
 export const myAccountSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  createdAt: z.string().datetime(),
   email: z.string().email(),
   emailVerified: z.boolean(),
+  id: z.string(),
   image: z.string().nullable(),
+  name: z.string(),
   onboardingCompletedAt: z.string().datetime().nullable(),
-  createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
 
@@ -76,8 +76,8 @@ export const getUserResponseSchema = z.object({
 });
 
 export const createUserBodySchema = z.object({
-  name: z.string().min(1).max(100).openapi({ description: "User full name" }),
   email: z.string().email().openapi({ description: "User email address" }),
+  name: z.string().min(1).max(100).openapi({ description: "User full name" }),
   password: z
     .string()
     .min(8)
@@ -94,8 +94,8 @@ export const createUserResponseSchema = z.object({
 });
 
 export const updateUserBodySchema = z.object({
-  name: z.string().min(1).max(100).optional(),
   email: z.email().optional(),
+  name: z.string().min(1).max(100).optional(),
 });
 
 export const updateUserResponseSchema = z.object({
@@ -119,8 +119,8 @@ export const successResponseSchema = z.object({
 });
 
 export const getMyAccountResponseSchema = z.object({
-  profile: myAccountSchema,
   notifications: z.object({
     unreadCount: z.number().int(),
   }),
+  profile: myAccountSchema,
 });

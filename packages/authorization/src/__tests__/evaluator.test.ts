@@ -18,11 +18,11 @@ function allowRule(
   const roleLabel = roles === "*" ? "*" : roles.join(",");
   const actionLabel = actions === "*" ? "*" : actions.join(",");
   return {
-    effect: "allow",
-    roles,
     actions,
     conditions,
+    effect: "allow",
     label: `allow:${roleLabel}:${actionLabel}`,
+    roles,
   };
 }
 
@@ -34,88 +34,88 @@ function denyRule(
   const roleLabel = roles === "*" ? "*" : roles.join(",");
   const actionLabel = actions === "*" ? "*" : actions.join(",");
   return {
-    effect: "deny",
-    roles,
     actions,
     conditions,
+    effect: "deny",
     label: `deny:${roleLabel}:${actionLabel}`,
+    roles,
   };
 }
 
 // Principals
 
 const activePrincipal: Principal = {
+  attributes: { status: "active" },
   id: "usr_1",
   roles: ["user"],
-  attributes: { status: "active" },
 };
 
 const inactivePrincipal: Principal = {
+  attributes: { status: "inactive" },
   id: "usr_2",
   roles: ["user"],
-  attributes: { status: "inactive" },
 };
 
 // Conditions used in tests
 
 function ownerCondition(): Condition {
   return {
-    type: "whereOwner",
     effect: "requires_resource",
-    label: "whereOwner",
     evaluate(ctx: ConditionContext): boolean {
       if (!ctx.resource) {
         return false;
       }
       return (ctx.resource as { ownerId: string }).ownerId === ctx.principal.id;
     },
+    label: "whereOwner",
+    type: "whereOwner",
   };
 }
 
 function selfTargetCondition(): Condition {
   return {
-    type: "whereTargetIsSelf",
     effect: "requires_resource",
-    label: "whereTargetIsSelf",
     evaluate(ctx: ConditionContext): boolean {
       if (!ctx.resource) {
         return false;
       }
       return (ctx.resource as { id: string }).id === ctx.principal.id;
     },
+    label: "whereTargetIsSelf",
+    type: "whereTargetIsSelf",
   };
 }
 
 function asyncTrueCondition(): Condition {
   return {
-    type: "where",
     effect: "requires_resource",
-    label: "where:asyncTrue",
     async evaluate(_ctx: ConditionContext): Promise<boolean> {
       return Promise.resolve(true);
     },
+    label: "where:asyncTrue",
+    type: "where",
   };
 }
 
 function asyncFalseCondition(): Condition {
   return {
-    type: "where",
     effect: "requires_resource",
-    label: "where:asyncFalse",
     async evaluate(_ctx: ConditionContext): Promise<boolean> {
       return Promise.resolve(false);
     },
+    label: "where:asyncFalse",
+    type: "where",
   };
 }
 
 function throwingCondition(): Condition {
   return {
-    type: "where",
     effect: "principal_only",
-    label: "where:throws",
     evaluate(): boolean {
       throw new Error("boom");
     },
+    label: "where:throws",
+    type: "where",
   };
 }
 
@@ -123,8 +123,8 @@ function throwingCondition(): Condition {
 
 const defaults = {
   action: "read",
-  resourceName: "document",
   globalPolicies: [] as PolicyRule[],
+  resourceName: "document",
   resourcePolicies: [] as PolicyRule[],
   systemAdminRoles: [] as string[],
 } as const;
@@ -143,21 +143,21 @@ describe("evaluate", () => {
   it("denies with GLOBAL_DENY when a global deny policy matches", async () => {
     const result = await evaluate({
       ...defaults,
-      principal: inactivePrincipal,
       globalPolicies: [denyRule("*", "*", [principalNotActive()])],
+      principal: inactivePrincipal,
     });
     expect(result).toEqual({
       allowed: false,
-      reason: "GLOBAL_DENY",
       matchedPolicy: "deny:*:*",
+      reason: "GLOBAL_DENY",
     });
   });
 
   it("principalNotActive global deny fires for inactive user", async () => {
     const result = await evaluate({
       ...defaults,
-      principal: inactivePrincipal,
       globalPolicies: [denyRule("*", "*", [principalNotActive()])],
+      principal: inactivePrincipal,
       resourcePolicies: [allowRule(["user"], ["read"])],
     });
     expect(result.allowed).toBe(false);
@@ -169,8 +169,8 @@ describe("evaluate", () => {
   it("does not fire global deny when principal is active", async () => {
     const result = await evaluate({
       ...defaults,
-      principal: activePrincipal,
       globalPolicies: [denyRule("*", "*", [principalNotActive()])],
+      principal: activePrincipal,
       resourcePolicies: [allowRule(["user"], ["read"])],
     });
     expect(result.allowed).toBe(true);
@@ -184,8 +184,8 @@ describe("evaluate", () => {
     });
     expect(result).toEqual({
       allowed: false,
-      reason: "EXPLICIT_DENY",
       matchedPolicy: "deny:user:read",
+      reason: "EXPLICIT_DENY",
     });
   });
 
@@ -204,8 +204,8 @@ describe("evaluate", () => {
   it("denies with NO_MATCHING_POLICY when no policies match", async () => {
     const result = await evaluate({
       ...defaults,
-      principal: activePrincipal,
       action: "delete",
+      principal: activePrincipal,
       resourcePolicies: [allowRule(["admin"], ["delete"])],
     });
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
@@ -246,8 +246,8 @@ describe("evaluate", () => {
   it("wildcard action matches any requested action", async () => {
     const result = await evaluate({
       ...defaults,
-      principal: activePrincipal,
       action: "anything",
+      principal: activePrincipal,
       resourcePolicies: [allowRule(["user"], "*")],
     });
     expect(result.allowed).toBe(true);
@@ -354,22 +354,22 @@ describe("evaluate", () => {
 
   describe("org scoping", () => {
     const orgPrincipal: Principal = {
-      id: "usr_org",
-      roles: ["member"],
       attributes: { status: "active" },
+      id: "usr_org",
       organization: { id: "org_1", role: "editor" },
+      roles: ["member"],
     } as unknown as Principal;
 
     const noOrgPrincipal: Principal = {
+      attributes: { status: "active" },
       id: "usr_no_org",
       roles: ["member"],
-      attributes: { status: "active" },
     };
 
     const sysAdminPrincipal: Principal = {
+      attributes: { status: "active" },
       id: "usr_sa",
       roles: ["system_admin"],
-      attributes: { status: "active" },
     };
 
     const resolveOrganization = (
@@ -386,8 +386,8 @@ describe("evaluate", () => {
       const result = await evaluate({
         ...defaults,
         principal: orgPrincipal,
-        resource: { orgId: "org_1" },
         resolveOrganization,
+        resource: { orgId: "org_1" },
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: ["system_admin"],
       });
@@ -398,8 +398,8 @@ describe("evaluate", () => {
       const result = await evaluate({
         ...defaults,
         principal: noOrgPrincipal,
-        resource: { orgId: "org_1" },
         resolveOrganization,
+        resource: { orgId: "org_1" },
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: ["system_admin"],
       });
@@ -413,8 +413,8 @@ describe("evaluate", () => {
       const result = await evaluate({
         ...defaults,
         principal: orgPrincipal,
-        resource: { orgId: null },
         resolveOrganization,
+        resource: { orgId: null },
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: ["system_admin"],
       });
@@ -428,8 +428,8 @@ describe("evaluate", () => {
       const result = await evaluate({
         ...defaults,
         principal: orgPrincipal,
-        resource: { orgId: "org_other" },
         resolveOrganization,
+        resource: { orgId: "org_other" },
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: ["system_admin"],
       });
@@ -443,8 +443,8 @@ describe("evaluate", () => {
       const result = await evaluate({
         ...defaults,
         principal: sysAdminPrincipal,
-        resource: { orgId: "org_any" },
         resolveOrganization,
+        resource: { orgId: "org_any" },
         resourcePolicies: [allowRule(["system_admin"], ["read"])],
         systemAdminRoles: ["system_admin"],
       });
@@ -459,15 +459,15 @@ describe("evaluate", () => {
     // independently of which policy role matched.
     it("system admin bypass fires regardless of policy role order", async () => {
       const adminMemberPrincipal: Principal = {
+        attributes: { status: "active" },
         id: "usr_sa_member",
         roles: ["admin", "member"],
-        attributes: { status: "active" },
       };
       const result = await evaluate({
         ...defaults,
         principal: adminMemberPrincipal,
-        resource: { orgId: "org_any" },
         resolveOrganization,
+        resource: { orgId: "org_any" },
         // Policy lists "member" before "admin"; member is NOT a system admin
         // role. Without the fix, the principal lacks an org and would be
         // denied with ORG_CONTEXT_MISSING.
@@ -481,8 +481,8 @@ describe("evaluate", () => {
       const result = await evaluate({
         ...defaults,
         principal: sysAdminPrincipal,
-        resource: { orgId: "org_any" },
         resolveOrganization,
+        resource: { orgId: "org_any" },
         resourcePolicies: [allowRule("*", ["read"])],
         systemAdminRoles: ["system_admin"],
       });
@@ -517,8 +517,8 @@ describe("evaluate", () => {
     it("checks global deny before resource deny", async () => {
       const result = await evaluate({
         ...defaults,
-        principal: inactivePrincipal,
         globalPolicies: [denyRule("*", "*", [principalNotActive()])],
+        principal: inactivePrincipal,
         resourcePolicies: [denyRule(["user"], ["read"])],
       });
       expect(result.allowed).toBe(false);
@@ -547,8 +547,8 @@ describe("evaluate", () => {
       // An allow rule in globalPolicies is not checked in the global deny phase
       const result = await evaluate({
         ...defaults,
-        principal: activePrincipal,
         globalPolicies: [allowRule("*", "*")],
+        principal: activePrincipal,
         resourcePolicies: [],
       });
       // The global allow is ignored; no resource policies match -> default deny

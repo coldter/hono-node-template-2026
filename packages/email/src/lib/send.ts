@@ -48,22 +48,22 @@ export async function sendEmail<T>(
 
     const result = await transport.send({
       ...params.options,
-      to: params.to,
-      subject: params.subject,
-      html,
-      text,
       from: {
-        name: config.from.name,
         address: config.from.default,
+        name: config.from.name,
       },
+      html,
+      subject: params.subject,
+      text,
+      to: params.to,
     });
 
     return result;
   } catch (error) {
     console.error("Failed to send email:", error);
     return {
-      success: false,
       error: error instanceof Error ? error : new Error(String(error)),
+      success: false,
     };
   }
 }

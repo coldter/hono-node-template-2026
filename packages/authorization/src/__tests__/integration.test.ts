@@ -9,14 +9,14 @@ import type { Principal } from "../types";
 
 describe("integration: single-tenant", () => {
   const auth = createAuthSchema({
+    globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
+    principal: {
+      email: principalAttribute<string>(),
+      status: principalAttribute<"active" | "inactive">(),
+    },
+    relations: [],
     roles: ["admin", "user"],
     systemAdminRoles: ["admin"],
-    relations: [],
-    principal: {
-      status: principalAttribute<"active" | "inactive">(),
-      email: principalAttribute<string>(),
-    },
-    globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
   });
 
   interface UserResource {
@@ -40,33 +40,37 @@ describe("integration: single-tenant", () => {
   const registry = auth.buildRegistry({ user: userResource });
 
   const admin: Principal = {
+    attributes: { email: "admin@test.com", status: "active" },
     id: "usr_admin",
     roles: ["admin"],
-    attributes: { status: "active", email: "admin@test.com" },
   };
 
   const user1: Principal = {
+    attributes: { email: "user1@test.com", status: "active" },
     id: "usr_1",
     roles: ["user"],
-    attributes: { status: "active", email: "user1@test.com" },
   };
 
   const inactiveUser: Principal = {
+    attributes: { email: "inactive@test.com", status: "inactive" },
     id: "usr_inactive",
     roles: ["user"],
-    attributes: { status: "inactive", email: "inactive@test.com" },
   };
 
   it("admin can do everything", async () => {
     const actions = ["list", "view", "create", "update", "deactivate"];
-    for (const action of actions) {
-      const decision = await registry.can(admin, "user", action, {
-        resource: {
-          id: "usr_other",
-          createdBy: "usr_other",
-          email: "other@test.com",
-        },
-      });
+    const decisions = await Promise.all(
+      actions.map((action) =>
+        registry.can(admin, "user", action, {
+          resource: {
+            createdBy: "usr_other",
+            email: "other@test.com",
+            id: "usr_other",
+          },
+        })
+      )
+    );
+    for (const decision of decisions) {
       expect(decision.allowed).toBe(true);
     }
   });
@@ -76,7 +80,7 @@ describe("integration: single-tenant", () => {
     expect(listDecision.allowed).toBe(true);
 
     const deleteDecision = await registry.can(user1, "user", "delete", {
-      resource: { id: "usr_other", createdBy: "usr_other", email: "o@t.com" },
+      resource: { createdBy: "usr_other", email: "o@t.com", id: "usr_other" },
     });
     expect(deleteDecision.allowed).toBe(false);
     if (!deleteDecision.allowed) {
@@ -86,9 +90,9 @@ describe("integration: single-tenant", () => {
 
   it("user can view and update own profile via ownership", async () => {
     const ownResource: UserResource = {
-      id: "res_1",
       createdBy: "usr_1",
       email: "user1@test.com",
+      id: "res_1",
     };
 
     const viewDecision = await registry.can(user1, "user", "view", {
@@ -104,9 +108,9 @@ describe("integration: single-tenant", () => {
 
   it("user cannot view or update another's profile", async () => {
     const otherResource: UserResource = {
-      id: "res_other",
       createdBy: "usr_other",
       email: "other@test.com",
+      id: "res_other",
     };
 
     const viewDecision = await registry.can(user1, "user", "view", {
@@ -123,9 +127,9 @@ describe("integration: single-tenant", () => {
   it("user cannot delete themselves (deny with whereTargetIsSelf)", async () => {
     // Admin deleting themselves should also be denied
     const selfResource: UserResource = {
-      id: "usr_admin",
       createdBy: "usr_admin",
       email: "admin@test.com",
+      id: "usr_admin",
     };
 
     const decision = await registry.can(admin, "user", "delete", {
@@ -139,9 +143,9 @@ describe("integration: single-tenant", () => {
 
   it("user cannot deactivate themselves (deny with whereTargetIsSelf)", async () => {
     const selfResource: UserResource = {
-      id: "usr_1",
       createdBy: "usr_1",
       email: "user1@test.com",
+      id: "usr_1",
     };
 
     const decision = await registry.can(user1, "user", "deactivate", {
@@ -163,9 +167,9 @@ describe("integration: single-tenant", () => {
 
   it("inactive user is denied even for owned resources", async () => {
     const ownResource: UserResource = {
-      id: "res_1",
       createdBy: "usr_inactive",
       email: "inactive@test.com",
+      id: "res_1",
     };
 
     const decision = await registry.can(inactiveUser, "user", "view", {
@@ -179,9 +183,9 @@ describe("integration: single-tenant", () => {
 
   it("unknown role is denied due to no matching policy", async () => {
     const unknownRolePrincipal: Principal = {
+      attributes: { email: "unknown@test.com", status: "active" },
       id: "usr_unknown",
       roles: ["unknown_role" as string],
-      attributes: { status: "active", email: "unknown@test.com" },
     };
 
     const decision = await registry.can(unknownRolePrincipal, "user", "list");
@@ -260,14 +264,14 @@ describe("integration: single-tenant", () => {
 
 describe("integration: multi-tenant", () => {
   const auth = createAuthSchema({
-    roles: ["admin", "member"],
-    systemAdminRoles: ["admin"],
-    relations: [],
+    globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
     organizationRoles: ["owner", "admin", "member"],
     principal: {
       status: principalAttribute<"active" | "inactive">(),
     },
-    globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
+    relations: [],
+    roles: ["admin", "member"],
+    systemAdminRoles: ["admin"],
   });
 
   interface ProjectResource {
@@ -278,53 +282,53 @@ describe("integration: multi-tenant", () => {
 
   const projectResource = auth.createResource<ProjectResource>("project", {
     actions: ["list", "view", "create", "update", "delete"],
-    resolveOrganization: (r) => r.organizationId,
     policies: (p) => [
       p.allow("admin").to("*"),
       p.allow("member").to("list", "view").withOrgRole("member"),
       p.allow("member").to("*").withOrgRole("owner", "admin"),
       p.allow("member").to("update").whereOwner(),
     ],
+    resolveOrganization: (r) => r.organizationId,
     resolveOwner: (r) => r.createdBy,
   });
 
   const registry = auth.buildRegistry({ project: projectResource });
 
   const orgMember: Principal = {
-    id: "usr_org_member",
-    roles: ["member"],
     attributes: { status: "active" },
+    id: "usr_org_member",
     organization: { id: "org_1", role: "member" },
+    roles: ["member"],
   } as unknown as Principal;
 
   const orgOwner: Principal = {
-    id: "usr_org_owner",
-    roles: ["member"],
     attributes: { status: "active" },
+    id: "usr_org_owner",
     organization: { id: "org_1", role: "owner" },
+    roles: ["member"],
   } as unknown as Principal;
 
   const sysAdmin: Principal = {
+    attributes: { status: "active" },
     id: "usr_sys_admin",
     roles: ["admin"],
-    attributes: { status: "active" },
   };
 
   const noOrgUser: Principal = {
+    attributes: { status: "active" },
     id: "usr_no_org",
     roles: ["member"],
-    attributes: { status: "active" },
   };
 
   const project1: ProjectResource = {
-    id: "proj_1",
     createdBy: "usr_org_member",
+    id: "proj_1",
     organizationId: "org_1",
   };
 
   const projectOtherOrg: ProjectResource = {
-    id: "proj_2",
     createdBy: "usr_other",
+    id: "proj_2",
     organizationId: "org_2",
   };
 
@@ -374,10 +378,12 @@ describe("integration: multi-tenant", () => {
   });
 
   it("user with no org context is denied for all org-scoped actions", async () => {
-    for (const action of ["list", "view", "create", "update", "delete"]) {
-      const decision = await registry.can(noOrgUser, "project", action, {
-        resource: project1,
-      });
+    const decisions = await Promise.all(
+      ["list", "view", "create", "update", "delete"].map((action) =>
+        registry.can(noOrgUser, "project", action, { resource: project1 })
+      )
+    );
+    for (const decision of decisions) {
       expect(decision.allowed).toBe(false);
     }
   });
@@ -398,10 +404,12 @@ describe("integration: multi-tenant", () => {
   });
 
   it("system admin can perform all actions without org context", async () => {
-    for (const action of ["list", "view", "create", "update", "delete"]) {
-      const decision = await registry.can(sysAdmin, "project", action, {
-        resource: project1,
-      });
+    const decisions = await Promise.all(
+      ["list", "view", "create", "update", "delete"].map((action) =>
+        registry.can(sysAdmin, "project", action, { resource: project1 })
+      )
+    );
+    for (const decision of decisions) {
       expect(decision.allowed).toBe(true);
     }
   });

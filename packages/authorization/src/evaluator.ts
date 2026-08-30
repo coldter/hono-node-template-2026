@@ -1,3 +1,7 @@
+// biome-ignore-all lint/performance/noAwaitInLoops: policies evaluate in
+// declaration order with deny-precedence and early exit; parallelizing the
+// loop would change authorization semantics and run conditions that should
+// not run.
 import type {
   ConditionContext,
   DenyReason,
@@ -65,8 +69,8 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       if (match) {
         return {
           allowed: false,
-          reason: "GLOBAL_DENY",
           matchedPolicy: policy.label,
+          reason: "GLOBAL_DENY",
         };
       }
     }
@@ -117,8 +121,8 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       if (match) {
         return {
           allowed: false,
-          reason: "EXPLICIT_DENY",
           matchedPolicy: policy.label,
+          reason: "EXPLICIT_DENY",
         };
       }
     }
@@ -225,8 +229,8 @@ async function matchPolicy(
 
     const ctx: ConditionContext = {
       principal,
-      resource,
       resolveRelation,
+      resource,
     };
     const result = await condition.evaluate(ctx);
     if (!result) {

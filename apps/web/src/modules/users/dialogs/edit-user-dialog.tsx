@@ -26,8 +26,8 @@ import { useUpdateUserMutation } from "../query";
 import type { User, UserDetail } from "../types";
 
 const editUserSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
   email: z.string().email("Invalid email address"),
+  name: z.string().min(1, "Name is required").max(100),
 });
 
 type EditUserFormValues = z.infer<typeof editUserSchema>;
@@ -46,18 +46,18 @@ export function EditUserDialog({
   const updateMutation = useUpdateUserMutation();
 
   const form = useForm<EditUserFormValues>({
-    resolver: zodResolver(editUserSchema),
     defaultValues: {
-      name: user.name,
       email: user.email,
+      name: user.name,
     },
+    resolver: zodResolver(editUserSchema),
   });
 
   useEffect(() => {
     if (open) {
       form.reset({
-        name: user.name,
         email: user.email,
+        name: user.name,
       });
     }
   }, [open, user, form]);
@@ -65,8 +65,8 @@ export function EditUserDialog({
   const onSubmit = async (values: EditUserFormValues) => {
     try {
       await updateMutation.mutateAsync({
-        userId: user.id,
         data: values,
+        userId: user.id,
       });
     } catch {
       // Keep dialog open; the mutation onError already surfaces a toast.

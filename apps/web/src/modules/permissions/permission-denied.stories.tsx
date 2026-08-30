@@ -16,8 +16,8 @@ function renderWithProviders(args: StoryArgs) {
     component: () => <PermissionDenied {...args} />,
   });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return (
     <QueryClientProvider client={client}>
@@ -27,18 +27,18 @@ function renderWithProviders(args: StoryArgs) {
 }
 
 const meta = {
-  title: "Permissions/PermissionDenied",
   component: PermissionDenied,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Full-page permission denied screen. Supports back/home/logout actions and an optional required permission badge.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Permissions/PermissionDenied",
 } satisfies Meta<typeof PermissionDenied>;
 
 export default meta;
@@ -52,17 +52,17 @@ export const Default: Story = {
 export const WithRequiredPermission: Story = {
   render: () =>
     renderWithProviders({
-      title: "Admin only",
       message: "This page is restricted to workspace administrators.",
       requiredPermission: "workspace:admin",
+      title: "Admin only",
     }),
 };
 
 export const WithLogoutAction: Story = {
   render: () =>
     renderWithProviders({
-      showLogoutButton: true,
       message:
         "Your current account does not have access. Try signing in with a different one.",
+      showLogoutButton: true,
     }),
 };

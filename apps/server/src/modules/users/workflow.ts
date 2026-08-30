@@ -21,11 +21,10 @@ function createUserOnboardingWorkflow() {
   });
 
   workflow.task({
-    name: "log-user-creation",
     fn: async (input) => {
       const taskLogger = logger.child({
-        workflow: "user-onboarding",
         userId: input.userId,
+        workflow: "user-onboarding",
       });
 
       taskLogger.info("User onboarding started", {
@@ -37,27 +36,27 @@ function createUserOnboardingWorkflow() {
 
       return { logged: true };
     },
+    name: "log-user-creation",
   });
 
   workflow.task({
-    name: "send-welcome-email",
     fn: async (input) => {
       const taskLogger = logger.child({
-        workflow: "user-onboarding",
         userId: input.userId,
+        workflow: "user-onboarding",
       });
 
       try {
         const loginUrl = `${env.BETTER_AUTH_URL}/login`;
 
         await sendEmail({
-          to: input.email,
+          props: {
+            loginUrl,
+            userName: input.name,
+          },
           subject: "Welcome to the platform!",
           template: WelcomeEmail,
-          props: {
-            userName: input.name,
-            loginUrl,
-          },
+          to: input.email,
         });
 
         taskLogger.info("Welcome email sent successfully", {
@@ -67,12 +66,13 @@ function createUserOnboardingWorkflow() {
         return { sent: true };
       } catch (error) {
         taskLogger.error("Failed to send welcome email", {
-          error: error instanceof Error ? error.message : String(error),
           email: input.email,
+          error: error instanceof Error ? error.message : String(error),
         });
         throw error;
       }
     },
+    name: "send-welcome-email",
   });
 
   return workflow;

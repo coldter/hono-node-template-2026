@@ -14,18 +14,18 @@ import {
 import { Button } from "./button";
 
 const meta = {
-  title: "UI/AlertDialog",
   component: AlertDialog,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Radix-based modal confirmation dialog that interrupts user flow. Use for destructive or irreversible actions where an explicit acknowledgement is required.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/AlertDialog",
 } satisfies Meta<typeof AlertDialog>;
 
 export default meta;

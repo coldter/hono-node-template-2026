@@ -55,7 +55,7 @@ export function PasswordResetEmail({
 }
 
 PasswordResetEmail.PreviewProps = {
-  userName: "Ada",
-  resetUrl: "https://example.com/reset?token=abc123",
   expiresIn: "60 minutes",
+  resetUrl: "https://example.com/reset?token=abc123",
+  userName: "Ada",
 } satisfies PasswordResetEmailProps;

@@ -35,33 +35,33 @@ function nextInsert(): PushToken[] {
 vi.mock("@/db", () => {
   const selectChain = {
     from: () => selectChain,
-    where: () => selectChain,
-    orderBy: () => selectChain,
     limit: () => Promise.resolve(nextSelect()),
+    orderBy: () => selectChain,
+    where: () => selectChain,
   };
 
   const updateChain = {
+    returning: () => Promise.resolve(nextUpdate()),
     set: () => updateChain,
     where: () => updateChain,
-    returning: () => Promise.resolve(nextUpdate()),
   };
 
   const insertChain = {
-    values: () => insertChain,
     returning: () => Promise.resolve(nextInsert()),
+    values: () => insertChain,
   };
 
   const deleteChain = {
-    where: () => deleteChain,
     returning: () => Promise.resolve([]),
+    where: () => deleteChain,
   };
 
   return {
     db: {
+      delete: () => deleteChain,
+      insert: () => insertChain,
       select: () => selectChain,
       update: () => updateChain,
-      insert: () => insertChain,
-      delete: () => deleteChain,
     },
   };
 });
@@ -72,17 +72,17 @@ const { notificationPushTokenService } = await import(
 
 function makeRow(overrides: Partial<PushToken>): PushToken {
   return {
-    id: "tok_row",
-    userId: "usr_owner",
-    sessionId: "sess_1",
-    token: "fcm-token-1",
-    platform: "ios",
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
     deviceId: null,
     deviceName: null,
+    id: "tok_row",
     isActive: true,
     lastUsedAt: null,
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    platform: "ios",
+    sessionId: "sess_1",
+    token: "fcm-token-1",
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    userId: "usr_owner",
     ...overrides,
     // boundary: PushToken schema fields vary across drizzle versions; the test
     // only relies on userId/sessionId/platform/token being present.
@@ -98,7 +98,7 @@ beforeEach(() => {
 describe("notificationPushTokenService.registerPushToken", () => {
   it("should throw HTTPException(409) when token already belongs to a different user", async () => {
     selectResults.push([
-      makeRow({ id: "tok_conflict", userId: "usr_other", token: "shared-tok" }),
+      makeRow({ id: "tok_conflict", token: "shared-tok", userId: "usr_other" }),
     ]);
 
     let caught: unknown;
@@ -106,7 +106,7 @@ describe("notificationPushTokenService.registerPushToken", () => {
       await notificationPushTokenService.registerPushToken(
         "usr_caller",
         "sess_new",
-        { token: "shared-tok", platform: "ios" }
+        { platform: "ios", token: "shared-tok" }
       );
     } catch (err) {
       caught = err;
@@ -122,15 +122,15 @@ describe("notificationPushTokenService.registerPushToken", () => {
   it("should update sessionId/platform without error when token already belongs to the same user", async () => {
     const existing = makeRow({
       id: "tok_existing",
-      userId: "usr_caller",
-      sessionId: "sess_old",
       platform: "ios",
+      sessionId: "sess_old",
       token: "same-tok",
+      userId: "usr_caller",
     });
     const updated = makeRow({
       ...existing,
-      sessionId: "sess_new",
       platform: "android",
+      sessionId: "sess_new",
     });
 
     selectResults.push([existing]);
@@ -139,7 +139,7 @@ describe("notificationPushTokenService.registerPushToken", () => {
     const result = await notificationPushTokenService.registerPushToken(
       "usr_caller",
       "sess_new",
-      { token: "same-tok", platform: "android" }
+      { platform: "android", token: "same-tok" }
     );
 
     expect(result.id).toBe("tok_existing");
@@ -151,17 +151,17 @@ describe("notificationPushTokenService.registerPushToken", () => {
     selectResults.push([]);
     const created = makeRow({
       id: "tok_new",
-      userId: "usr_caller",
+      platform: "ios",
       sessionId: "sess_new",
       token: "brand-new-tok",
-      platform: "ios",
+      userId: "usr_caller",
     });
     insertResults.push([created]);
 
     const result = await notificationPushTokenService.registerPushToken(
       "usr_caller",
       "sess_new",
-      { token: "brand-new-tok", platform: "ios" }
+      { platform: "ios", token: "brand-new-tok" }
     );
 
     expect(result.id).toBe("tok_new");

@@ -20,8 +20,12 @@ function resolvePrincipal(c: Context<Env>): Principal | null {
   if (!user) {
     return null;
   }
+  const session = c.get("session");
   return toBaseAuthorizationPrincipal(
-    buildAuthorizationPrincipal(user, c.get("session") ?? {})
+    buildAuthorizationPrincipal(user, {
+      activeOrganizationId: session?.activeOrganizationId ?? null,
+      activeOrgRole: session?.activeOrgRole ?? null,
+    })
   );
 }
 

@@ -36,25 +36,29 @@ const isRolesSeeded = async (): Promise<boolean> => {
 export const rolesSeed = async () => {
   console.info("Seeding system roles...");
 
-  for (const role of systemRoles) {
-    const existingRole = await db.query.roles.findFirst({
-      where: { slug: { eq: role.slug } },
-    });
+  await Promise.all(
+    systemRoles.map(async (role) => {
+      const existingRole = await db.query.roles.findFirst({
+        where: { slug: { eq: role.slug } },
+      });
 
-    if (existingRole) {
-      console.info(`  Role ${chalk.cyan(role.slug)} already exists - skipping`);
-      continue;
-    }
+      if (existingRole) {
+        console.info(
+          `  Role ${chalk.cyan(role.slug)} already exists - skipping`
+        );
+        return;
+      }
 
-    await db.insert(roles).values({
-      name: role.name,
-      slug: role.slug,
-      description: role.description,
-      permissions: role.permissions,
-    });
+      await db.insert(roles).values({
+        description: role.description,
+        name: role.name,
+        permissions: role.permissions,
+        slug: role.slug,
+      });
 
-    console.info(`  Created role ${chalk.green(role.slug)}`);
-  }
+      console.info(`  Created role ${chalk.green(role.slug)}`);
+    })
+  );
 
   console.info(chalk.greenBright("System roles seeded successfully.\n"));
 };

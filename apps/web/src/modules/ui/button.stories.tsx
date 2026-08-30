@@ -3,35 +3,16 @@ import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { Button } from "./button";
 
 const meta = {
-  title: "UI/Button",
-  component: Button,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Primary interactive element. Built on Radix Slot + class-variance-authority. Supports variant, size, asChild for composition, and an isLoading state with optional loadingText.",
-      },
-    },
+  args: {
+    children: "Button",
   },
-  tags: ["autodocs"],
   argTypes: {
-    variant: {
-      control: "select",
-      options: [
-        "default",
-        "destructive",
-        "outline",
-        "secondary",
-        "ghost",
-        "link",
-      ],
-      description: "Visual style variant",
+    asChild: {
+      control: "boolean",
+      description: "Render as the child element (Radix Slot)",
     },
-    size: {
-      control: "radio",
-      options: ["default", "sm", "lg", "icon"],
-      description: "Button size",
+    children: {
+      control: "text",
     },
     disabled: {
       control: "boolean",
@@ -44,17 +25,36 @@ const meta = {
       control: "text",
       description: "Text shown next to spinner while loading",
     },
-    asChild: {
-      control: "boolean",
-      description: "Render as the child element (Radix Slot)",
+    size: {
+      control: "radio",
+      description: "Button size",
+      options: ["default", "sm", "lg", "icon"],
     },
-    children: {
-      control: "text",
+    variant: {
+      control: "select",
+      description: "Visual style variant",
+      options: [
+        "default",
+        "destructive",
+        "outline",
+        "secondary",
+        "ghost",
+        "link",
+      ],
     },
   },
-  args: {
-    children: "Button",
+  component: Button,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Primary interactive element. Built on Radix Slot + class-variance-authority. Supports variant, size, asChild for composition, and an isLoading state with optional loadingText.",
+      },
+    },
+    layout: "centered",
   },
+  tags: ["autodocs"],
+  title: "UI/Button",
 } satisfies Meta<typeof Button>;
 
 export default meta;
@@ -64,7 +64,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const Destructive: Story = {
-  args: { variant: "destructive", children: "Delete" },
+  args: { children: "Delete", variant: "destructive" },
 };
 
 export const Outline: Story = {
@@ -80,7 +80,7 @@ export const Ghost: Story = {
 };
 
 export const Link: Story = {
-  args: { variant: "link", children: "Read more" },
+  args: { children: "Read more", variant: "link" },
 };
 
 export const Small: Story = {
@@ -93,9 +93,9 @@ export const Large: Story = {
 
 export const Icon: Story = {
   args: {
-    size: "icon",
     "aria-label": "Add",
     children: <Plus />,
+    size: "icon",
   },
 };
 
@@ -123,13 +123,13 @@ export const WithTrailingIcon: Story = {
 
 export const DestructiveWithIcon: Story = {
   args: {
-    variant: "destructive",
     children: (
       <>
         <Trash2 />
         Delete account
       </>
     ),
+    variant: "destructive",
   },
 };
 
@@ -138,14 +138,15 @@ export const Disabled: Story = {
 };
 
 export const Loading: Story = {
-  args: { isLoading: true, children: "Saving" },
+  args: { children: "Saving", isLoading: true },
 };
 
 export const LoadingWithText: Story = {
-  args: { isLoading: true, children: "Save", loadingText: "Saving..." },
+  args: { children: "Save", isLoading: true, loadingText: "Saving..." },
 };
 
 export const AllVariants: Story = {
+  args: { children: undefined },
   render: (args) => (
     <div className="flex flex-wrap gap-3">
       <Button {...args} variant="default">
@@ -168,10 +169,10 @@ export const AllVariants: Story = {
       </Button>
     </div>
   ),
-  args: { children: undefined },
 };
 
 export const AllSizes: Story = {
+  args: { children: undefined },
   render: (args) => (
     <div className="flex items-center gap-3">
       <Button {...args} size="sm">
@@ -188,5 +189,4 @@ export const AllSizes: Story = {
       </Button>
     </div>
   ),
-  args: { children: undefined },
 };

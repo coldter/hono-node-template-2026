@@ -1,12 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, useTable } from "@tanstack/react-table";
 import { CheckCircle2, Circle, Lock } from "lucide-react";
+import type { DataTableFeatures } from "./features";
+import { dataTableFeatures } from "./features";
 import { DataTableToolbar } from "./toolbar";
 
 type Row = {
@@ -21,19 +17,19 @@ const rows: Row[] = [
   { name: "Ken", status: "locked" },
 ];
 
-const columns: ColumnDef<Row>[] = [
+const columns: ColumnDef<DataTableFeatures, Row>[] = [
   { accessorKey: "name", header: "Name" },
   {
     accessorKey: "status",
-    header: "Status",
     filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
+    header: "Status",
   },
 ];
 
 const statusOptions = [
-  { label: "Active", value: "active", icon: CheckCircle2 },
-  { label: "Inactive", value: "inactive", icon: Circle },
-  { label: "Locked", value: "locked", icon: Lock },
+  { icon: CheckCircle2, label: "Active", value: "active" },
+  { icon: Circle, label: "Inactive", value: "inactive" },
+  { icon: Lock, label: "Locked", value: "locked" },
 ];
 
 type ToolbarHostProps = {
@@ -42,18 +38,16 @@ type ToolbarHostProps = {
 };
 
 function ToolbarHost({ searchKey, withFilters }: ToolbarHostProps) {
-  const table = useReactTable({
-    data: rows,
+  const table = useTable({
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
+    data: rows,
+    features: dataTableFeatures,
   });
   return (
     <DataTableToolbar
       filters={
         withFilters
-          ? [{ columnId: "status", title: "Status", options: statusOptions }]
+          ? [{ columnId: "status", options: statusOptions, title: "Status" }]
           : []
       }
       searchKey={searchKey}
@@ -64,18 +58,18 @@ function ToolbarHost({ searchKey, withFilters }: ToolbarHostProps) {
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/Toolbar",
   component: ToolbarHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Top toolbar for a data table: search input (column or global), faceted filters, reset button, and view options. Placed above `DataTable`.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/Toolbar",
 } satisfies Meta<typeof ToolbarHost>;
 
 export default meta;

@@ -6,18 +6,18 @@ import { Label } from "./label";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 const meta = {
-  title: "UI/Popover",
   component: Popover,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Radix popover that anchors floating content to a trigger. Use for short-form controls, inline forms, and contextual actions.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Popover",
 } satisfies Meta<typeof Popover>;
 
 export default meta;

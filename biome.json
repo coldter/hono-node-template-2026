@@ -61,7 +61,8 @@
       },
       "performance": {
         "noNamespaceImport": "off",
-        "noBarrelFile": "off"
+        "noBarrelFile": "off",
+        "noJsxPropsBind": "off"
       },
       "style": {
         "noMagicNumbers": "off",
@@ -74,7 +75,8 @@
           "options": {
             "filenameCases": ["kebab-case", "camelCase"]
           }
-        }
+        },
+        "useConsistentMethodSignatures": "off"
       },
       "nursery": {
         "useSortedClasses": "off"

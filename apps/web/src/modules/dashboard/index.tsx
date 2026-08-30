@@ -90,27 +90,27 @@ export function Dashboard() {
 
 const topNav = [
   {
-    title: "Overview",
+    disabled: false,
     href: "dashboard/overview",
     isActive: true,
-    disabled: false,
+    title: "Overview",
   },
   {
-    title: "Customers",
+    disabled: true,
     href: "dashboard/customers",
     isActive: false,
-    disabled: true,
+    title: "Customers",
   },
   {
-    title: "Products",
+    disabled: true,
     href: "dashboard/products",
     isActive: false,
-    disabled: true,
+    title: "Products",
   },
   {
-    title: "Settings",
+    disabled: true,
     href: "dashboard/settings",
     isActive: false,
-    disabled: true,
+    title: "Settings",
   },
 ];

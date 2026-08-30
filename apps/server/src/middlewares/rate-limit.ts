@@ -23,8 +23,8 @@ const REJECTION_LOG_SAMPLE_RATE = 50;
 let rejectionCount = 0;
 
 export const globalRateLimitMW = rateLimiter<Env>({
-  windowMs: ms("1 minutes"),
   limit: 1000,
+  windowMs: ms("1 minutes"),
   ...(isRedisEnabled()
     ? {
         store: new RedisStore({
@@ -43,9 +43,21 @@ export const globalRateLimitMW = rateLimiter<Env>({
         }) as unknown as Store<Env>,
       }
     : {}),
-  // Docker healthchecks hit status every 30s; counting them burns the shared
-  // local bucket and Redis round-trips, and readiness must never 429.
-  skip: (c) => isHealthCheckPath(c.req.path),
+  handler: (c) => {
+    recordRateLimitRejection("limit_exceeded");
+    rejectionCount += 1;
+    if (rejectionCount % REJECTION_LOG_SAMPLE_RATE === 1) {
+      logger.warn("rate limit exceeded", {
+        key: resolveClientIp(c),
+        method: c.req.method,
+        path: c.req.path,
+        rejectionCount,
+      });
+    }
+    throw new HTTPException(429, {
+      message: "Too many requests, please try again later.",
+    });
+  },
   keyGenerator: (c) => {
     const { forwardedFor, remoteAddress } = getClientAddressInfo(c);
     const key = resolveRateLimitKey({
@@ -62,10 +74,10 @@ export const globalRateLimitMW = rateLimiter<Env>({
     // This branch firing in production almost always means TRUST_PROXY does
     // not match the deployment's proxy chain.
     logger.warn("rate limit key unresolvable, failing closed with 429", {
-      path: c.req.path,
-      method: c.req.method,
       hasForwardedFor: Boolean(forwardedFor),
       hasRemoteAddress: Boolean(remoteAddress),
+      method: c.req.method,
+      path: c.req.path,
       trustProxy: env.TRUST_PROXY,
     });
     recordRateLimitRejection("fail_closed");
@@ -73,19 +85,7 @@ export const globalRateLimitMW = rateLimiter<Env>({
       message: "Too many requests, please try again later.",
     });
   },
-  handler: (c) => {
-    recordRateLimitRejection("limit_exceeded");
-    rejectionCount += 1;
-    if (rejectionCount % REJECTION_LOG_SAMPLE_RATE === 1) {
-      logger.warn("rate limit exceeded", {
-        path: c.req.path,
-        method: c.req.method,
-        key: resolveClientIp(c),
-        rejectionCount,
-      });
-    }
-    throw new HTTPException(429, {
-      message: "Too many requests, please try again later.",
-    });
-  },
+  // Docker healthchecks hit status every 30s; counting them burns the shared
+  // local bucket and Redis round-trips, and readiness must never 429.
+  skip: (c) => isHealthCheckPath(c.req.path),
 });

@@ -7,19 +7,13 @@
 // - Feature stories live under `Features/<Feature>/...` so they never pollute
 //   the `UI/` or `Patterns/` namespaces.
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, useTable } from "@tanstack/react-table";
 import { CheckCircle2, Circle, Lock, Shield, User } from "lucide-react";
 import { Badge } from "@/modules/ui/badge";
 import { DataTableColumnHeader } from "./column-header";
 import { DataTable } from "./data-table";
+import type { DataTableFeatures } from "./features";
+import { dataTableFeatures } from "./features";
 import { DataTablePagination } from "./pagination";
 import { DataTableToolbar } from "./toolbar";
 
@@ -34,121 +28,118 @@ type MockRow = {
 
 const mockRows: MockRow[] = [
   {
+    createdAt: "2024-01-02",
+    email: "ada@example.com",
     id: "1",
     name: "Ada Lovelace",
-    email: "ada@example.com",
-    status: "active",
     role: "admin",
-    createdAt: "2024-01-02",
+    status: "active",
   },
   {
+    createdAt: "2024-01-05",
+    email: "alan@example.com",
     id: "2",
     name: "Alan Turing",
-    email: "alan@example.com",
-    status: "active",
     role: "admin",
-    createdAt: "2024-01-05",
+    status: "active",
   },
   {
+    createdAt: "2024-01-08",
+    email: "grace@example.com",
     id: "3",
     name: "Grace Hopper",
-    email: "grace@example.com",
-    status: "active",
     role: "editor",
-    createdAt: "2024-01-08",
+    status: "active",
   },
   {
+    createdAt: "2024-01-10",
+    email: "linus@example.com",
     id: "4",
     name: "Linus Torvalds",
-    email: "linus@example.com",
-    status: "active",
     role: "editor",
-    createdAt: "2024-01-10",
+    status: "active",
   },
   {
+    createdAt: "2024-01-11",
+    email: "margaret@example.com",
     id: "5",
     name: "Margaret Hamilton",
-    email: "margaret@example.com",
-    status: "inactive",
     role: "viewer",
-    createdAt: "2024-01-11",
+    status: "inactive",
   },
   {
+    createdAt: "2024-01-12",
+    email: "donald@example.com",
     id: "6",
     name: "Donald Knuth",
-    email: "donald@example.com",
-    status: "active",
     role: "viewer",
-    createdAt: "2024-01-12",
+    status: "active",
   },
   {
+    createdAt: "2024-01-15",
+    email: "ken@example.com",
     id: "7",
     name: "Ken Thompson",
-    email: "ken@example.com",
-    status: "locked",
     role: "admin",
-    createdAt: "2024-01-15",
+    status: "locked",
   },
   {
+    createdAt: "2024-01-17",
+    email: "dennis@example.com",
     id: "8",
     name: "Dennis Ritchie",
-    email: "dennis@example.com",
-    status: "active",
     role: "editor",
-    createdAt: "2024-01-17",
+    status: "active",
   },
   {
+    createdAt: "2024-01-19",
+    email: "barbara@example.com",
     id: "9",
     name: "Barbara Liskov",
-    email: "barbara@example.com",
-    status: "inactive",
     role: "viewer",
-    createdAt: "2024-01-19",
+    status: "inactive",
   },
   {
+    createdAt: "2024-01-21",
+    email: "edsger@example.com",
     id: "10",
     name: "Edsger Dijkstra",
-    email: "edsger@example.com",
-    status: "active",
     role: "admin",
-    createdAt: "2024-01-21",
+    status: "active",
   },
   {
+    createdAt: "2024-01-22",
+    email: "brian@example.com",
     id: "11",
     name: "Brian Kernighan",
-    email: "brian@example.com",
-    status: "active",
     role: "editor",
-    createdAt: "2024-01-22",
+    status: "active",
   },
   {
+    createdAt: "2024-01-23",
+    email: "john@example.com",
     id: "12",
     name: "John McCarthy",
-    email: "john@example.com",
-    status: "locked",
     role: "viewer",
-    createdAt: "2024-01-23",
+    status: "locked",
   },
 ];
 
 const statusOptions = [
-  { label: "Active", value: "active", icon: CheckCircle2 },
-  { label: "Inactive", value: "inactive", icon: Circle },
-  { label: "Locked", value: "locked", icon: Lock },
+  { icon: CheckCircle2, label: "Active", value: "active" },
+  { icon: Circle, label: "Inactive", value: "inactive" },
+  { icon: Lock, label: "Locked", value: "locked" },
 ];
 
 const roleOptions = [
-  { label: "Admin", value: "admin", icon: Shield },
-  { label: "Editor", value: "editor", icon: User },
-  { label: "Viewer", value: "viewer", icon: User },
+  { icon: Shield, label: "Admin", value: "admin" },
+  { icon: User, label: "Editor", value: "editor" },
+  { icon: User, label: "Viewer", value: "viewer" },
 ];
 
-const columns: ColumnDef<MockRow>[] = [
+const columns: ColumnDef<DataTableFeatures, MockRow>[] = [
   {
     accessorKey: "name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
     cell: ({ row }) => (
       <div className="flex flex-col">
         <span className="font-medium">{row.original.name}</span>
@@ -158,36 +149,39 @@ const columns: ColumnDef<MockRow>[] = [
       </div>
     ),
     enableSorting: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
+    ),
   },
   {
     accessorKey: "status",
+    cell: ({ row }) => <Badge variant="outline">{row.original.status}</Badge>,
+    enableSorting: true,
+    filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
-    cell: ({ row }) => <Badge variant="outline">{row.original.status}</Badge>,
-    filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
-    enableSorting: true,
   },
   {
     accessorKey: "role",
+    cell: ({ row }) => <Badge variant="secondary">{row.original.role}</Badge>,
+    enableSorting: true,
+    filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Role" />
     ),
-    cell: ({ row }) => <Badge variant="secondary">{row.original.role}</Badge>,
-    filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
-    enableSorting: true,
   },
   {
     accessorKey: "createdAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
-    ),
     cell: ({ row }) => (
       <span className="text-muted-foreground text-sm">
         {row.original.createdAt}
       </span>
     ),
     enableSorting: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
   },
 ];
 
@@ -206,47 +200,43 @@ function TableComposition({
   withFilters,
   extraColumns,
 }: CompositionProps) {
-  const allColumns: ColumnDef<MockRow>[] = extraColumns
+  const allColumns: ColumnDef<DataTableFeatures, MockRow>[] = extraColumns
     ? [
         ...columns,
         {
-          id: "id",
           accessorKey: "id",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="ID" />
-          ),
           cell: ({ row }) => (
             <code className="text-muted-foreground text-xs">
               {row.original.id}
             </code>
           ),
           enableSorting: true,
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="ID" />
+          ),
+          id: "id",
         },
         {
-          id: "email",
           accessorKey: "email",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Email" />
-          ),
           cell: ({ row }) => (
             <span className="text-muted-foreground text-sm">
               {row.original.email}
             </span>
           ),
           enableSorting: true,
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Email" />
+          ),
+          id: "email",
         },
       ]
     : columns;
 
-  const table = useReactTable({
-    data,
+  const table = useTable({
     columns: allColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    initialState: { pagination: { pageSize: 5, pageIndex: 0 } },
+    data,
+    features: dataTableFeatures,
+    initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
   });
 
   return (
@@ -255,8 +245,8 @@ function TableComposition({
         filters={
           withFilters
             ? [
-                { columnId: "status", title: "Status", options: statusOptions },
-                { columnId: "role", title: "Role", options: roleOptions },
+                { columnId: "status", options: statusOptions, title: "Status" },
+                { columnId: "role", options: roleOptions, title: "Role" },
               ]
             : []
         }
@@ -277,18 +267,18 @@ function TableComposition({
 }
 
 const meta = {
-  title: "Patterns/DataTable/Compound",
   component: TableComposition,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Canonical compound pattern for tables in this repo. Compose `DataTableToolbar` (search + faceted filters + view options), then `DataTable` (header/body with loading/error/empty slots), then `DataTablePagination`. Columns use `DataTableColumnHeader` for sortable headers. Production features (users, audit-logs) wire pagination/sorting to URL via `useTableUrlState`; stories skip that and use local table state so interactions work in isolation.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Compound",
 } satisfies Meta<typeof TableComposition>;
 
 export default meta;

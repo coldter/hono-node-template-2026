@@ -7,13 +7,13 @@ const KEY_MISMATCH_PATTERN = /does not match resource name/i;
 
 describe("buildRegistry", () => {
   const auth = createAuthSchema({
-    roles: ["admin", "user"],
-    systemAdminRoles: ["admin"],
-    relations: [],
+    globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
     principal: {
       status: principalAttribute<string>(),
     },
-    globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
+    relations: [],
+    roles: ["admin", "user"],
+    systemAdminRoles: ["admin"],
   });
 
   interface TestResource {
@@ -37,21 +37,21 @@ describe("buildRegistry", () => {
   });
 
   const adminPrincipal: Principal = {
+    attributes: { status: "active" },
     id: "usr_admin",
     roles: ["admin"],
-    attributes: { status: "active" },
   };
 
   const userPrincipal: Principal = {
+    attributes: { status: "active" },
     id: "usr_1",
     roles: ["user"],
-    attributes: { status: "active" },
   };
 
   const inactivePrincipal: Principal = {
+    attributes: { status: "inactive" },
     id: "usr_inactive",
     roles: ["user"],
-    attributes: { status: "inactive" },
   };
 
   it("admin can do everything", async () => {
@@ -76,21 +76,21 @@ describe("buildRegistry", () => {
 
   it("user can view own resource", async () => {
     const decision = await registry.can(userPrincipal, "test", "view", {
-      resource: { id: "res_1", createdBy: "usr_1" },
+      resource: { createdBy: "usr_1", id: "res_1" },
     });
     expect(decision.allowed).toBe(true);
   });
 
   it("user cannot view other's resource", async () => {
     const decision = await registry.can(userPrincipal, "test", "view", {
-      resource: { id: "res_1", createdBy: "usr_other" },
+      resource: { createdBy: "usr_other", id: "res_1" },
     });
     expect(decision.allowed).toBe(false);
   });
 
   it("user cannot delete themselves", async () => {
     const decision = await registry.can(adminPrincipal, "test", "delete", {
-      resource: { id: "usr_admin", createdBy: "usr_admin" },
+      resource: { createdBy: "usr_admin", id: "usr_admin" },
     });
     expect(decision.allowed).toBe(false);
     if (!decision.allowed) {
@@ -161,11 +161,11 @@ describe("buildRegistry", () => {
 describe("registry validation", () => {
   it("throws when registry key does not match resource name", () => {
     const auth = createAuthSchema({
+      globalPolicies: () => [],
+      principal: { status: principalAttribute<string>() },
+      relations: [],
       roles: ["admin"],
       systemAdminRoles: ["admin"],
-      relations: [],
-      principal: { status: principalAttribute<string>() },
-      globalPolicies: () => [],
     });
 
     const res1 = auth.createResource<{ id: string }>("dupe", {

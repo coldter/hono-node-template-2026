@@ -93,7 +93,7 @@ const notificationsHandler = app
 
     const markedCount = await notificationService.markAllAsRead(userId);
 
-    return c.json({ success: true, markedCount }, 200);
+    return c.json({ markedCount, success: true }, 200);
   })
 
   .openapi(notificationsRoutes.updatePreferences, async (c) => {

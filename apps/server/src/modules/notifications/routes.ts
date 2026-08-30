@@ -20,185 +20,178 @@ import {
 } from "./schema";
 
 const notificationsRoutes = {
-  listNotifications: createRouteConfig({
-    operationId: "listNotifications",
-    method: "get",
-    path: "/",
-    guard: authorize("notification", "list"),
+  deletePushToken: createRouteConfig({
+    description: "Deactivates a push token for the authenticated user",
+    guard: authorize("notification", "delete-push-token"),
+    method: "delete",
+    operationId: "deletePushToken",
+    path: "/push-tokens/{tokenId}",
+    request: {
+      params: pushTokenParamsSchema,
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: successResponseSchema },
+        },
+        description: "Push token deleted successfully",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Delete push token",
     tags: ["notifications"],
-    summary: "List notifications",
+  }),
+
+  getNotification: createRouteConfig({
+    description: "Returns details of a specific notification",
+    guard: authorize("notification", "view"),
+    method: "get",
+    operationId: "getNotification",
+    path: "/{notificationId}",
+    request: {
+      params: notificationParamsSchema,
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: getNotificationResponseSchema },
+        },
+        description: "Notification retrieved successfully",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Get notification details",
+    tags: ["notifications"],
+  }),
+
+  getPreferences: createRouteConfig({
+    description: "Returns notification preferences for the authenticated user",
+    guard: authorize("notification", "get-preferences"),
+    method: "get",
+    operationId: "getNotificationPreferences",
+    path: "/preferences",
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: getPreferencesResponseSchema },
+        },
+        description: "Preferences retrieved successfully",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Get notification preferences",
+    tags: ["notifications"],
+  }),
+
+  getUnreadCount: createRouteConfig({
+    description: "Returns the number of unread notifications for the user",
+    guard: authorize("notification", "get-unread-count"),
+    method: "get",
+    operationId: "getUnreadNotificationCount",
+    path: "/unread/count",
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: unreadCountResponseSchema },
+        },
+        description: "Unread count retrieved successfully",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Get unread notification count",
+    tags: ["notifications"],
+  }),
+  listNotifications: createRouteConfig({
     description:
       "Returns a paginated list of notifications for the authenticated user",
+    guard: authorize("notification", "list"),
+    method: "get",
+    operationId: "listNotifications",
+    path: "/",
     request: {
       query: listNotificationsQuerySchema,
     },
     responses: {
       200: {
-        description: "Notifications retrieved successfully",
         content: {
           "application/json": { schema: listNotificationsResponseSchema },
         },
+        description: "Notifications retrieved successfully",
       },
       ...commonErrorResponses,
     },
-  }),
-
-  getNotification: createRouteConfig({
-    operationId: "getNotification",
-    method: "get",
-    path: "/{notificationId}",
-    guard: authorize("notification", "view"),
+    summary: "List notifications",
     tags: ["notifications"],
-    summary: "Get notification details",
-    description: "Returns details of a specific notification",
-    request: {
-      params: notificationParamsSchema,
-    },
-    responses: {
-      200: {
-        description: "Notification retrieved successfully",
-        content: {
-          "application/json": { schema: getNotificationResponseSchema },
-        },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  getUnreadCount: createRouteConfig({
-    operationId: "getUnreadNotificationCount",
-    method: "get",
-    path: "/unread/count",
-    guard: authorize("notification", "get-unread-count"),
-    tags: ["notifications"],
-    summary: "Get unread notification count",
-    description: "Returns the number of unread notifications for the user",
-    responses: {
-      200: {
-        description: "Unread count retrieved successfully",
-        content: {
-          "application/json": { schema: unreadCountResponseSchema },
-        },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  markAsRead: createRouteConfig({
-    operationId: "markNotificationAsRead",
-    method: "post",
-    path: "/{notificationId}/read",
-    guard: authorize("notification", "mark-read"),
-    tags: ["notifications"],
-    summary: "Mark notification as read",
-    description: "Marks a specific notification as read",
-    request: {
-      params: notificationParamsSchema,
-    },
-    responses: {
-      200: {
-        description: "Notification marked as read",
-        content: {
-          "application/json": { schema: successResponseSchema },
-        },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  markAllAsRead: createRouteConfig({
-    operationId: "markAllNotificationsAsRead",
-    method: "post",
-    path: "/read-all",
-    guard: authorize("notification", "mark-all-read"),
-    tags: ["notifications"],
-    summary: "Mark all notifications as read",
-    description: "Marks all notifications as read for the authenticated user",
-    responses: {
-      200: {
-        description: "All notifications marked as read",
-        content: {
-          "application/json": { schema: markReadResponseSchema },
-        },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  getPreferences: createRouteConfig({
-    operationId: "getNotificationPreferences",
-    method: "get",
-    path: "/preferences",
-    guard: authorize("notification", "get-preferences"),
-    tags: ["notifications"],
-    summary: "Get notification preferences",
-    description: "Returns notification preferences for the authenticated user",
-    responses: {
-      200: {
-        description: "Preferences retrieved successfully",
-        content: {
-          "application/json": { schema: getPreferencesResponseSchema },
-        },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  updatePreferences: createRouteConfig({
-    operationId: "updateNotificationPreferences",
-    method: "patch",
-    path: "/preferences",
-    guard: authorize("notification", "update-preferences"),
-    tags: ["notifications"],
-    summary: "Update notification preferences",
-    description: "Updates notification preferences for the authenticated user",
-    request: {
-      body: {
-        content: {
-          "application/json": { schema: updatePreferencesBodySchema },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: "Preferences updated successfully",
-        content: {
-          "application/json": { schema: updatePreferencesResponseSchema },
-        },
-      },
-      ...commonErrorResponses,
-    },
   }),
 
   listPushTokens: createRouteConfig({
-    operationId: "listPushTokens",
-    method: "get",
-    path: "/push-tokens",
-    guard: authorize("notification", "list-push-tokens"),
-    tags: ["notifications"],
-    summary: "List push tokens",
     description:
       "Returns all registered push tokens for the authenticated user",
+    guard: authorize("notification", "list-push-tokens"),
+    method: "get",
+    operationId: "listPushTokens",
+    path: "/push-tokens",
     responses: {
       200: {
-        description: "Push tokens retrieved successfully",
         content: {
           "application/json": { schema: listPushTokensResponseSchema },
         },
+        description: "Push tokens retrieved successfully",
       },
       ...commonErrorResponses,
     },
+    summary: "List push tokens",
+    tags: ["notifications"],
+  }),
+
+  markAllAsRead: createRouteConfig({
+    description: "Marks all notifications as read for the authenticated user",
+    guard: authorize("notification", "mark-all-read"),
+    method: "post",
+    operationId: "markAllNotificationsAsRead",
+    path: "/read-all",
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: markReadResponseSchema },
+        },
+        description: "All notifications marked as read",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Mark all notifications as read",
+    tags: ["notifications"],
+  }),
+
+  markAsRead: createRouteConfig({
+    description: "Marks a specific notification as read",
+    guard: authorize("notification", "mark-read"),
+    method: "post",
+    operationId: "markNotificationAsRead",
+    path: "/{notificationId}/read",
+    request: {
+      params: notificationParamsSchema,
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: successResponseSchema },
+        },
+        description: "Notification marked as read",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Mark notification as read",
+    tags: ["notifications"],
   }),
 
   registerPushToken: createRouteConfig({
-    operationId: "registerPushToken",
-    method: "post",
-    path: "/push-tokens",
-    guard: authorize("notification", "register-push-token"),
-    tags: ["notifications"],
-    summary: "Register push token",
     description:
       "Registers a new push token for the authenticated user's device",
+    guard: authorize("notification", "register-push-token"),
+    method: "post",
+    operationId: "registerPushToken",
+    path: "/push-tokens",
     request: {
       body: {
         content: {
@@ -208,35 +201,41 @@ const notificationsRoutes = {
     },
     responses: {
       201: {
-        description: "Push token registered successfully",
         content: {
           "application/json": { schema: registerPushTokenResponseSchema },
         },
+        description: "Push token registered successfully",
       },
       ...commonErrorResponses,
     },
+    summary: "Register push token",
+    tags: ["notifications"],
   }),
 
-  deletePushToken: createRouteConfig({
-    operationId: "deletePushToken",
-    method: "delete",
-    path: "/push-tokens/{tokenId}",
-    guard: authorize("notification", "delete-push-token"),
-    tags: ["notifications"],
-    summary: "Delete push token",
-    description: "Deactivates a push token for the authenticated user",
+  updatePreferences: createRouteConfig({
+    description: "Updates notification preferences for the authenticated user",
+    guard: authorize("notification", "update-preferences"),
+    method: "patch",
+    operationId: "updateNotificationPreferences",
+    path: "/preferences",
     request: {
-      params: pushTokenParamsSchema,
+      body: {
+        content: {
+          "application/json": { schema: updatePreferencesBodySchema },
+        },
+      },
     },
     responses: {
       200: {
-        description: "Push token deleted successfully",
         content: {
-          "application/json": { schema: successResponseSchema },
+          "application/json": { schema: updatePreferencesResponseSchema },
         },
+        description: "Preferences updated successfully",
       },
       ...commonErrorResponses,
     },
+    summary: "Update notification preferences",
+    tags: ["notifications"],
   }),
 };
 

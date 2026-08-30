@@ -44,17 +44,17 @@ export function DeactivateDialog({
   const deactivateMutation = useDeactivateUserMutation();
 
   const form = useForm<DeactivateFormValues>({
-    resolver: zodResolver(deactivateSchema),
     defaultValues: {
       reason: "",
     },
+    resolver: zodResolver(deactivateSchema),
   });
 
   const onSubmit = async (values: DeactivateFormValues) => {
     try {
       await deactivateMutation.mutateAsync({
-        userId: user.id,
         reason: values.reason,
+        userId: user.id,
       });
     } catch {
       // Keep dialog open; the mutation onError already surfaces a toast.

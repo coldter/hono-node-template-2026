@@ -2,38 +2,38 @@ import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 const data = [
   {
+    clicks: Math.floor(Math.random() * 900) + 100,
     name: "Mon",
-    clicks: Math.floor(Math.random() * 900) + 100,
     uniques: Math.floor(Math.random() * 700) + 80,
   },
   {
+    clicks: Math.floor(Math.random() * 900) + 100,
     name: "Tue",
-    clicks: Math.floor(Math.random() * 900) + 100,
     uniques: Math.floor(Math.random() * 700) + 80,
   },
   {
+    clicks: Math.floor(Math.random() * 900) + 100,
     name: "Wed",
-    clicks: Math.floor(Math.random() * 900) + 100,
     uniques: Math.floor(Math.random() * 700) + 80,
   },
   {
+    clicks: Math.floor(Math.random() * 900) + 100,
     name: "Thu",
-    clicks: Math.floor(Math.random() * 900) + 100,
     uniques: Math.floor(Math.random() * 700) + 80,
   },
   {
+    clicks: Math.floor(Math.random() * 900) + 100,
     name: "Fri",
-    clicks: Math.floor(Math.random() * 900) + 100,
     uniques: Math.floor(Math.random() * 700) + 80,
   },
   {
+    clicks: Math.floor(Math.random() * 900) + 100,
     name: "Sat",
-    clicks: Math.floor(Math.random() * 900) + 100,
     uniques: Math.floor(Math.random() * 700) + 80,
   },
   {
-    name: "Sun",
     clicks: Math.floor(Math.random() * 900) + 100,
+    name: "Sun",
     uniques: Math.floor(Math.random() * 700) + 80,
   },
 ];

@@ -52,14 +52,14 @@ export const requestLogMiddleware = createMiddleware<Env>(async (c, next) => {
   // the throwing frame, so next() resolves and c.res reflects the error status.
   await next();
 
-  const status = c.res.status;
+  const { status } = c.res;
   const durationMs = performance.now() - startedAt;
 
   recordHttpRequestDuration({
+    durationMs,
     method: c.req.method,
     route: c.req.routePath,
     statusCode: status,
-    durationMs,
   });
 
   // Health probes stay in the histogram (pre-aggregated, one low-cardinality
@@ -76,13 +76,13 @@ export const requestLogMiddleware = createMiddleware<Env>(async (c, next) => {
     level = "warn";
   }
   httpLogger.log(level, "request completed", {
+    client_ip: resolveClientIp(c),
+    duration_ms: Number(durationMs.toFixed(1)),
     method: c.req.method,
     path: c.req.path,
+    request_id: c.get("requestId") ?? null,
     route: c.req.routePath,
     status,
-    duration_ms: Number(durationMs.toFixed(1)),
-    request_id: c.get("requestId") ?? null,
     trace_id: getTraceIdFromContext(c),
-    client_ip: resolveClientIp(c),
   });
 });

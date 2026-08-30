@@ -3,24 +3,24 @@ import { AlertCircle, CheckCircle2, Info, Terminal } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "./alert";
 
 const meta = {
-  title: "UI/Alert",
-  component: Alert,
-  parameters: {
-    layout: "padded",
-    docs: {
-      description: {
-        component:
-          "Contextual feedback banner. Compose with AlertTitle and AlertDescription; accepts an optional leading icon.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
     variant: {
       control: "radio",
       options: ["default", "destructive"],
     },
   },
+  component: Alert,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Contextual feedback banner. Compose with AlertTitle and AlertDescription; accepts an optional leading icon.",
+      },
+    },
+    layout: "padded",
+  },
+  tags: ["autodocs"],
+  title: "UI/Alert",
 } satisfies Meta<typeof Alert>;
 
 export default meta;

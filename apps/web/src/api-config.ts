@@ -9,8 +9,6 @@ import { ApiError, clientConfig } from "@/lib/api";
 export const createClientConfig: CreateClientConfig = (baseConfig) => ({
   ...baseConfig,
   baseUrl: import.meta.env.VITE_SERVER_URL || "http://localhost:3100",
-  responseStyle: "data",
-  throwOnError: true,
   fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
     const response = await clientConfig.fetch(input, init);
 
@@ -21,9 +19,15 @@ export const createClientConfig: CreateClientConfig = (baseConfig) => ({
     let json: unknown;
     try {
       json = await response.json();
-    } catch {
-      throw ApiError.fromResponse(response, undefined);
+    } catch (error) {
+      throw ApiError.fromResponse(
+        response,
+        undefined,
+        error instanceof Error ? error : undefined
+      );
     }
     throw ApiError.fromResponse(response, json);
   },
+  responseStyle: "data",
+  throwOnError: true,
 });

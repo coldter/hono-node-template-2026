@@ -1,13 +1,13 @@
 export const ID_PREFIXES = {
-  user: "usr",
-  session: "ses",
   account: "acc",
-  verification: "ver",
-  role: "rol",
   auditLog: "aud",
   notification: "ntf",
   pushToken: "ptk",
   relation: "rel",
+  role: "rol",
+  session: "ses",
+  user: "usr",
+  verification: "ver",
 } as const;
 
 declare const __brand: unique symbol;

@@ -21,12 +21,12 @@ import {
 type FakeTable = Parameters<typeof checkRelation>[1];
 
 const fakeTable = {
-  subjectType: "subjectType_col",
-  subjectId: "subjectId_col",
-  relation: "relation_col",
-  objectType: "objectType_col",
-  objectId: "objectId_col",
   createdBy: "createdBy_col",
+  objectId: "objectId_col",
+  objectType: "objectType_col",
+  relation: "relation_col",
+  subjectId: "subjectId_col",
+  subjectType: "subjectType_col",
 } as unknown as FakeTable;
 
 // Helpers to build mock db instances
@@ -36,14 +36,14 @@ function makeSelectDb(rows: RelationTuple[]) {
   const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
   const fromFn = vi.fn().mockReturnValue({ where: whereFn });
   const selectFn = vi.fn().mockReturnValue({ from: fromFn });
-  return { db: { select: selectFn }, selectFn, fromFn, whereFn, limitFn };
+  return { db: { select: selectFn }, fromFn, limitFn, selectFn, whereFn };
 }
 
 function makeSelectDbNoLimit(rows: RelationTuple[]) {
   const whereFn = vi.fn().mockResolvedValue(rows);
   const fromFn = vi.fn().mockReturnValue({ where: whereFn });
   const selectFn = vi.fn().mockReturnValue({ from: fromFn });
-  return { db: { select: selectFn }, selectFn, fromFn, whereFn };
+  return { db: { select: selectFn }, fromFn, selectFn, whereFn };
 }
 
 function makeInsertDb() {
@@ -52,7 +52,7 @@ function makeInsertDb() {
     .fn()
     .mockReturnValue({ onConflictDoNothing: onConflictFn });
   const insertFn = vi.fn().mockReturnValue({ values: valuesFn });
-  return { db: { insert: insertFn }, insertFn, valuesFn, onConflictFn };
+  return { db: { insert: insertFn }, insertFn, onConflictFn, valuesFn };
 }
 
 function makeDeleteDb() {
@@ -63,28 +63,28 @@ function makeDeleteDb() {
 
 // Test data
 
-const subject = { type: "user", id: "usr_1" };
-const object = { type: "document", id: "doc_1" };
+const subject = { id: "usr_1", type: "user" };
+const object = { id: "doc_1", type: "document" };
 const relation = "editor";
 
-const checkInput: CheckRelationInput = { subject, relation, object };
+const checkInput: CheckRelationInput = { object, relation, subject };
 
 const createInput: CreateRelationInput = {
-  subject,
-  relation,
-  object,
   createdBy: "usr_admin",
+  object,
+  relation,
+  subject,
 };
 
 describe("checkRelation", () => {
   it("returns true when a matching row is found", async () => {
     const rows: RelationTuple[] = [
       {
-        subjectType: "user",
-        subjectId: "usr_1",
-        relation: "editor",
-        objectType: "document",
         objectId: "doc_1",
+        objectType: "document",
+        relation: "editor",
+        subjectId: "usr_1",
+        subjectType: "user",
       },
     ];
     const { db } = makeSelectDb(rows);
@@ -129,14 +129,14 @@ describe("checkRelationBatch", () => {
   it("initialises all keys to false before querying", async () => {
     const inputs: CheckRelationInput[] = [
       {
-        subject: { type: "user", id: "usr_1" },
+        object: { id: "d1", type: "doc" },
         relation: "editor",
-        object: { type: "doc", id: "d1" },
+        subject: { id: "usr_1", type: "user" },
       },
       {
-        subject: { type: "user", id: "usr_2" },
+        object: { id: "d2", type: "doc" },
         relation: "viewer",
-        object: { type: "doc", id: "d2" },
+        subject: { id: "usr_2", type: "user" },
       },
     ];
     const { db } = makeSelectDbNoLimit([]);
@@ -148,23 +148,23 @@ describe("checkRelationBatch", () => {
   it("sets matched keys to true based on query results", async () => {
     const inputs: CheckRelationInput[] = [
       {
-        subject: { type: "user", id: "usr_1" },
+        object: { id: "d1", type: "doc" },
         relation: "editor",
-        object: { type: "doc", id: "d1" },
+        subject: { id: "usr_1", type: "user" },
       },
       {
-        subject: { type: "user", id: "usr_2" },
+        object: { id: "d2", type: "doc" },
         relation: "viewer",
-        object: { type: "doc", id: "d2" },
+        subject: { id: "usr_2", type: "user" },
       },
     ];
     const rows: RelationTuple[] = [
       {
-        subjectType: "user",
-        subjectId: "usr_1",
-        relation: "editor",
-        objectType: "doc",
         objectId: "d1",
+        objectType: "doc",
+        relation: "editor",
+        subjectId: "usr_1",
+        subjectType: "user",
       },
     ];
     const { db } = makeSelectDbNoLimit(rows);
@@ -176,19 +176,19 @@ describe("checkRelationBatch", () => {
   it("returns a map with the same number of keys as inputs", async () => {
     const inputs: CheckRelationInput[] = [
       {
-        subject: { type: "user", id: "u1" },
+        object: { id: "o1", type: "t" },
         relation: "r1",
-        object: { type: "t", id: "o1" },
+        subject: { id: "u1", type: "user" },
       },
       {
-        subject: { type: "user", id: "u2" },
+        object: { id: "o2", type: "t" },
         relation: "r2",
-        object: { type: "t", id: "o2" },
+        subject: { id: "u2", type: "user" },
       },
       {
-        subject: { type: "user", id: "u3" },
+        object: { id: "o3", type: "t" },
         relation: "r3",
-        object: { type: "t", id: "o3" },
+        subject: { id: "u3", type: "user" },
       },
     ];
     const { db } = makeSelectDbNoLimit([]);
@@ -199,19 +199,19 @@ describe("checkRelationBatch", () => {
   it("ignores query rows that do not match any input key", async () => {
     const inputs: CheckRelationInput[] = [
       {
-        subject: { type: "user", id: "usr_1" },
+        object: { id: "d1", type: "doc" },
         relation: "editor",
-        object: { type: "doc", id: "d1" },
+        subject: { id: "usr_1", type: "user" },
       },
     ];
     const rows: RelationTuple[] = [
       // This row was returned by the broad WHERE but does not match the input tuple
       {
-        subjectType: "user",
-        subjectId: "usr_1",
-        relation: "viewer",
-        objectType: "doc",
         objectId: "d99",
+        objectType: "doc",
+        relation: "viewer",
+        subjectId: "usr_1",
+        subjectType: "user",
       },
     ];
     const { db } = makeSelectDbNoLimit(rows);
@@ -232,12 +232,12 @@ describe("createRelation", () => {
     const { db, valuesFn } = makeInsertDb();
     await createRelation(db, fakeTable, createInput);
     expect(valuesFn).toHaveBeenCalledWith({
-      subjectType: "user",
-      subjectId: "usr_1",
-      relation: "editor",
-      objectType: "document",
-      objectId: "doc_1",
       createdBy: "usr_admin",
+      objectId: "doc_1",
+      objectType: "document",
+      relation: "editor",
+      subjectId: "usr_1",
+      subjectType: "user",
     });
   });
 
@@ -282,30 +282,30 @@ describe("listRelations", () => {
     const whereFn = vi.fn().mockResolvedValue(rows);
     const fromFn = vi.fn().mockReturnValue({ where: whereFn });
     const selectFn = vi.fn().mockReturnValue({ from: fromFn });
-    return { db: { select: selectFn }, selectFn, fromFn, whereFn };
+    return { db: { select: selectFn }, fromFn, selectFn, whereFn };
   }
 
   const sampleRows: RelationTuple[] = [
     {
-      subjectType: "user",
-      subjectId: "usr_1",
-      relation: "editor",
-      objectType: "document",
       objectId: "doc_1",
+      objectType: "document",
+      relation: "editor",
+      subjectId: "usr_1",
+      subjectType: "user",
     },
     {
-      subjectType: "user",
-      subjectId: "usr_1",
-      relation: "viewer",
-      objectType: "document",
       objectId: "doc_2",
+      objectType: "document",
+      relation: "viewer",
+      subjectId: "usr_1",
+      subjectType: "user",
     },
   ];
 
   it("returns matching rows", async () => {
     const { db } = makeListDb(sampleRows);
     const input: ListRelationsInput = {
-      subject: { type: "user", id: "usr_1" },
+      subject: { id: "usr_1", type: "user" },
     };
     const result = await listRelations(db, fakeTable, input);
     expect(result).toEqual(sampleRows);
@@ -314,7 +314,7 @@ describe("listRelations", () => {
   it("passes a condition when subject is provided", async () => {
     const { db, whereFn } = makeListDb([]);
     await listRelations(db, fakeTable, {
-      subject: { type: "user", id: "usr_1" },
+      subject: { id: "usr_1", type: "user" },
     });
     expect(whereFn).toHaveBeenCalledWith(expect.anything());
   });
@@ -322,7 +322,7 @@ describe("listRelations", () => {
   it("passes a condition when object is provided", async () => {
     const { db, whereFn } = makeListDb([]);
     await listRelations(db, fakeTable, {
-      object: { type: "document", id: "doc_1" },
+      object: { id: "doc_1", type: "document" },
     });
     expect(whereFn).toHaveBeenCalledWith(expect.anything());
   });
@@ -342,7 +342,7 @@ describe("listRelations", () => {
   it("returns an empty array when no rows match", async () => {
     const { db } = makeListDb([]);
     const result = await listRelations(db, fakeTable, {
-      subject: { type: "user", id: "usr_999" },
+      subject: { id: "usr_999", type: "user" },
     });
     expect(result).toEqual([]);
   });

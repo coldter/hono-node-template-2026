@@ -44,10 +44,10 @@ export function RoleAssignmentDialog({
   const updateMutation = useUpdateUserRolesMutation();
 
   const form = useForm<RolesFormValues>({
-    resolver: zodResolver(rolesSchema),
     defaultValues: {
       roleSlugs: user.roleSlugs,
     },
+    resolver: zodResolver(rolesSchema),
   });
 
   useEffect(() => {
@@ -61,8 +61,8 @@ export function RoleAssignmentDialog({
   const onSubmit = async (values: RolesFormValues) => {
     try {
       await updateMutation.mutateAsync({
-        userId: user.id,
         data: values,
+        userId: user.id,
       });
     } catch {
       // Keep dialog open; the mutation onError already surfaces a toast.

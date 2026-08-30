@@ -30,11 +30,11 @@ export function NotificationsForm() {
   const updateMutation = useUpdateNotificationPreferencesMutation();
 
   const form = useForm<NotificationsFormValues>({
-    resolver: zodResolver(notificationsFormSchema),
     defaultValues: {
       emailEnabled: true,
       pushEnabled: true,
     },
+    resolver: zodResolver(notificationsFormSchema),
   });
 
   useEffect(() => {

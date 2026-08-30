@@ -1,9 +1,9 @@
 // ISO 3166-1 alpha-2 to 4-digit zero-padded numeric code mapping.
 const ALPHA2_TO_NUMERIC: Record<string, string> = {
+  AE: "0784",
   AR: "0032",
   AT: "0040",
   AU: "0036",
-  AE: "0784",
   BE: "0056",
   BR: "0076",
   CA: "0124",

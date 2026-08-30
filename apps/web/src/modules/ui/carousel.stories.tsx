@@ -8,18 +8,18 @@ import {
 } from "./carousel";
 
 const meta = {
-  title: "UI/Carousel",
   component: Carousel,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Embla-based carousel with prev/next controls, keyboard navigation, and an optional autoplay plugin (enabled by default).",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Carousel",
 } satisfies Meta<typeof Carousel>;
 
 export default meta;

@@ -12,22 +12,22 @@ import {
 } from "./select";
 
 const meta = {
-  title: "UI/Select",
+  argTypes: {
+    defaultValue: { control: "text" },
+    disabled: { control: "boolean" },
+  },
   component: Select,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Dropdown select built on Radix Select. Compose via SelectTrigger, SelectValue, SelectContent, and SelectItem; supports grouping, labels, separators, and disabled items.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    disabled: { control: "boolean" },
-    defaultValue: { control: "text" },
-  },
+  title: "UI/Select",
 } satisfies Meta<typeof Select>;
 
 export default meta;

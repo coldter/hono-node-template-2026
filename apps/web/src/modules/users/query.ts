@@ -25,22 +25,22 @@ import type {
 
 export const usersKeys = {
   all: ["users"] as const,
-  lists: () => [...usersKeys.all, "list"] as const,
+  detail: (id: string) => [...usersKeys.details(), id] as const,
+  details: () => [...usersKeys.all, "detail"] as const,
   list: (params: ListUsersData["query"]) =>
     [...usersKeys.lists(), params] as const,
-  details: () => [...usersKeys.all, "detail"] as const,
-  detail: (id: string) => [...usersKeys.details(), id] as const,
+  lists: () => [...usersKeys.all, "list"] as const,
 };
 
 export function usersListQueryOptions(
   params: NonNullable<ListUsersData["query"]>
 ) {
   return queryOptions({
-    queryKey: usersKeys.list(params),
     queryFn: async () => {
       const response = await listUsers({ query: params });
       return response;
     },
+    queryKey: usersKeys.list(params),
   });
 }
 
@@ -53,12 +53,12 @@ export function useUsersQuery(params: NonNullable<ListUsersData["query"]>) {
 
 export function useUserQuery(userId: string) {
   return useQuery({
-    queryKey: usersKeys.detail(userId),
+    enabled: Boolean(userId),
     queryFn: async () => {
       const response = await getUser({ path: { userId } });
       return response.user;
     },
-    enabled: Boolean(userId),
+    queryKey: usersKeys.detail(userId),
   });
 }
 
@@ -70,12 +70,12 @@ export function useCreateUserMutation() {
       const response = await createUser({ body: data });
       return response.user;
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create user");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       toast.success("User created successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to create user");
     },
   });
 }
@@ -91,16 +91,16 @@ export function useUpdateUserMutation() {
       userId: string;
       data: UpdateUserData["body"];
     }) => {
-      const response = await updateUser({ path: { userId }, body: data });
+      const response = await updateUser({ body: data, path: { userId } });
       return response.user;
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update user");
     },
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
       toast.success("User updated successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update user");
     },
   });
 }
@@ -116,16 +116,16 @@ export function useUpdateUserRolesMutation() {
       userId: string;
       data: UpdateUserRolesData["body"];
     }) => {
-      const response = await updateUserRoles({ path: { userId }, body: data });
+      const response = await updateUserRoles({ body: data, path: { userId } });
       return response.user;
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update roles");
     },
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
       toast.success("Roles updated successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update roles");
     },
   });
 }
@@ -141,15 +141,15 @@ export function useDeactivateUserMutation() {
       userId: string;
       reason?: string;
     }) => {
-      await deactivateUser({ path: { userId }, body: { reason } });
+      await deactivateUser({ body: { reason }, path: { userId } });
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to deactivate user");
     },
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
       toast.success("User deactivated");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to deactivate user");
     },
   });
 }
@@ -161,13 +161,13 @@ export function useActivateUserMutation() {
     mutationFn: async (userId: string) => {
       await activateUser({ path: { userId } });
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to activate user");
+    },
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
       toast.success("User activated");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to activate user");
     },
   });
 }
@@ -179,13 +179,13 @@ export function useUnlockUserMutation() {
     mutationFn: async (userId: string) => {
       await unlockUser({ path: { userId } });
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to unlock user");
+    },
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
       toast.success("User unlocked");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to unlock user");
     },
   });
 }

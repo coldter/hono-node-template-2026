@@ -10,24 +10,24 @@ import { NotFoundError } from "./not-found-error";
 function renderWithRouter() {
   const rootRoute = createRootRoute({ component: NotFoundError });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Errors/NotFoundError",
   component: NotFoundError,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component: "404 full-page view for unknown routes.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Errors/NotFoundError",
 } satisfies Meta<typeof NotFoundError>;
 
 export default meta;

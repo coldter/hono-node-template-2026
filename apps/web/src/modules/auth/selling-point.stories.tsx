@@ -2,18 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { SellingPoint } from "./selling-point";
 
 const meta = {
-  title: "Features/Auth/SellingPoint",
   component: SellingPoint,
-  parameters: {
-    layout: "fullscreen",
-    docs: {
-      description: {
-        component:
-          "Marketing panel used on the split-screen auth layout. Renders a headline over an animated gradient or a background image.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   decorators: [
     (Story) => (
       <div className="h-[600px] w-[640px] overflow-hidden rounded-md">
@@ -21,6 +10,17 @@ const meta = {
       </div>
     ),
   ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Marketing panel used on the split-screen auth layout. Renders a headline over an animated gradient or a background image.",
+      },
+    },
+    layout: "fullscreen",
+  },
+  tags: ["autodocs"],
+  title: "Features/Auth/SellingPoint",
 } satisfies Meta<typeof SellingPoint>;
 
 export default meta;
@@ -29,16 +29,16 @@ type Story = StoryObj<typeof meta>;
 
 export const DefaultGradient: Story = {
   args: {
-    title: "Ship faster",
     description:
       "A modern starter with auth, analytics, and design primitives built in.",
+    title: "Ship faster",
   },
 };
 
 export const CustomGradient: Story = {
   args: {
-    title: "Own your stack",
-    description: "Replace sections without rewriting the whole surface.",
     bgGradient: "from-emerald-500 via-teal-500 to-cyan-500",
+    description: "Replace sections without rewriting the whole surface.",
+    title: "Own your stack",
   },
 };

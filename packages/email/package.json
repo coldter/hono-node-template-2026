@@ -15,19 +15,19 @@
   },
   "dependencies": {
     "@react-email/components": "^1.0.11",
-    "@react-email/render": "^2.0.8",
+    "@react-email/render": "^2.1.0",
     "@repo/shared": "workspace:*",
-    "nodemailer": "^8.0.11",
-    "react-email": "^6.6.0",
-    "zod": "^4.4.3"
+    "nodemailer": "^9.0.6",
+    "react-email": "^6.9.3",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.1",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
     "@typescript/native-preview": "beta",
-    "tsdown": "^0.22.2",
-    "typescript": "^6.0.3"
+    "tsdown": "^0.22.14",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "react": "^19.0.0",

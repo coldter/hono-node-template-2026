@@ -50,7 +50,6 @@ export interface RegistryInstance<
       resource?: unknown;
     }
   ): Promise<PolicyDecision>;
-
   /**
    * Build an OPTIMISTIC capability map keyed by `${resource}:${action}` for
    * the given principal. Intended for UI gating only -- nav items, page
@@ -83,10 +82,11 @@ export function buildRegistryInstance<
   );
 
   return {
-    resources,
-
-    getResource<K extends keyof TResources & string>(name: K): TResources[K] {
-      return resources[name];
+    async assertCan(principal, resource, action, opts) {
+      const decision = await this.can(principal, resource, action, opts);
+      if (!decision.allowed) {
+        throw new AuthorizationError(decision.reason, decision.matchedPolicy);
+      }
     },
 
     async can(principal, resourceName, action, opts) {
@@ -96,49 +96,52 @@ export function buildRegistryInstance<
       }
 
       return evaluate({
-        principal,
         action,
-        resourceName,
-        resource: opts?.resource,
         globalPolicies: options.globalPolicies,
-        resourcePolicies: resourceDef.policies,
-        systemAdminRoles: options.systemAdminRoles,
+        principal,
         resolveOrganization: resourceDef.resolveOrganization,
         resolveRelation: opts?.resolveRelation,
+        resource: opts?.resource,
+        resourceName,
+        resourcePolicies: resourceDef.policies,
+        systemAdminRoles: options.systemAdminRoles,
       });
     },
 
-    async assertCan(principal, resource, action, opts) {
-      const decision = await this.can(principal, resource, action, opts);
-      if (!decision.allowed) {
-        throw new AuthorizationError(decision.reason, decision.matchedPolicy);
-      }
-    },
-
     async evaluateCapabilities(principal) {
-      const capabilities: Record<string, boolean> = {};
+      // Evaluate without resource but with ignoreResourceConditions
+      // so that conditionally-allowed actions (e.g. whereOwner) report true.
+      const decisions = await Promise.all(
+        Object.entries(resources).flatMap(([name, resourceDef]) =>
+          resourceDef.actions.map(async (action) => {
+            const decision = await evaluate({
+              action,
+              globalPolicies: options.globalPolicies,
+              ignoreResourceConditions: true,
+              principal,
+              resource: undefined,
+              resourceName: name,
+              resourcePolicies: resourceDef.policies,
+              systemAdminRoles: options.systemAdminRoles,
+            });
+            return [name, action, decision.allowed] as const;
+          })
+        )
+      );
 
-      for (const [name, resourceDef] of Object.entries(resources)) {
-        for (const action of resourceDef.actions) {
-          // Evaluate without resource but with ignoreResourceConditions
-          // so that conditionally-allowed actions (e.g. whereOwner) report true
-          const decision = await evaluate({
-            principal,
-            action,
-            resourceName: name,
-            resource: undefined,
-            globalPolicies: options.globalPolicies,
-            resourcePolicies: resourceDef.policies,
-            systemAdminRoles: options.systemAdminRoles,
-            ignoreResourceConditions: true,
-          });
-          capabilities[`${name}:${action}`] = decision.allowed;
-        }
+      const capabilities: Record<string, boolean> = {};
+      for (const [name, action, allowed] of decisions) {
+        capabilities[`${name}:${action}`] = allowed;
       }
 
       // boundary: runtime keys are derived from the registry's own action
       // tuples, so the typed CapabilityMap shape is correct by construction.
       return capabilities as unknown as CapabilityMap<TResources>;
     },
+
+    getResource<K extends keyof TResources & string>(name: K): TResources[K] {
+      return resources[name];
+    },
+    resources,
   };
 }

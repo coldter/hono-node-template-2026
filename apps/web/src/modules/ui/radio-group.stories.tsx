@@ -3,18 +3,9 @@ import { Label } from "./label";
 import { RadioGroup, RadioGroupItem } from "./radio-group";
 
 const meta = {
-  title: "UI/RadioGroup",
-  component: RadioGroup,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Mutually-exclusive selection control built on Radix RadioGroup. Use RadioGroupItem inside RadioGroup for each option; works with defaultValue or value for controlled usage.",
-      },
-    },
+  args: {
+    defaultValue: "comfortable",
   },
-  tags: ["autodocs"],
   argTypes: {
     defaultValue: { control: "text" },
     disabled: { control: "boolean" },
@@ -23,9 +14,18 @@ const meta = {
       options: ["horizontal", "vertical"],
     },
   },
-  args: {
-    defaultValue: "comfortable",
+  component: RadioGroup,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Mutually-exclusive selection control built on Radix RadioGroup. Use RadioGroupItem inside RadioGroup for each option; works with defaultValue or value for controlled usage.",
+      },
+    },
+    layout: "centered",
   },
+  tags: ["autodocs"],
+  title: "UI/RadioGroup",
 } satisfies Meta<typeof RadioGroup>;
 
 export default meta;
@@ -33,9 +33,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const options = [
-  { value: "default", label: "Default" },
-  { value: "comfortable", label: "Comfortable" },
-  { value: "compact", label: "Compact" },
+  { label: "Default", value: "default" },
+  { label: "Comfortable", value: "comfortable" },
+  { label: "Compact", value: "compact" },
 ] as const;
 
 export const Default: Story = {
@@ -65,6 +65,7 @@ export const Horizontal: Story = {
 };
 
 export const Disabled: Story = {
+  args: { disabled: true },
   render: (args) => (
     <RadioGroup {...args}>
       {options.map((option) => (
@@ -75,7 +76,6 @@ export const Disabled: Story = {
       ))}
     </RadioGroup>
   ),
-  args: { disabled: true },
 };
 
 export const Invalid: Story = {

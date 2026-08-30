@@ -1,8 +1,4 @@
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, type RowData, useTable } from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -11,12 +7,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/modules/ui/table";
+import { dataTableFeatures } from "./features";
 import { TableEmpty } from "./table-empty";
 import { TableError } from "./table-error";
 import { TableSkeleton } from "./table-skeleton";
 import type { DataTableProps } from "./types";
 
-export function DataTable<TData>({
+export function DataTable<TData extends RowData>({
   columns,
   data,
   isLoading,
@@ -25,10 +22,11 @@ export function DataTable<TData>({
   table: tableFromProps,
   ...tableProps
 }: DataTableProps<TData>) {
-  const internalTable = useReactTable({
-    data,
+  const internalTable = useTable({
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    data,
+    features: dataTableFeatures,
+    manualFiltering: true,
     manualPagination: true,
     manualSorting: true,
     ...tableProps,
@@ -45,7 +43,7 @@ export function DataTable<TData>({
       return <TableSkeleton columnCount={columns.length} />;
     }
 
-    const rows = table.getRowModel().rows;
+    const { rows } = table.getRowModel();
     if (rows.length === 0) {
       return <TableEmpty colSpan={columns.length} message={emptyMessage} />;
     }

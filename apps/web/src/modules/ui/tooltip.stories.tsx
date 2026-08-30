@@ -9,18 +9,7 @@ import {
 } from "./tooltip";
 
 const meta = {
-  title: "UI/Tooltip",
   component: Tooltip,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Contextual hint shown on hover/focus. Requires TooltipProvider (applied via decorator in stories).",
-      },
-    },
-  },
-  tags: ["autodocs"],
   decorators: [
     (Story) => (
       <TooltipProvider>
@@ -28,6 +17,17 @@ const meta = {
       </TooltipProvider>
     ),
   ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Contextual hint shown on hover/focus. Requires TooltipProvider (applied via decorator in stories).",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "UI/Tooltip",
 } satisfies Meta<typeof Tooltip>;
 
 export default meta;

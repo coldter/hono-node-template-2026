@@ -15,18 +15,18 @@ import { Input } from "./input";
 import { Label } from "./label";
 
 const meta = {
-  title: "UI/Dialog",
   component: Dialog,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Radix-based modal dialog for focused workflows that need a user response. Prefer AlertDialog for destructive confirmations; use Dialog for forms and content overlays.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Dialog",
 } satisfies Meta<typeof Dialog>;
 
 export default meta;

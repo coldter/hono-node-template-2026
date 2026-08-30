@@ -7,12 +7,12 @@ import { db } from "@/db";
 import { logger } from "@/lib/logger";
 
 vi.mock("@/middlewares/rate-limit", () => ({
-  rateLimiter: vi.fn().mockReturnValue(async (_: Context, next: Next) => {
-    await next();
-  }),
   globalRateLimitMW: async (_: Context, next: Next) => {
     await next();
   },
+  rateLimiter: vi.fn().mockReturnValue(async (_: Context, next: Next) => {
+    await next();
+  }),
 }));
 
 export function mockFetchRequest() {
@@ -21,8 +21,7 @@ export function mockFetchRequest() {
     vi.fn().mockImplementation((input: string | Request | URL) => {
       if (input instanceof Request) {
         return Promise.resolve({
-          ok: true,
-          status: 200,
+          clone: () => input.clone(),
           json: async () => {
             try {
               return await input.clone().json();
@@ -30,20 +29,21 @@ export function mockFetchRequest() {
               return {};
             }
           },
+          ok: true,
+          status: 200,
           text: async () => "",
-          clone: () => input.clone(),
         });
       }
 
       return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => ({}),
-        text: async () => "",
         clone: () => ({
           json: async () => ({}),
           text: async () => "",
         }),
+        json: async () => ({}),
+        ok: true,
+        status: 200,
+        text: async () => "",
       });
     })
   );

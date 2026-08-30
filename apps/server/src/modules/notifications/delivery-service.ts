@@ -26,10 +26,10 @@ export const notificationDeliveryService = {
 
     if (channels.length === 0) {
       return {
-        notificationIds: [],
         channels: requestedChannels,
-        sentChannels: [],
         failedChannels: [],
+        notificationIds: [],
+        sentChannels: [],
       };
     }
 
@@ -37,60 +37,85 @@ export const notificationDeliveryService = {
     const failedChannels: SendResult["failedChannels"] = [];
     const notificationIds: string[] = [];
 
-    for (const channel of channels) {
-      try {
-        const [notification] = await db
-          .insert(notifications)
-          .values({
-            userId: input.userId,
-            type: input.type,
-            channel,
-            status: "pending",
-            priority,
-            subject: input.subject,
-            body: input.body,
-            props: input.props ?? null,
-          })
-          .returning();
+    const perChannel = await Promise.all(
+      channels.map(
+        async (
+          channel
+        ): Promise<{
+          channel: (typeof channels)[number];
+          error?: string;
+          notificationId?: string;
+        }> => {
+          try {
+            const [notification] = await db
+              .insert(notifications)
+              .values({
+                body: input.body,
+                channel,
+                priority,
+                props: input.props ?? null,
+                status: "pending",
+                subject: input.subject,
+                type: input.type,
+                userId: input.userId,
+              })
+              .returning();
 
-        if (notification) {
-          notificationIds.push(notification.id);
-          sentChannels.push(channel);
+            if (!notification) {
+              return { channel };
+            }
 
-          if (isHatchetEnabled()) {
-            const eventName =
-              channel === "email"
-                ? EVENTS.NOTIFICATION_EMAIL_SEND
-                : EVENTS.NOTIFICATION_PUSH_SEND;
+            if (isHatchetEnabled()) {
+              const eventName =
+                channel === "email"
+                  ? EVENTS.NOTIFICATION_EMAIL_SEND
+                  : EVENTS.NOTIFICATION_PUSH_SEND;
 
-            const pushResult = await pushEvent(eventName, {
-              notificationId: notification.id,
-            });
+              const pushResult = await pushEvent(eventName, {
+                notificationId: notification.id,
+              });
 
-            if (!pushResult.success) {
-              logger.warn(
-                `Failed to dispatch ${channel} delivery event for notification ${notification.id}`,
-                { error: pushResult.error?.message }
+              if (!pushResult.success) {
+                logger.warn(
+                  `Failed to dispatch ${channel} delivery event for notification ${notification.id}`,
+                  { error: pushResult.error?.message }
+                );
+              }
+            } else {
+              logger.info(
+                `Hatchet disabled, skipping ${channel} delivery for notification ${notification.id}`
               );
             }
-          } else {
-            logger.info(
-              `Hatchet disabled, skipping ${channel} delivery for notification ${notification.id}`
-            );
+            return { channel, notificationId: notification.id };
+          } catch (error) {
+            return {
+              channel,
+              error: error instanceof Error ? error.message : "Unknown error",
+            };
           }
         }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        failedChannels.push({ channel, error: errorMessage });
+      )
+    );
+
+    for (const result of perChannel) {
+      if (result.error) {
+        failedChannels.push({ channel: result.channel, error: result.error });
+      } else if (result.notificationId) {
+        notificationIds.push(result.notificationId);
+        sentChannels.push(result.channel);
+      } else {
+        failedChannels.push({
+          channel: result.channel,
+          error: "Insert returned no row",
+        });
       }
     }
 
     return {
-      notificationIds,
       channels: requestedChannels,
-      sentChannels,
       failedChannels,
+      notificationIds,
+      sentChannels,
     };
   },
 };

@@ -18,8 +18,8 @@ type EmailNotificationOutput = {
 
 const emailNotificationPropsSchema = z
   .object({
-    actionUrl: z.string().optional(),
     actionLabel: z.string().optional(),
+    actionUrl: z.string().optional(),
   })
   .passthrough();
 
@@ -30,15 +30,15 @@ async function resolveAndSendEmail(notification: Notification, to: string) {
   const props = parsedProps.success ? parsedProps.data : {};
 
   return sendEmail({
-    to,
+    props: {
+      actionLabel: props.actionLabel,
+      actionUrl: props.actionUrl,
+      body: notification.body ?? "",
+      subject: notification.subject ?? "Notification",
+    },
     subject: notification.subject ?? "Notification",
     template: NotificationEmail,
-    props: {
-      subject: notification.subject ?? "Notification",
-      body: notification.body ?? "",
-      actionUrl: props.actionUrl,
-      actionLabel: props.actionLabel,
-    },
+    to,
   });
 }
 
@@ -54,11 +54,10 @@ function createEmailNotificationWorkflow() {
   });
 
   workflow.task({
-    name: "send-email",
     fn: async (input) => {
       const taskLogger = logger.child({
-        workflow: "email-notification",
         notificationId: input.notificationId,
+        workflow: "email-notification",
       });
 
       const [notification] = await db
@@ -83,8 +82,8 @@ function createEmailNotificationWorkflow() {
         await db
           .update(notifications)
           .set({
-            status: "failed",
             errorMessage: `User not found: ${notification.userId}`,
+            status: "failed",
           })
           .where(eq(notifications.id, input.notificationId));
 
@@ -100,8 +99,8 @@ function createEmailNotificationWorkflow() {
           await db
             .update(notifications)
             .set({
-              status: "failed",
               errorMessage: errorMsg,
+              status: "failed",
             })
             .where(eq(notifications.id, input.notificationId));
 
@@ -116,9 +115,9 @@ function createEmailNotificationWorkflow() {
         await db
           .update(notifications)
           .set({
-            status: "sent",
-            sentAt: new Date(),
             providerMessageId: result.messageId ?? null,
+            sentAt: new Date(),
+            status: "sent",
           })
           .where(eq(notifications.id, input.notificationId));
 
@@ -127,15 +126,15 @@ function createEmailNotificationWorkflow() {
           userId: notification.userId,
         });
 
-        return { sent: true, messageId: result.messageId };
+        return { messageId: result.messageId, sent: true };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
 
         await db
           .update(notifications)
           .set({
-            status: "failed",
             errorMessage: errorMsg,
+            status: "failed",
           })
           .where(eq(notifications.id, input.notificationId));
 
@@ -147,6 +146,7 @@ function createEmailNotificationWorkflow() {
         throw error;
       }
     },
+    name: "send-email",
   });
 
   return workflow;

@@ -12,25 +12,25 @@ function renderWithRouter(minimal = false) {
     component: () => <GeneralError minimal={minimal} />,
   });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Errors/GeneralError",
   component: GeneralError,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "500 fallback. Full variant shows icon, code, and navigation buttons; `minimal` strips decoration for inline use.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Errors/GeneralError",
 } satisfies Meta<typeof GeneralError>;
 
 export default meta;

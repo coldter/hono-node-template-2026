@@ -11,18 +11,18 @@ import {
 } from "./table";
 
 const meta = {
-  title: "UI/Table",
   component: Table,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Styled primitives for semantic HTML tables. Compose Header, Body, Row, Cell, and optional Caption / Footer for totals.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "UI/Table",
 } satisfies Meta<typeof Table>;
 
 export default meta;
@@ -31,28 +31,28 @@ type Story = StoryObj<typeof meta>;
 
 const invoices = [
   {
-    id: "INV001",
-    status: "Paid",
-    method: "Credit Card",
     amount: "$250.00",
-  },
-  {
-    id: "INV002",
-    status: "Pending",
-    method: "PayPal",
-    amount: "$150.00",
-  },
-  {
-    id: "INV003",
-    status: "Unpaid",
-    method: "Bank Transfer",
-    amount: "$350.00",
-  },
-  {
-    id: "INV004",
-    status: "Paid",
+    id: "INV001",
     method: "Credit Card",
+    status: "Paid",
+  },
+  {
+    amount: "$150.00",
+    id: "INV002",
+    method: "PayPal",
+    status: "Pending",
+  },
+  {
+    amount: "$350.00",
+    id: "INV003",
+    method: "Bank Transfer",
+    status: "Unpaid",
+  },
+  {
     amount: "$450.00",
+    id: "INV004",
+    method: "Credit Card",
+    status: "Paid",
   },
 ];
 

@@ -55,14 +55,15 @@ export function useUserDetailActions({
   }
 
   return {
+    activateMutation,
     canActivate,
     canDeactivate,
     canEditProfile,
     canManageRoles,
     canUnlock,
-    hasAdminRole,
     handleActivate,
     handleUnlock,
+    hasAdminRole,
     isOwnProfile,
     setShowDeactivateDialog,
     setShowEditDialog,
@@ -70,7 +71,6 @@ export function useUserDetailActions({
     showDeactivateDialog,
     showEditDialog,
     showRolesDialog,
-    activateMutation,
     unlockMutation,
   };
 }

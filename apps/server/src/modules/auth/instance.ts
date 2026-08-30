@@ -34,13 +34,13 @@ import { hashPassword, verifyPasswordHash } from "./helpers/argon2id";
 const platformSchema = z.enum(["web", "mobile"]);
 
 const SESSION_CONFIG = {
-  web: {
-    expiresIn: seconds("1 hour"),
-    updateAge: seconds("30 minutes"),
-  },
   mobile: {
     expiresIn: seconds("7 days"),
     updateAge: seconds("1 day"),
+  },
+  web: {
+    expiresIn: seconds("1 hour"),
+    updateAge: seconds("30 minutes"),
   },
 } as const;
 
@@ -71,6 +71,7 @@ function sanitizeHeaderText(
 export type SessionWithAdditionalFields = {
   platform: Platform;
   expiresAt: Date;
+  activeOrganizationId: string | null;
   activeOrgRole: string | null;
 };
 
@@ -163,8 +164,8 @@ async function resolveInitialOrganizationContext(userId: string): Promise<{
     };
   } catch (error) {
     logger.warn("Failed to resolve initial organization context", {
-      userId,
       error: error instanceof Error ? error.message : String(error),
+      userId,
     });
     return null;
   }
@@ -189,11 +190,10 @@ async function resolveActiveOrganizationRole(
     return membership?.role ?? null;
   } catch (error) {
     logger.warn("Failed to resolve active organization role", {
-      userId,
-      organizationId,
       error: error instanceof Error ? error.message : String(error),
+      organizationId,
+      userId,
     });
-    return;
   }
 }
 
@@ -207,119 +207,39 @@ function queueNewDeviceNotification(params: {
     .then((module) => module.notifyLoginNewDevice(params))
     .catch((error) => {
       logger.warn("Failed to queue new-device notification", {
-        userId: params.userId,
         error: error instanceof Error ? error.message : String(error),
+        userId: params.userId,
       });
     });
 }
 
 const authConfig = {
-  appName: env.APP_NAME,
-  secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    usePlural: true,
-    schema,
-  }),
-  // Mobile clients must send an explicit Origin header included in CORS_ORIGIN.
-  // detectPlatform() is used for session lifetimes only and never for trust.
-  trustedOrigins: env.CORS_ORIGIN,
-
-  // Global rate-limit must sit above the per-account lockout so our lockout fires first.
-  // customStorage (not secondaryStorage): secondaryStorage would also move session
-  // storage into Redis and break DB-row-based single-session enforcement.
-  rateLimit: {
-    enabled: true,
-    window: RATE_LIMIT_CONFIG.global.window,
-    max: RATE_LIMIT_CONFIG.global.max,
-    ...(isRedisEnabled()
-      ? {
-          customStorage: createRedisRateLimitStorage(
-            getRedis,
-            RATE_LIMIT_CONFIG.global.window
-          ),
-        }
-      : { storage: "memory" as const }),
-    customRules: {
-      "/sign-in/email": {
-        window: RATE_LIMIT_CONFIG.signIn.window,
-        max: RATE_LIMIT_CONFIG.signIn.max,
-      },
-    },
-  },
-
-  emailAndPassword: {
-    enabled: true,
-    disableSignUp: !env.ENABLE_SIGNUP,
-    requireEmailVerification: true,
-    // Password reset uses emailOTP plugin, not magic links.
-    password: {
-      hash: async (password: string) => await hashPassword(password),
-      verify: async ({ hash, password }: { hash: string; password: string }) =>
-        verifyPasswordHash(hash, password),
-    },
-  },
-
-  session: {
-    // Cache the resolved session in a signed, short-TTL cookie so getSession()
-    // (called on every request via authContextMiddleware) reads the cookie
-    // instead of hitting Postgres. maxAge is deliberately short (60s): with
-    // single-session-per-user revocation, a cached cookie can outlive a revoked
-    // session or stale roleSlugs by at most this window.
-    cookieCache: {
-      enabled: true,
-      maxAge: 60,
-    },
-    // Use mobile defaults so cookie Max-Age matches the 7-day mobile session.
-    // Web sessions get a shorter expiry via the database hooks below.
-    expiresIn: SESSION_CONFIG.mobile.expiresIn,
-    updateAge: SESSION_CONFIG.mobile.updateAge,
-    additionalFields: {
-      platform: {
-        type: [...platformSchema.options],
-        required: false,
-        defaultValue: "web",
-      },
-      activeOrgRole: {
-        type: "string",
-        required: false,
-      },
-    },
-  },
-
   advanced: {
-    // `secure` is auto-detected from baseURL scheme (https → secure).
-    defaultCookieAttributes: {
-      sameSite: "lax",
-      httpOnly: true,
-    },
     cookies: {
       session_token: {
-        name: "session_token_v1",
         attributes: {
           httpOnly: true,
         },
+        name: "session_token_v1",
       },
     },
     database: {
       generateId: (options) => generateIdForModel(options.model),
     },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user) => ({
-          data: {
-            ...user,
-            roleSlugs: [SYSTEM_ROLES.USER.slug],
-            status: "active",
-            failedLoginAttempts: 0,
-            twoFactorEnabled: false,
-          },
-        }),
-      },
+    // `secure` is auto-detected from baseURL scheme (https → secure).
+    defaultCookieAttributes: {
+      httpOnly: true,
+      sameSite: "lax",
     },
+  },
+  appName: env.APP_NAME,
+  baseURL: env.BETTER_AUTH_URL,
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema,
+    usePlural: true,
+  }),
+  databaseHooks: {
     session: {
       create: {
         before: async (session, context) => {
@@ -338,9 +258,9 @@ const authConfig = {
               .delete(schema.sessions)
               .where(eq(schema.sessions.userId, session.userId))
               .returning({
-                userAgent: schema.sessions.userAgent,
-                ipAddress: schema.sessions.ipAddress,
                 createdAt: schema.sessions.createdAt,
+                ipAddress: schema.sessions.ipAddress,
+                userAgent: schema.sessions.userAgent,
               }),
             resolveInitialOrganizationContext(session.userId),
           ]);
@@ -356,10 +276,10 @@ const authConfig = {
 
             if (isNewDevice) {
               queueNewDeviceNotification({
-                userId: session.userId,
                 ipAddress,
-                userAgent,
                 platform,
+                userAgent,
+                userId: session.userId,
               });
             }
           }
@@ -369,8 +289,8 @@ const authConfig = {
           return {
             data: {
               ...session,
-              platform,
               expiresAt,
+              platform,
               ...(orgContext ?? {}),
             },
           };
@@ -441,6 +361,31 @@ const authConfig = {
         },
       },
     },
+    user: {
+      create: {
+        before: async (user) => ({
+          data: {
+            ...user,
+            failedLoginAttempts: 0,
+            roleSlugs: [SYSTEM_ROLES.USER.slug],
+            status: "active",
+            twoFactorEnabled: false,
+          },
+        }),
+      },
+    },
+  },
+
+  emailAndPassword: {
+    disableSignUp: !env.ENABLE_SIGNUP,
+    enabled: true,
+    // Password reset uses emailOTP plugin, not magic links.
+    password: {
+      hash: async (password: string) => await hashPassword(password),
+      verify: async ({ hash, password }: { hash: string; password: string }) =>
+        verifyPasswordHash(hash, password),
+    },
+    requireEmailVerification: true,
   },
 
   plugins: [
@@ -449,27 +394,27 @@ const authConfig = {
     adminPlugin(),
     // Email OTP: powers password reset and email verification (no magic links).
     emailOTP({
-      otpLength: TWO_FACTOR_CONFIG.otpLength,
       expiresIn: TWO_FACTOR_CONFIG.emailOtpExpiresIn,
+      otpLength: TWO_FACTOR_CONFIG.otpLength,
       sendVerificationOnSignUp: true,
       async sendVerificationOTP({ email, otp, type }) {
         const user = await db.query.users.findFirst({
-          where: { email: { eq: email } },
           columns: { name: true },
+          where: { email: { eq: email } },
         });
 
         const typeLabels: Record<typeof type, string> = {
-          "sign-in": "sign-in",
+          "change-email": "email change",
           "email-verification": "email verification",
           "forget-password": "password reset",
-          "change-email": "email change",
+          "sign-in": "sign-in",
         };
 
         const subjectByType: Record<typeof type, string> = {
-          "forget-password": "Reset Your Password",
-          "email-verification": "Verify Your Email",
-          "sign-in": "Sign In Verification",
           "change-email": "Confirm Email Change",
+          "email-verification": "Verify Your Email",
+          "forget-password": "Reset Your Password",
+          "sign-in": "Sign In Verification",
         };
 
         logger.info(`Sending ${typeLabels[type]} OTP to ${maskEmail(email)}`);
@@ -479,29 +424,26 @@ const authConfig = {
 
         // Do not await: prevents timing attacks that could leak email existence.
         sendEmail({
-          to: email,
-          subject: subjectByType[type],
-          template: VerificationOtpEmail,
           props: {
-            userName: user?.name ?? "User",
+            expiresIn: `${Math.floor(TWO_FACTOR_CONFIG.emailOtpExpiresIn / 60)} minutes`,
             otp,
             type: templateType,
-            expiresIn: `${Math.floor(TWO_FACTOR_CONFIG.emailOtpExpiresIn / 60)} minutes`,
+            userName: user?.name ?? "User",
           },
+          subject: subjectByType[type],
+          template: VerificationOtpEmail,
+          to: email,
         }).catch((error) => {
           logger.error("Failed to send verification OTP email", {
             email: maskEmail(email),
-            type,
             error: error instanceof Error ? error.message : String(error),
+            type,
           });
         });
       },
     }),
     // Two-factor: email OTP only — no TOTP authenticator support.
     twoFactor({
-      twoFactorTable: "twoFactors",
-      // TOTP would force a verify step on enable; we use email OTP so skip it.
-      skipVerificationOnEnable: true,
       otpOptions: {
         period: TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes,
         async sendOTP({ user, otp }, ctx) {
@@ -518,39 +460,100 @@ const authConfig = {
 
           // Do not await: prevents timing attacks that could leak email existence.
           sendEmail({
-            to: user.email,
-            subject: "Your Two-Factor Authentication Code",
-            template: TwoFactorOtpEmail,
             props: {
-              userName: user.name,
-              otp,
               expiresIn: `${TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes} minutes`,
               ipAddress,
+              otp,
               userAgent,
+              userName: user.name,
             },
+            subject: "Your Two-Factor Authentication Code",
+            template: TwoFactorOtpEmail,
+            to: user.email,
           }).catch((error) => {
             logger.error("Failed to send 2FA OTP email", {
-              userId: user.id,
               email: maskEmail(user.email),
               error: error instanceof Error ? error.message : String(error),
+              userId: user.id,
             });
           });
         },
       },
+      // TOTP would force a verify step on enable; we use email OTP so skip it.
+      skipVerificationOnEnable: true,
+      twoFactorTable: "twoFactors",
     }),
     openAPI({
       disableDefaultReference: true,
     }),
     {
-      id: "override-type",
       $Infer: {} as {
         Session: {
           user: User & UserWithStatusFields;
           session: Session & SessionWithAdditionalFields;
         };
       },
+      id: "override-type",
     },
   ],
+
+  // Global rate-limit must sit above the per-account lockout so our lockout fires first.
+  // customStorage (not secondaryStorage): secondaryStorage would also move session
+  // storage into Redis and break DB-row-based single-session enforcement.
+  rateLimit: {
+    enabled: true,
+    max: RATE_LIMIT_CONFIG.global.max,
+    window: RATE_LIMIT_CONFIG.global.window,
+    ...(isRedisEnabled()
+      ? {
+          customStorage: createRedisRateLimitStorage(
+            getRedis,
+            RATE_LIMIT_CONFIG.global.window
+          ),
+        }
+      : { storage: "memory" as const }),
+    customRules: {
+      "/sign-in/email": {
+        max: RATE_LIMIT_CONFIG.signIn.max,
+        window: RATE_LIMIT_CONFIG.signIn.window,
+      },
+    },
+  },
+  secret: env.BETTER_AUTH_SECRET,
+
+  session: {
+    additionalFields: {
+      activeOrganizationId: {
+        required: false,
+        type: "string",
+      },
+      activeOrgRole: {
+        required: false,
+        type: "string",
+      },
+      platform: {
+        defaultValue: "web",
+        required: false,
+        type: [...platformSchema.options],
+      },
+    },
+    // Cache the resolved session in a signed, short-TTL cookie so getSession()
+    // (called on every request via authContextMiddleware) reads the cookie
+    // instead of hitting Postgres. maxAge is deliberately short (60s): with
+    // single-session-per-user revocation, a cached cookie can outlive a revoked
+    // session or stale roleSlugs by at most this window.
+    cookieCache: {
+      enabled: true,
+      maxAge: 60,
+    },
+    // Use mobile defaults so cookie Max-Age matches the 7-day mobile session.
+    // Web sessions get a shorter expiry via the database hooks below.
+    expiresIn: SESSION_CONFIG.mobile.expiresIn,
+    updateAge: SESSION_CONFIG.mobile.updateAge,
+  },
+  // Mobile clients must send an explicit Origin header included in CORS_ORIGIN.
+  // detectPlatform() is used for session lifetimes only and never for trust.
+  trustedOrigins: env.CORS_ORIGIN,
 } satisfies BetterAuthOptions;
 
 export const auth = betterAuth(authConfig);

@@ -2,24 +2,24 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Separator } from "./separator";
 
 const meta = {
-  title: "UI/Separator",
-  component: Separator,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Visual divider. Supports horizontal and vertical orientation; decorative by default.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
     orientation: {
       control: "radio",
       options: ["horizontal", "vertical"],
     },
   },
+  component: Separator,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Visual divider. Supports horizontal and vertical orientation; decorative by default.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "UI/Separator",
 } satisfies Meta<typeof Separator>;
 
 export default meta;

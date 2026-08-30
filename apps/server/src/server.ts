@@ -23,8 +23,6 @@ baseApp.use(requestId());
 if (OTEL_ENABLED) {
   baseApp.use(
     httpInstrumentationMiddleware({
-      serviceName: "server",
-      serviceVersion: SERVICE_VERSION,
       captureRequestHeaders: [
         "content-type",
         "accept",
@@ -32,6 +30,8 @@ if (OTEL_ENABLED) {
         "traceparent",
       ],
       captureResponseHeaders: ["content-type", "content-length"],
+      serviceName: "server",
+      serviceVersion: SERVICE_VERSION,
     })
   );
 
@@ -53,10 +53,10 @@ if (corsOrigins.length === 0) {
 baseApp.use(
   "/*",
   cors({
-    origin: corsOrigins,
-    allowMethods: ["GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"],
     allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"],
     credentials: true,
+    origin: corsOrigins,
   })
 );
 baseApp.use(globalRateLimitMW);

@@ -2,21 +2,21 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { UserRoleBadges } from "./user-role-badges";
 
 const meta = {
-  title: "Features/Users/UserRoleBadges",
+  argTypes: {
+    max: { control: { max: 10, min: 0, type: "number" } },
+  },
   component: UserRoleBadges,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Displays up to `max` role badges inline and collapses the rest into a `+N` badge. Used in the users table roles column.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    max: { control: { type: "number", min: 0, max: 10 } },
-  },
+  title: "Features/Users/UserRoleBadges",
 } satisfies Meta<typeof UserRoleBadges>;
 
 export default meta;

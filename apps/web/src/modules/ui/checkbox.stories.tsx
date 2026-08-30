@@ -3,27 +3,27 @@ import { Checkbox } from "./checkbox";
 import { Label } from "./label";
 
 const meta = {
-  title: "UI/Checkbox",
+  args: {},
+  argTypes: {
+    "aria-invalid": { control: "boolean" },
+    checked: {
+      control: "select",
+      options: [true, false, "indeterminate"],
+    },
+    disabled: { control: "boolean" },
+  },
   component: Checkbox,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Binary selection control built on Radix Checkbox. Supports checked, unchecked, and indeterminate states plus aria-invalid for validation.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    checked: {
-      control: "select",
-      options: [true, false, "indeterminate"],
-    },
-    disabled: { control: "boolean" },
-    "aria-invalid": { control: "boolean" },
-  },
-  args: {},
+  title: "UI/Checkbox",
 } satisfies Meta<typeof Checkbox>;
 
 export default meta;
@@ -45,7 +45,7 @@ export const Disabled: Story = {
 };
 
 export const DisabledChecked: Story = {
-  args: { disabled: true, defaultChecked: true },
+  args: { defaultChecked: true, disabled: true },
 };
 
 export const Invalid: Story = {

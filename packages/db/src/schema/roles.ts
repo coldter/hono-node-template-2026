@@ -15,24 +15,24 @@ import { generatePrefixedCuid, ID_PREFIXES } from "../ids";
 export const roles = pgTable(
   "roles",
   {
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    description: text("description"),
     id: varchar("id", { length: 255 })
       .primaryKey()
       .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.role)),
     name: varchar("name", { length: 32 }).notNull().unique(),
-    slug: varchar("slug", { length: 32 }).notNull().unique(),
-    description: text("description"),
     permissions: jsonb("permissions")
       .$type<LegacyPermissionKey[]>()
       .default([])
       .notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
+    slug: varchar("slug", { length: 32 }).notNull().unique(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [index("roles_slug_idx").on(table.slug)]
 );

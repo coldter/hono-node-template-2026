@@ -9,16 +9,16 @@ import { Bell, CreditCard, User } from "lucide-react";
 import { SidebarNav } from "./sidebar-nav";
 
 const items = [
-  { href: "/settings", title: "Profile", icon: <User size={16} /> },
+  { href: "/settings", icon: <User size={16} />, title: "Profile" },
   {
     href: "/settings/notifications",
-    title: "Notifications",
     icon: <Bell size={16} />,
+    title: "Notifications",
   },
   {
     href: "/settings/billing",
-    title: "Billing",
     icon: <CreditCard size={16} />,
+    title: "Billing",
   },
 ];
 
@@ -31,28 +31,28 @@ function renderWithRouter() {
     ),
   });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/settings"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Features/Settings/SidebarNav",
+  args: {
+    items,
+  },
   component: SidebarNav,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Responsive settings nav. Renders a horizontal/vertical link list on desktop and collapses to a Select on mobile.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
-  args: {
-    items,
-  },
+  title: "Features/Settings/SidebarNav",
 } satisfies Meta<typeof SidebarNav>;
 
 export default meta;

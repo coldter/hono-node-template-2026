@@ -24,8 +24,8 @@ import { RoleMultiSelect } from "../components/role-multi-select";
 import { useCreateUserMutation } from "../query";
 
 const createUserSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
   email: z.string().email("Invalid email address"),
+  name: z.string().min(1, "Name is required").max(100),
   password: z.string().min(8, "Password must be at least 8 characters"),
   roleSlugs: z.array(z.string()).min(1, "At least one role is required"),
 });
@@ -44,13 +44,13 @@ export function CreateUserDialog({
   const createMutation = useCreateUserMutation();
 
   const form = useForm<CreateUserFormValues>({
-    resolver: zodResolver(createUserSchema),
     defaultValues: {
-      name: "",
       email: "",
+      name: "",
       password: "",
       roleSlugs: [],
     },
+    resolver: zodResolver(createUserSchema),
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {

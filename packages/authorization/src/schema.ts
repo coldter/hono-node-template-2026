@@ -24,7 +24,7 @@ class GlobalPolicyRuleBuilder<TRole extends string> {
   private readonly rule: Partial<PolicyRule>;
 
   constructor(effect: "allow" | "deny", roles: TRole[] | "*") {
-    this.rule = { effect, roles, conditions: [], actions: [] };
+    this.rule = { actions: [], conditions: [], effect, roles };
   }
 
   to(...actions: string[]): this {
@@ -59,7 +59,7 @@ class GlobalPolicyRuleBuilder<TRole extends string> {
     const condLabels = conditions.map((c) => c.label).join("+");
     const label = `${effect}:${roleLabel}:${actionLabel}${condLabels ? `:${condLabels}` : ""}`;
 
-    return { effect, roles, actions, conditions, label };
+    return { actions, conditions, effect, label, roles };
   }
 }
 
@@ -159,11 +159,17 @@ export function createAuthSchema<
   const orgRoles = (config.organizationRoles ?? []) as readonly OrgRole[];
 
   return {
-    roleValues: config.roles,
-    relationValues: config.relations,
-    orgRoleValues: orgRoles,
-    systemAdminRoles: config.systemAdminRoles,
-    globalPolicies,
+    buildRegistry<TRegistry extends Record<string, AnyResourceDef<Role>>>(
+      resources: TRegistry
+    ): RegistryInstance<TRegistry> {
+      return buildRegistryInstance(resources, {
+        globalPolicies,
+        orgRoleValues: orgRoles,
+        schemaRelations: config.relations,
+        schemaRoles: config.roles,
+        systemAdminRoles: config.systemAdminRoles,
+      });
+    },
     createResource<
       TResource,
       const TActions extends readonly string[] = readonly string[],
@@ -186,20 +192,14 @@ export function createAuthSchema<
         OrgRole,
         TActions
       >(name, resourceConfig, {
-        validRelations: config.relations,
         validOrgRoles: orgRoles,
+        validRelations: config.relations,
       });
     },
-    buildRegistry<TRegistry extends Record<string, AnyResourceDef<Role>>>(
-      resources: TRegistry
-    ): RegistryInstance<TRegistry> {
-      return buildRegistryInstance(resources, {
-        globalPolicies,
-        systemAdminRoles: config.systemAdminRoles,
-        schemaRoles: config.roles,
-        schemaRelations: config.relations,
-        orgRoleValues: orgRoles,
-      });
-    },
+    globalPolicies,
+    orgRoleValues: orgRoles,
+    relationValues: config.relations,
+    roleValues: config.roles,
+    systemAdminRoles: config.systemAdminRoles,
   } satisfies AuthSchema<Role, Relation, Attrs, OrgRole>;
 }

@@ -64,9 +64,9 @@ export async function initializeOpenTelemetry(): Promise<void> {
     if (env.OTEL_TRACES_ENDPOINT) {
       return new BatchSpanProcessor(
         new OTLPTraceExporter({
-          url: env.OTEL_TRACES_ENDPOINT,
           headers: env.OTEL_EXPORTER_OTLP_HEADERS,
           timeoutMillis: EXPORTER_TIMEOUT_MS,
+          url: env.OTEL_TRACES_ENDPOINT,
         })
       );
     }
@@ -83,9 +83,9 @@ export async function initializeOpenTelemetry(): Promise<void> {
     if (env.OTEL_METRICS_ENDPOINT) {
       return new PeriodicExportingMetricReader({
         exporter: new OTLPMetricExporter({
-          url: env.OTEL_METRICS_ENDPOINT,
           headers: env.OTEL_EXPORTER_OTLP_HEADERS,
           timeoutMillis: EXPORTER_TIMEOUT_MS,
+          url: env.OTEL_METRICS_ENDPOINT,
         }),
         exportIntervalMillis: METRICS_EXPORT_INTERVAL_MS,
       });
@@ -104,16 +104,18 @@ export async function initializeOpenTelemetry(): Promise<void> {
 
   const logRecordProcessor = (() => {
     if (env.OTEL_LOGS_ENDPOINT) {
-      return new BatchLogRecordProcessor(
-        new OTLPLogExporter({
-          url: env.OTEL_LOGS_ENDPOINT,
+      return new BatchLogRecordProcessor({
+        exporter: new OTLPLogExporter({
           headers: env.OTEL_EXPORTER_OTLP_HEADERS,
           timeoutMillis: EXPORTER_TIMEOUT_MS,
-        })
-      );
+          url: env.OTEL_LOGS_ENDPOINT,
+        }),
+      });
     }
     if (env.NODE_ENV === "development") {
-      return new BatchLogRecordProcessor(new ConsoleLogRecordExporter());
+      return new BatchLogRecordProcessor({
+        exporter: new ConsoleLogRecordExporter(),
+      });
     }
     pipelineWarnings.push(
       "OTEL logs pipeline disabled: OTEL_LOGS_ENDPOINT is not set"
@@ -122,31 +124,31 @@ export async function initializeOpenTelemetry(): Promise<void> {
   })();
 
   const resource = resourceFromAttributes({
-    "service.name": SERVICE_NAME,
-    "service.version": SERVICE_VERSION,
     "deployment.environment": env.NODE_ENV,
     "process.runtime.name": "nodejs",
     "process.runtime.version": process.version,
+    "service.name": SERVICE_NAME,
+    "service.version": SERVICE_VERSION,
   });
 
   sdk = new NodeSDKConstructor({
-    resource,
-    spanProcessors: spanProcessor ? [spanProcessor] : [],
-    metricReaders: metricReader ? [metricReader] : [],
-    logRecordProcessors: logRecordProcessor ? [logRecordProcessor] : [],
     instrumentations: [
       getNodeAutoInstrumentations({
+        "@opentelemetry/instrumentation-dns": { enabled: true },
         "@opentelemetry/instrumentation-fs": { enabled: false },
         "@opentelemetry/instrumentation-pg": { enabled: false },
-        "@opentelemetry/instrumentation-dns": { enabled: true },
         "@opentelemetry/instrumentation-winston": {
-          enabled: true,
           // The explicit winston transport below owns log sending; if the
           // patch ever applies, automatic sending would duplicate every record.
           disableLogSending: true,
+          enabled: true,
         },
       }),
     ],
+    logRecordProcessors: logRecordProcessor ? [logRecordProcessor] : [],
+    metricReaders: metricReader ? [metricReader] : [],
+    resource,
+    spanProcessors: spanProcessor ? [spanProcessor] : [],
   });
 
   try {

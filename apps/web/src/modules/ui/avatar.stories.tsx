@@ -2,18 +2,18 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 
 const meta = {
-  title: "UI/Avatar",
   component: Avatar,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Circular image with text fallback. Compose from Avatar, AvatarImage, and AvatarFallback.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Avatar",
 } satisfies Meta<typeof Avatar>;
 
 export default meta;

@@ -9,10 +9,7 @@ export interface ApiKeyData {
 }
 
 export const apiKeySchema: VaultSchema<ApiKeyData> = {
-  id: "api-key",
   description: "API key with scopes and metadata",
-
-  serialize: (data: ApiKeyData): string => JSON.stringify(data),
 
   // boundary: deserialize is the inverse of serialize on the same schema — runtime shape trusted
   deserialize: (plaintext: string): ApiKeyData =>
@@ -20,6 +17,9 @@ export const apiKeySchema: VaultSchema<ApiKeyData> = {
 
   fingerprint: (data: ApiKeyData): string =>
     createHash("sha256").update(data.key).digest("hex"),
+  id: "api-key",
+
+  serialize: (data: ApiKeyData): string => JSON.stringify(data),
 };
 
 export interface SecretData {
@@ -28,13 +28,13 @@ export interface SecretData {
 }
 
 export const secretSchema: VaultSchema<SecretData> = {
-  id: "secret",
   description: "Generic secret value",
-
-  serialize: (data: SecretData): string => JSON.stringify(data),
 
   deserialize: (plaintext: string): SecretData =>
     JSON.parse(plaintext) as SecretData,
+  id: "secret",
+
+  serialize: (data: SecretData): string => JSON.stringify(data),
 };
 
 export function createSchema<T>(config: {
@@ -44,11 +44,11 @@ export function createSchema<T>(config: {
   validate?: (data: T) => void;
 }): VaultSchema<T> {
   return {
-    id: config.id,
     description: config.description,
-    serialize: (data: T): string => JSON.stringify(data),
     deserialize: (plaintext: string): T => JSON.parse(plaintext) as T,
     fingerprint: config.fingerprint,
+    id: config.id,
+    serialize: (data: T): string => JSON.stringify(data),
     validate: config.validate,
   };
 }

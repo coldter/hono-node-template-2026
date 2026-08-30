@@ -13,8 +13,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       tailwindcss(),
       tanstackRouter({
-        target: "react",
         autoCodeSplitting: true,
+        target: "react",
       }),
       react(),
       watchBackendOpenApi(),

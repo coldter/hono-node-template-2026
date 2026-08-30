@@ -30,12 +30,12 @@ export type SerializedEnvelope = string;
  */
 export interface VaultSchema<T> {
   readonly description: string;
-  deserialize(plaintext: string): T;
-  fingerprint?(data: T): string;
+  deserialize: (plaintext: string) => T;
+  fingerprint?: (data: T) => string;
   /** Unique schema identifier (e.g., "card-profile", "api-key") */
   readonly id: string;
-  serialize(data: T): string;
-  validate?(data: T): void;
+  serialize: (data: T) => string;
+  validate?: (data: T) => void;
 }
 
 /**
@@ -43,10 +43,10 @@ export interface VaultSchema<T> {
  * Implement this for different key management solutions.
  */
 export interface EncryptionProvider {
-  decrypt(envelope: EncryptedEnvelope): Promise<Buffer>;
-  encrypt(plaintext: Buffer): Promise<EncryptedEnvelope>;
-  getKeyId(): string | undefined;
-  isConfigured(): boolean;
+  decrypt: (envelope: EncryptedEnvelope) => Promise<Buffer>;
+  encrypt: (plaintext: Buffer) => Promise<EncryptedEnvelope>;
+  getKeyId: () => string | undefined;
+  isConfigured: () => boolean;
   readonly name: string;
 }
 

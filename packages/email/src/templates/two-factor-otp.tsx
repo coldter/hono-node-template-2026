@@ -71,9 +71,9 @@ export function TwoFactorOtpEmail({
 }
 
 TwoFactorOtpEmail.PreviewProps = {
-  userName: "Ada",
-  otp: "123456",
   expiresIn: "3 minutes",
   ipAddress: "192.168.1.1",
+  otp: "123456",
   userAgent: "Chrome on macOS",
+  userName: "Ada",
 } satisfies TwoFactorOtpEmailProps;

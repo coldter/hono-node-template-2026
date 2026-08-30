@@ -19,87 +19,30 @@ import {
 import { userService } from "./service";
 
 const usersRoutes = {
-  listUsers: createRouteConfig({
-    operationId: "listUsers",
-    method: "get",
-    path: "/",
-    guard: [authorize("user", "list")],
-    tags: ["users"],
-    summary: "List users",
-    description: "Returns a paginated list of users with optional filters",
-    request: { query: listUsersQuerySchema },
-    responses: {
-      200: {
-        description: "Users list",
-        content: { "application/json": { schema: listUsersResponseSchema } },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  getMyAccount: createRouteConfig({
-    operationId: "getMyAccount",
-    method: "get",
-    path: "/me",
-    guard: [
-      authorize("user", "view", {
-        loadResource: async (c) => {
-          const user = c.get("user");
-          if (!user) {
-            return null;
-          }
-          return userService.findById(user.id);
-        },
-      }),
-    ],
-    tags: ["users"],
-    summary: "Get my profile summary",
-    description: "Returns user-facing profile info and notification summary",
-    responses: {
-      200: {
-        description: "Current user account",
-        content: { "application/json": { schema: getMyAccountResponseSchema } },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  getUser: createRouteConfig({
-    operationId: "getUser",
-    method: "get",
-    path: "/{userId}",
-    guard: [
-      authorize("user", "view", {
-        loadResource: async (c) => {
-          const userId = c.req.param("userId");
-          if (!userId) {
-            return null;
-          }
-          return userService.findById(userId);
-        },
-      }),
-    ],
-    tags: ["users"],
-    summary: "Get user by ID",
-    description: "Returns detailed user information",
+  activateUser: createRouteConfig({
+    description: "Reactivates a deactivated user",
+    guard: [authorize("user", "activate")],
+    method: "post",
+    operationId: "activateUser",
+    path: "/{userId}/activate",
     request: { params: userParamsSchema },
     responses: {
       200: {
-        description: "User details",
-        content: { "application/json": { schema: getUserResponseSchema } },
+        content: { "application/json": { schema: successResponseSchema } },
+        description: "User activated",
       },
       ...commonErrorResponses,
     },
+    summary: "Activate user",
+    tags: ["users"],
   }),
 
   createUser: createRouteConfig({
-    operationId: "createUser",
-    method: "post",
-    path: "/",
-    guard: [authorize("user", "create")],
-    tags: ["users"],
-    summary: "Create user",
     description: "Creates a new user with the specified details",
+    guard: [authorize("user", "create")],
+    method: "post",
+    operationId: "createUser",
+    path: "/",
     request: {
       body: {
         content: { "application/json": { schema: createUserBodySchema } },
@@ -107,73 +50,17 @@ const usersRoutes = {
     },
     responses: {
       201: {
-        description: "User created",
         content: { "application/json": { schema: createUserResponseSchema } },
+        description: "User created",
       },
       ...commonErrorResponses,
     },
-  }),
-
-  updateUser: createRouteConfig({
-    operationId: "updateUser",
-    method: "patch",
-    path: "/{userId}",
-    guard: [
-      authorize("user", "update", {
-        loadResource: async (c) => {
-          const userId = c.req.param("userId");
-          if (!userId) {
-            return null;
-          }
-          return userService.findById(userId);
-        },
-      }),
-    ],
+    summary: "Create user",
     tags: ["users"],
-    summary: "Update user",
-    description: "Updates user profile information",
-    request: {
-      params: userParamsSchema,
-      body: {
-        content: { "application/json": { schema: updateUserBodySchema } },
-      },
-    },
-    responses: {
-      200: {
-        description: "User updated",
-        content: { "application/json": { schema: updateUserResponseSchema } },
-      },
-      ...commonErrorResponses,
-    },
-  }),
-
-  updateUserRoles: createRouteConfig({
-    operationId: "updateUserRoles",
-    method: "patch",
-    path: "/{userId}/roles",
-    guard: [authorize("user", "update")],
-    tags: ["users"],
-    summary: "Update user roles",
-    description: "Updates user role assignments",
-    request: {
-      params: userParamsSchema,
-      body: {
-        content: { "application/json": { schema: updateUserRolesBodySchema } },
-      },
-    },
-    responses: {
-      200: {
-        description: "Roles updated",
-        content: { "application/json": { schema: updateUserResponseSchema } },
-      },
-      ...commonErrorResponses,
-    },
   }),
 
   deactivateUser: createRouteConfig({
-    operationId: "deactivateUser",
-    method: "post",
-    path: "/{userId}/deactivate",
+    description: "Deactivates a user and revokes all sessions",
     guard: [
       authorize("user", "deactivate", {
         loadResource: async (c) => {
@@ -185,58 +72,170 @@ const usersRoutes = {
         },
       }),
     ],
-    tags: ["users"],
-    summary: "Deactivate user",
-    description: "Deactivates a user and revokes all sessions",
+    method: "post",
+    operationId: "deactivateUser",
+    path: "/{userId}/deactivate",
     request: {
-      params: userParamsSchema,
       body: {
         content: { "application/json": { schema: deactivateUserBodySchema } },
       },
+      params: userParamsSchema,
     },
     responses: {
       200: {
-        description: "User deactivated",
         content: { "application/json": { schema: successResponseSchema } },
+        description: "User deactivated",
       },
       ...commonErrorResponses,
     },
+    summary: "Deactivate user",
+    tags: ["users"],
   }),
 
-  activateUser: createRouteConfig({
-    operationId: "activateUser",
-    method: "post",
-    path: "/{userId}/activate",
-    guard: [authorize("user", "activate")],
+  getMyAccount: createRouteConfig({
+    description: "Returns user-facing profile info and notification summary",
+    guard: [
+      authorize("user", "view", {
+        loadResource: async (c) => {
+          const user = c.get("user");
+          if (!user) {
+            return null;
+          }
+          return userService.findById(user.id);
+        },
+      }),
+    ],
+    method: "get",
+    operationId: "getMyAccount",
+    path: "/me",
+    responses: {
+      200: {
+        content: { "application/json": { schema: getMyAccountResponseSchema } },
+        description: "Current user account",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Get my profile summary",
     tags: ["users"],
-    summary: "Activate user",
-    description: "Reactivates a deactivated user",
+  }),
+
+  getUser: createRouteConfig({
+    description: "Returns detailed user information",
+    guard: [
+      authorize("user", "view", {
+        loadResource: async (c) => {
+          const userId = c.req.param("userId");
+          if (!userId) {
+            return null;
+          }
+          return userService.findById(userId);
+        },
+      }),
+    ],
+    method: "get",
+    operationId: "getUser",
+    path: "/{userId}",
     request: { params: userParamsSchema },
     responses: {
       200: {
-        description: "User activated",
-        content: { "application/json": { schema: successResponseSchema } },
+        content: { "application/json": { schema: getUserResponseSchema } },
+        description: "User details",
       },
       ...commonErrorResponses,
     },
+    summary: "Get user by ID",
+    tags: ["users"],
+  }),
+  listUsers: createRouteConfig({
+    description: "Returns a paginated list of users with optional filters",
+    guard: [authorize("user", "list")],
+    method: "get",
+    operationId: "listUsers",
+    path: "/",
+    request: { query: listUsersQuerySchema },
+    responses: {
+      200: {
+        content: { "application/json": { schema: listUsersResponseSchema } },
+        description: "Users list",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "List users",
+    tags: ["users"],
   }),
 
   unlockUser: createRouteConfig({
-    operationId: "unlockUser",
-    method: "post",
-    path: "/{userId}/unlock",
-    guard: [authorize("user", "unlock")],
-    tags: ["users"],
-    summary: "Unlock user",
     description: "Unlocks a locked user and resets failed login attempts",
+    guard: [authorize("user", "unlock")],
+    method: "post",
+    operationId: "unlockUser",
+    path: "/{userId}/unlock",
     request: { params: userParamsSchema },
     responses: {
       200: {
-        description: "User unlocked",
         content: { "application/json": { schema: successResponseSchema } },
+        description: "User unlocked",
       },
       ...commonErrorResponses,
     },
+    summary: "Unlock user",
+    tags: ["users"],
+  }),
+
+  updateUser: createRouteConfig({
+    description: "Updates user profile information",
+    guard: [
+      authorize("user", "update", {
+        loadResource: async (c) => {
+          const userId = c.req.param("userId");
+          if (!userId) {
+            return null;
+          }
+          return userService.findById(userId);
+        },
+      }),
+    ],
+    method: "patch",
+    operationId: "updateUser",
+    path: "/{userId}",
+    request: {
+      body: {
+        content: { "application/json": { schema: updateUserBodySchema } },
+      },
+      params: userParamsSchema,
+    },
+    responses: {
+      200: {
+        content: { "application/json": { schema: updateUserResponseSchema } },
+        description: "User updated",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Update user",
+    tags: ["users"],
+  }),
+
+  updateUserRoles: createRouteConfig({
+    description: "Updates user role assignments",
+    guard: [authorize("user", "update")],
+    method: "patch",
+    operationId: "updateUserRoles",
+    path: "/{userId}/roles",
+    request: {
+      body: {
+        content: { "application/json": { schema: updateUserRolesBodySchema } },
+      },
+      params: userParamsSchema,
+    },
+    responses: {
+      200: {
+        content: { "application/json": { schema: updateUserResponseSchema } },
+        description: "Roles updated",
+      },
+      ...commonErrorResponses,
+    },
+    summary: "Update user roles",
+    tags: ["users"],
   }),
 } as const;
 

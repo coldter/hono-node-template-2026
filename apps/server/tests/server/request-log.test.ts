@@ -40,12 +40,12 @@ describe("requestLogMiddleware", () => {
       "info",
       "request completed",
       expect.objectContaining({
+        duration_ms: expect.any(Number),
         method: "GET",
         path: "/api/users/42",
+        request_id: expect.any(String),
         route: "/api/users/:id",
         status: 200,
-        duration_ms: expect.any(Number),
-        request_id: expect.any(String),
       })
     );
   });

@@ -1,12 +1,12 @@
 export const ID_PREFIXES = {
-  user: "usr",
-  session: "ses",
   account: "acc",
-  verification: "ver",
-  role: "rol",
   auditLog: "aud",
   notification: "ntf",
   pushToken: "ptk",
+  role: "rol",
+  session: "ses",
+  user: "usr",
+  verification: "ver",
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];

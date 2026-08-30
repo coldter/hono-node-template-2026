@@ -34,8 +34,8 @@ function denyResponse(
   return new HTTPException(status, {
     message,
     res: new Response(JSON.stringify({ error: { code, message } }), {
-      status,
       headers: { "Content-Type": "application/json" },
+      status,
     }),
   });
 }
@@ -117,8 +117,8 @@ export function createAuthorize<
         // boundary: typed action union narrowed at call site
         action as never,
         {
-          resource: loadedResource,
           resolveRelation: opts?.resolveRelation,
+          resource: loadedResource,
         }
       );
 
@@ -148,8 +148,8 @@ export function createAuthorize<
         JSON.stringify({
           event: "authorization.bypass",
           label,
-          path: c.req.path,
           method: c.req.method,
+          path: c.req.path,
         })
       );
       await next();

@@ -15,13 +15,13 @@ function normalizeCapabilities(capabilities: unknown): Record<string, boolean> {
 }
 
 export const capabilitiesQueryOptions = queryOptions({
-  queryKey: ["authorization", "capabilities"],
   queryFn: async () => {
     const response = await getAuthorizationCapabilities();
     return normalizeCapabilities(response.capabilities);
   },
-  staleTime: 5 * 60 * 1000,
+  queryKey: ["authorization", "capabilities"],
   retry: 1,
+  staleTime: 5 * 60 * 1000,
 });
 
 export function useAuthorization() {

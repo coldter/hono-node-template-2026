@@ -27,10 +27,10 @@ type ThemeProviderState = {
 
 const initialState: ThemeProviderState = {
   defaultTheme: DEFAULT_THEME,
-  resolvedTheme: "light",
-  theme: DEFAULT_THEME,
-  setTheme: () => null,
   resetTheme: () => null,
+  resolvedTheme: "light",
+  setTheme: () => null,
+  theme: DEFAULT_THEME,
 };
 
 const ThemeContext = createContext<ThemeProviderState>(initialState);
@@ -89,10 +89,10 @@ export function ThemeProvider({
   const contextValue = useMemo(
     () => ({
       defaultTheme,
-      resolvedTheme,
       resetTheme,
-      theme,
+      resolvedTheme,
       setTheme,
+      theme,
     }),
     [defaultTheme, resolvedTheme, resetTheme, theme, setTheme]
   );

@@ -9,16 +9,16 @@ import { SYSTEM_ROLE_SLUG_VALUES, SYSTEM_ROLES } from "./roles";
 export { SYSTEM_ROLE_SLUG_VALUES, SYSTEM_ROLES } from "./roles";
 
 export const auth = createAuthSchema({
-  roles: ["admin", "user"],
-  systemAdminRoles: ["admin"],
-  relations: ["owner", "member"],
+  globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
   organizationRoles: ["owner", "admin", "member"],
   principal: {
-    status: principalAttribute<"active" | "inactive" | "locked" | "deleted">(),
     email: principalAttribute<string>(),
     emailVerified: principalAttribute<boolean>(),
+    status: principalAttribute<"active" | "inactive" | "locked" | "deleted">(),
   },
-  globalPolicies: (p) => [p.deny("*").to("*").where(principalNotActive())],
+  relations: ["owner", "member"],
+  roles: ["admin", "user"],
+  systemAdminRoles: ["admin"],
 });
 
 export type AuthorizationRole = (typeof auth)["roleValues"][number];
@@ -92,13 +92,13 @@ export function buildAuthorizationPrincipal(
     : "active";
 
   return {
-    id: user.id,
-    roles,
     attributes: {
-      status,
       email: user.email ?? "",
       emailVerified: user.emailVerified ?? false,
+      status,
     },
+    id: user.id,
+    roles,
     ...(session.activeOrganizationId &&
     session.activeOrgRole &&
     isAuthorizationOrgRole(session.activeOrgRole)
@@ -116,10 +116,10 @@ export function toBaseAuthorizationPrincipal(
   principal: AuthorizationPrincipal
 ): Principal {
   return {
-    id: principal.id,
-    roles: principal.roles,
     attributes: principal.attributes,
+    id: principal.id,
     organization: principal.organization,
+    roles: principal.roles,
   };
 }
 
@@ -183,10 +183,10 @@ export const notificationsAuthorization = auth.createResource<
 });
 
 export const authorization = auth.buildRegistry({
-  user: usersAuthorization,
-  role: rolesAuthorization,
   "audit-log": auditLogsAuthorization,
   notification: notificationsAuthorization,
+  role: rolesAuthorization,
+  user: usersAuthorization,
 });
 
 export const LEGACY_PERMISSION_KEYS = [

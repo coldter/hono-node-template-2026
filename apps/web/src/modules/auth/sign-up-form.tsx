@@ -27,7 +27,7 @@ export function SignUpForm({ onVerificationRequired }: SignUpFormProps) {
     setIsLoading(true);
 
     try {
-      const result = await authClient.signUp.email({ name, email, password });
+      const result = await authClient.signUp.email({ email, name, password });
 
       if (result.error) {
         toast.error(result.error.message ?? "Sign up failed");

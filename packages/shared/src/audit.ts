@@ -1,55 +1,55 @@
 export const ACTOR_TYPES = {
-  USER: "user",
-  SYSTEM: "system",
   API: "api",
+  SYSTEM: "system",
+  USER: "user",
 } as const;
 
 export type ActorType = (typeof ACTOR_TYPES)[keyof typeof ACTOR_TYPES];
 
 export const TARGET_TYPES = {
-  USER: "user",
   ROLE: "role",
   SESSION: "session",
+  USER: "user",
 } as const;
 
 export type TargetType = (typeof TARGET_TYPES)[keyof typeof TARGET_TYPES];
 
 export const AUDIT_EVENTS = {
   AUTH: {
-    LOGIN_SUCCESS: {
-      event: "auth.login.success",
-      description: "User logged in",
-    },
     LOGIN_FAILED: {
-      event: "auth.login.failed",
       description: "Failed login attempt",
+      event: "auth.login.failed",
     },
-    LOGOUT: { event: "auth.logout", description: "User logged out" },
+    LOGIN_SUCCESS: {
+      description: "User logged in",
+      event: "auth.login.success",
+    },
+    LOGOUT: { description: "User logged out", event: "auth.logout" },
     PASSWORD_CHANGED: {
-      event: "auth.password.changed",
       description: "Password changed",
+      event: "auth.password.changed",
     },
     SESSION_REVOKED: {
-      event: "auth.session.revoked",
       description: "Session revoked",
+      event: "auth.session.revoked",
     },
   },
-  USER: {
-    CREATED: { event: "user.created", description: "User created" },
-    UPDATED: { event: "user.updated", description: "User updated" },
-    DELETED: { event: "user.deleted", description: "User deleted" },
-    DEACTIVATED: { event: "user.deactivated", description: "User deactivated" },
-    ACTIVATED: { event: "user.activated", description: "User activated" },
-    UNLOCKED: { event: "user.unlocked", description: "User unlocked" },
-    VIEWED: { event: "user.viewed", description: "User viewed" },
-    LISTED: { event: "user.listed", description: "Users listed" },
-  },
   ROLE: {
-    CREATED: { event: "role.created", description: "Role created" },
-    UPDATED: { event: "role.updated", description: "Role updated" },
-    DELETED: { event: "role.deleted", description: "Role deleted" },
-    ASSIGNED: { event: "role.assigned", description: "Role assigned" },
-    UNASSIGNED: { event: "role.unassigned", description: "Role unassigned" },
+    ASSIGNED: { description: "Role assigned", event: "role.assigned" },
+    CREATED: { description: "Role created", event: "role.created" },
+    DELETED: { description: "Role deleted", event: "role.deleted" },
+    UNASSIGNED: { description: "Role unassigned", event: "role.unassigned" },
+    UPDATED: { description: "Role updated", event: "role.updated" },
+  },
+  USER: {
+    ACTIVATED: { description: "User activated", event: "user.activated" },
+    CREATED: { description: "User created", event: "user.created" },
+    DEACTIVATED: { description: "User deactivated", event: "user.deactivated" },
+    DELETED: { description: "User deleted", event: "user.deleted" },
+    LISTED: { description: "Users listed", event: "user.listed" },
+    UNLOCKED: { description: "User unlocked", event: "user.unlocked" },
+    UPDATED: { description: "User updated", event: "user.updated" },
+    VIEWED: { description: "User viewed", event: "user.viewed" },
   },
 } as const;
 

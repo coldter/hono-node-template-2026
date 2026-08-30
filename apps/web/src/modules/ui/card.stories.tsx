@@ -11,18 +11,18 @@ import {
 } from "./card";
 
 const meta = {
-  title: "UI/Card",
   component: Card,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Content container. Compose with CardHeader, CardTitle, CardDescription, CardAction, CardContent, and CardFooter.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "UI/Card",
 } satisfies Meta<typeof Card>;
 
 export default meta;

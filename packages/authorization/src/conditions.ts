@@ -2,23 +2,23 @@ import type { Condition, ConditionContext, ConditionEffect } from "./types";
 
 export function principalNotActive(): Condition {
   return {
-    type: "principalNotActive",
     effect: "principal_only",
-    label: "principalNotActive",
     evaluate(ctx: ConditionContext): boolean {
       return ctx.principal.attributes.status !== "active";
     },
+    label: "principalNotActive",
+    type: "principalNotActive",
   };
 }
 
 export function principalHasRole(role: string): Condition {
   return {
-    type: "principalHasRole",
     effect: "principal_only",
-    label: `principalHasRole:${role}`,
     evaluate(ctx: ConditionContext): boolean {
       return ctx.principal.roles.includes(role);
     },
+    label: `principalHasRole:${role}`,
+    type: "principalHasRole",
   };
 }
 
@@ -26,15 +26,15 @@ export function createOwnerCondition<TResource>(
   resolveOwner: (resource: TResource) => string
 ): Condition<TResource> {
   return {
-    type: "whereOwner",
     effect: "requires_resource",
-    label: "whereOwner",
     evaluate(ctx: ConditionContext<TResource>): boolean {
       if (!ctx.resource) {
         return false;
       }
       return resolveOwner(ctx.resource) === ctx.principal.id;
     },
+    label: "whereOwner",
+    type: "whereOwner",
   };
 }
 
@@ -42,9 +42,7 @@ export function createSelfTargetCondition<
   TResource = unknown,
 >(): Condition<TResource> {
   return {
-    type: "whereTargetIsSelf",
     effect: "requires_resource",
-    label: "whereTargetIsSelf",
     evaluate(ctx: ConditionContext<TResource>): boolean {
       if (!ctx.resource) {
         return false;
@@ -55,6 +53,8 @@ export function createSelfTargetCondition<
         typeof candidate.id === "string" && candidate.id === ctx.principal.id
       );
     },
+    label: "whereTargetIsSelf",
+    type: "whereTargetIsSelf",
   };
 }
 
@@ -64,10 +64,10 @@ export function createPredicateCondition<TResource = unknown>(
   effect: ConditionEffect = "requires_resource"
 ): Condition<TResource> {
   return {
-    type: "where",
     effect,
-    label: `where:${label}`,
     evaluate: predicate,
+    label: `where:${label}`,
+    type: "where",
   };
 }
 
@@ -78,10 +78,7 @@ export function createRelationCondition<TResource>(
   subjectType = "user"
 ): Condition<TResource> {
   return {
-    type: "withRelation",
     effect: "requires_resource",
-    label: `withRelation:${relation}:${targetKey}`,
-    params: { relation, targetKey, subjectType },
     evaluate(ctx: ConditionContext<TResource>): boolean | Promise<boolean> {
       if (!(ctx.resource && ctx.resolveRelation)) {
         return false;
@@ -95,6 +92,9 @@ export function createRelationCondition<TResource>(
         objectId
       );
     },
+    label: `withRelation:${relation}:${targetKey}`,
+    params: { relation, subjectType, targetKey },
+    type: "withRelation",
   };
 }
 
@@ -103,10 +103,7 @@ export function createOrgRoleCondition<TResource = unknown>(
 ): Condition<TResource> {
   const frozenRoles = [...orgRoles];
   return {
-    type: "withOrgRole",
     effect: "principal_only",
-    label: `withOrgRole:${frozenRoles.join(",")}`,
-    params: { orgRoles: frozenRoles },
     evaluate(ctx: ConditionContext<TResource>): boolean {
       const org = ctx.principal.organization;
       if (!org) {
@@ -114,5 +111,8 @@ export function createOrgRoleCondition<TResource = unknown>(
       }
       return frozenRoles.includes(org.role);
     },
+    label: `withOrgRole:${frozenRoles.join(",")}`,
+    params: { orgRoles: frozenRoles },
+    type: "withOrgRole",
   };
 }

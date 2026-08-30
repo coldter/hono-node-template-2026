@@ -20,21 +20,21 @@ export function formatNotificationSummary(
   const isReadTrackable = notification.channel === "push";
 
   return {
-    id: notification.id,
-    type: notification.type,
-    channel: notification.channel,
-    status: notification.status,
-    priority: notification.priority,
-    subject: notification.subject,
     body: notification.body,
-    props: notification.props,
+    channel: notification.channel,
+    createdAt: notification.createdAt.toISOString(),
+    deliveredAt: notification.deliveredAt?.toISOString() ?? null,
+    id: notification.id,
     isRead: isReadTrackable ? notification.readAt !== null : null,
+    priority: notification.priority,
+    props: notification.props,
     readAt: isReadTrackable
       ? (notification.readAt?.toISOString() ?? null)
       : null,
     sentAt: notification.sentAt?.toISOString() ?? null,
-    deliveredAt: notification.deliveredAt?.toISOString() ?? null,
-    createdAt: notification.createdAt.toISOString(),
+    status: notification.status,
+    subject: notification.subject,
+    type: notification.type,
   };
 }
 
@@ -42,13 +42,13 @@ export function formatPushTokenSummary(
   token: PushTokenRecord
 ): PushTokenSummary {
   return {
-    id: token.id,
-    platform: token.platform,
+    createdAt: token.createdAt.toISOString(),
     deviceId: token.deviceId,
     deviceName: token.deviceName,
+    id: token.id,
     isActive: token.isActive,
     lastUsedAt: token.lastUsedAt?.toISOString() ?? null,
-    createdAt: token.createdAt.toISOString(),
+    platform: token.platform,
     sessionId: token.sessionId,
   };
 }
@@ -87,8 +87,8 @@ export function formatPreferencesSummary(
 
   return {
     emailEnabled: globalPrefs?.emailEnabled ?? true,
-    smsEnabled: globalPrefs?.smsEnabled ?? false,
     pushEnabled: globalPrefs?.pushEnabled ?? true,
+    smsEnabled: globalPrefs?.smsEnabled ?? false,
     typeOverrides: Object.keys(typeOverrides).length > 0 ? typeOverrides : null,
   };
 }
@@ -138,8 +138,8 @@ export function resolveEnabledChannels(
 
   const channelEnabled: Record<NotificationChannel, boolean> = {
     email: prefs.emailEnabled,
-    sms: prefs.smsEnabled,
     push: prefs.pushEnabled,
+    sms: prefs.smsEnabled,
   };
 
   return requestedChannels.filter((channel) => channelEnabled[channel]);

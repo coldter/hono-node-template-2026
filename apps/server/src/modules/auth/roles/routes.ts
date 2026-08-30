@@ -5,24 +5,24 @@ import { listRolesResponseSchema } from "./schema";
 
 const rolesRoutes = {
   listRoles: createRouteConfig({
-    operationId: "listRoles",
-    method: "get",
-    path: "/",
-    guard: [authorize("role", "list")],
-    tags: ["roles"],
-    summary: "List all roles",
     description: "Returns a list of all system roles",
+    guard: [authorize("role", "list")],
+    method: "get",
+    operationId: "listRoles",
+    path: "/",
     responses: {
       200: {
-        description: "Roles",
         content: {
           "application/json": {
             schema: listRolesResponseSchema,
           },
         },
+        description: "Roles",
       },
       ...commonErrorResponses,
     },
+    summary: "List all roles",
+    tags: ["roles"],
   }),
 } as const;
 

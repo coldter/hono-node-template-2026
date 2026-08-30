@@ -4,9 +4,9 @@ import { logger } from "@/lib/logger";
 
 const firebaseServiceAccountSchema = z
   .object({
-    project_id: z.string(),
     client_email: z.string().email(),
     private_key: z.string(),
+    project_id: z.string(),
   })
   .passthrough();
 
@@ -24,18 +24,18 @@ interface PushSendResult {
 }
 
 interface PushProvider {
-  send(message: PushMessage): Promise<PushSendResult>;
+  send: (message: PushMessage) => Promise<PushSendResult>;
 }
 
 class ConsolePushProvider implements PushProvider {
   async send(message: PushMessage): Promise<PushSendResult> {
     logger.info("Console push provider: would send push notification", {
+      body: message.data.body,
+      title: message.data.title,
       token: `${message.token.slice(0, 12)}...`,
       type: message.data.type,
-      title: message.data.title,
-      body: message.data.body,
     });
-    return { success: true, messageId: `console_${Date.now()}` };
+    return { messageId: `console_${Date.now()}`, success: true };
   }
 }
 
@@ -71,17 +71,18 @@ class FirebasePushProvider implements PushProvider {
         serviceAccount = firebaseServiceAccountSchema.parse(
           JSON.parse(serviceAccountKey)
         );
-      } catch {
+      } catch (error) {
         throw new Error(
-          "FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 must be a valid base64-encoded Firebase service account JSON with project_id, client_email, and private_key"
+          "FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 must be a valid base64-encoded Firebase service account JSON with project_id, client_email, and private_key",
+          { cause: error }
         );
       }
 
       initializeApp({
         credential: cert({
-          projectId: serviceAccount.project_id,
           clientEmail: serviceAccount.client_email,
           privateKey: serviceAccount.private_key,
+          projectId: serviceAccount.project_id,
         }),
       });
     }
@@ -95,12 +96,12 @@ class FirebasePushProvider implements PushProvider {
 
     try {
       const fcmMessage: import("firebase-admin/messaging").Message = {
-        token: message.token,
         data: message.data,
+        token: message.token,
       };
 
       const messageId = await messaging.send(fcmMessage);
-      return { success: true, messageId };
+      return { messageId, success: true };
     } catch (error) {
       const errorCode =
         error instanceof Error && "code" in error
@@ -113,9 +114,9 @@ class FirebasePushProvider implements PushProvider {
         errorCode === "messaging/invalid-argument";
 
       return {
-        success: false,
         error: error instanceof Error ? error.message : String(error),
         invalidToken: isInvalidToken,
+        success: false,
       };
     }
   }

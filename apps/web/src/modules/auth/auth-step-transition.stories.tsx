@@ -4,22 +4,22 @@ import { Button } from "@/modules/ui/button";
 import { AuthStepTransition } from "./auth-step-transition";
 
 const meta = {
-  title: "Features/Auth/AuthStepTransition",
+  args: {
+    children: null,
+    step: "email",
+  },
   component: AuthStepTransition,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Framer-motion wrapper that animates between keyed steps in a multi-step auth flow. Change `step` to trigger the transition.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  args: {
-    step: "email",
-    children: null,
-  },
+  title: "Features/Auth/AuthStepTransition",
 } satisfies Meta<typeof AuthStepTransition>;
 
 export default meta;

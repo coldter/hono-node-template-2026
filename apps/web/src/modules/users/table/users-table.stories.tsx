@@ -1,17 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, useTable } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { CheckCircle2, Circle, Lock } from "lucide-react";
 import { DataTableColumnHeader } from "@/modules/data-table/column-header";
 import { DataTable } from "@/modules/data-table/data-table";
+import type { DataTableFeatures } from "@/modules/data-table/features";
+import { dataTableFeatures } from "@/modules/data-table/features";
 import { DataTablePagination } from "@/modules/data-table/pagination";
 import { DataTableToolbar } from "@/modules/data-table/toolbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
@@ -21,12 +15,9 @@ import type { User, UserStatus } from "../types";
 
 // Local mock columns mirror `usersColumns` but swap `<Link>` for a plain
 // element so the story renders without a TanStack Router context.
-const mockUsersColumns: ColumnDef<User>[] = [
+const mockUsersColumns: ColumnDef<DataTableFeatures, User>[] = [
   {
     accessorKey: "name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="User" />
-    ),
     cell: ({ row }) => {
       const user = row.original;
       const initials = user.name
@@ -57,177 +48,180 @@ const mockUsersColumns: ColumnDef<User>[] = [
         user.email.toLowerCase().includes(needle)
       );
     },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="User" />
+    ),
   },
   {
     accessorKey: "status",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
     cell: ({ row }) => (
       <UserStatusBadge status={row.original.status as UserStatus} />
     ),
-    filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
     enableSorting: true,
+    filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
   },
   {
     accessorKey: "roleSlugs",
-    header: "Roles",
     cell: ({ row }) => <UserRoleBadges roles={row.original.roleSlugs} />,
     enableSorting: false,
+    header: "Roles",
   },
   {
     accessorKey: "createdAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
-    ),
     cell: ({ row }) => (
       <span className="text-muted-foreground">
         {format(new Date(row.getValue<string>("createdAt")), "MMM dd, yyyy")}
       </span>
     ),
     enableSorting: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
   },
 ];
 
 const mockUsers: User[] = [
   {
-    id: "u_1",
-    name: "Ada Lovelace",
+    createdAt: "2024-01-02T00:00:00.000Z",
     email: "ada@example.com",
     emailVerified: true,
+    id: "u_1",
     image: null,
-    status: "active",
+    name: "Ada Lovelace",
     roleSlugs: ["admin"],
-    createdAt: "2024-01-02T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-02T00:00:00.000Z",
   },
   {
-    id: "u_2",
-    name: "Alan Turing",
+    createdAt: "2024-01-05T00:00:00.000Z",
     email: "alan@example.com",
     emailVerified: true,
+    id: "u_2",
     image: null,
-    status: "active",
+    name: "Alan Turing",
     roleSlugs: ["admin", "editor"],
-    createdAt: "2024-01-05T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-05T00:00:00.000Z",
   },
   {
-    id: "u_3",
-    name: "Grace Hopper",
+    createdAt: "2024-01-08T00:00:00.000Z",
     email: "grace@example.com",
     emailVerified: true,
+    id: "u_3",
     image: null,
-    status: "active",
+    name: "Grace Hopper",
     roleSlugs: ["editor"],
-    createdAt: "2024-01-08T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-08T00:00:00.000Z",
   },
   {
-    id: "u_4",
-    name: "Linus Torvalds",
+    createdAt: "2024-01-10T00:00:00.000Z",
     email: "linus@example.com",
     emailVerified: false,
+    id: "u_4",
     image: null,
-    status: "inactive",
+    name: "Linus Torvalds",
     roleSlugs: ["editor"],
-    createdAt: "2024-01-10T00:00:00.000Z",
+    status: "inactive",
     updatedAt: "2024-01-10T00:00:00.000Z",
   },
   {
-    id: "u_5",
-    name: "Margaret Hamilton",
+    createdAt: "2024-01-11T00:00:00.000Z",
     email: "margaret@example.com",
     emailVerified: true,
+    id: "u_5",
     image: null,
-    status: "active",
+    name: "Margaret Hamilton",
     roleSlugs: ["viewer"],
-    createdAt: "2024-01-11T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-11T00:00:00.000Z",
   },
   {
-    id: "u_6",
-    name: "Donald Knuth",
+    createdAt: "2024-01-12T00:00:00.000Z",
     email: "donald@example.com",
     emailVerified: true,
+    id: "u_6",
     image: null,
-    status: "active",
+    name: "Donald Knuth",
     roleSlugs: ["viewer", "editor", "auditor"],
-    createdAt: "2024-01-12T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-12T00:00:00.000Z",
   },
   {
-    id: "u_7",
-    name: "Ken Thompson",
+    createdAt: "2024-01-15T00:00:00.000Z",
     email: "ken@example.com",
     emailVerified: true,
+    id: "u_7",
     image: null,
-    status: "locked",
+    name: "Ken Thompson",
     roleSlugs: ["admin"],
-    createdAt: "2024-01-15T00:00:00.000Z",
+    status: "locked",
     updatedAt: "2024-01-15T00:00:00.000Z",
   },
   {
-    id: "u_8",
-    name: "Dennis Ritchie",
+    createdAt: "2024-01-17T00:00:00.000Z",
     email: "dennis@example.com",
     emailVerified: true,
+    id: "u_8",
     image: null,
-    status: "active",
+    name: "Dennis Ritchie",
     roleSlugs: ["editor"],
-    createdAt: "2024-01-17T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-17T00:00:00.000Z",
   },
   {
-    id: "u_9",
-    name: "Barbara Liskov",
+    createdAt: "2024-01-19T00:00:00.000Z",
     email: "barbara@example.com",
     emailVerified: true,
+    id: "u_9",
     image: null,
-    status: "inactive",
+    name: "Barbara Liskov",
     roleSlugs: ["viewer"],
-    createdAt: "2024-01-19T00:00:00.000Z",
+    status: "inactive",
     updatedAt: "2024-01-19T00:00:00.000Z",
   },
   {
-    id: "u_10",
-    name: "Edsger Dijkstra",
+    createdAt: "2024-01-21T00:00:00.000Z",
     email: "edsger@example.com",
     emailVerified: true,
+    id: "u_10",
     image: null,
-    status: "active",
+    name: "Edsger Dijkstra",
     roleSlugs: ["admin"],
-    createdAt: "2024-01-21T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-21T00:00:00.000Z",
   },
   {
-    id: "u_11",
-    name: "Brian Kernighan",
+    createdAt: "2024-01-22T00:00:00.000Z",
     email: "brian@example.com",
     emailVerified: true,
+    id: "u_11",
     image: null,
-    status: "active",
+    name: "Brian Kernighan",
     roleSlugs: ["editor"],
-    createdAt: "2024-01-22T00:00:00.000Z",
+    status: "active",
     updatedAt: "2024-01-22T00:00:00.000Z",
   },
   {
-    id: "u_12",
-    name: "John McCarthy",
+    createdAt: "2024-01-23T00:00:00.000Z",
     email: "john@example.com",
     emailVerified: true,
+    id: "u_12",
     image: null,
-    status: "locked",
+    name: "John McCarthy",
     roleSlugs: ["viewer"],
-    createdAt: "2024-01-23T00:00:00.000Z",
+    status: "locked",
     updatedAt: "2024-01-23T00:00:00.000Z",
   },
 ];
 
 const statusOptions = [
-  { label: "Active", value: "active", icon: CheckCircle2 },
-  { label: "Inactive", value: "inactive", icon: Circle },
-  { label: "Locked", value: "locked", icon: Lock },
+  { icon: CheckCircle2, label: "Active", value: "active" },
+  { icon: Circle, label: "Inactive", value: "inactive" },
+  { icon: Lock, label: "Locked", value: "locked" },
 ];
 
 type UsersTableStoryProps = {
@@ -237,22 +231,18 @@ type UsersTableStoryProps = {
 };
 
 function UsersTableStory({ data, isLoading, isError }: UsersTableStoryProps) {
-  const table = useReactTable({
-    data,
+  const table = useTable({
     columns: mockUsersColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    initialState: { pagination: { pageSize: 5, pageIndex: 0 } },
+    data,
+    features: dataTableFeatures,
+    initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
   });
 
   return (
     <div className="@container/content space-y-4">
       <DataTableToolbar
         filters={[
-          { columnId: "status", title: "Status", options: statusOptions },
+          { columnId: "status", options: statusOptions, title: "Status" },
         ]}
         searchKey="name"
         searchPlaceholder="Search users..."
@@ -272,18 +262,18 @@ function UsersTableStory({ data, isLoading, isError }: UsersTableStoryProps) {
 }
 
 const meta = {
-  title: "Features/Users/UsersTable",
   component: UsersTableStory,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Feature-level composition for the users list. Mirrors the production `UsersTable` but uses mock columns (dropping the `<Link>` to user detail) and local table state instead of `useTableUrlState` and `useUsersQuery`.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Features/Users/UsersTable",
 } satisfies Meta<typeof UsersTableStory>;
 
 export default meta;

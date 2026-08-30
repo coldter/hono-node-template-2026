@@ -57,7 +57,7 @@ describe("LocalEncryptionProvider", () => {
 
 describe("Vault", () => {
   it("should wrap provider failures in VaultError on decrypt", async () => {
-    const vault = createVault({ provider: "local", masterKey: MASTER_KEY });
+    const vault = createVault({ masterKey: MASTER_KEY, provider: "local" });
 
     await expect(vault.decryptRaw("not-json")).rejects.toBeInstanceOf(
       VaultError
@@ -65,7 +65,7 @@ describe("Vault", () => {
   });
 
   it("should round-trip via encryptRaw and decryptRaw", async () => {
-    const vault = createVault({ provider: "local", masterKey: MASTER_KEY });
+    const vault = createVault({ masterKey: MASTER_KEY, provider: "local" });
 
     const encrypted = await vault.encryptRaw("hello");
     const decrypted = await vault.decryptRaw(encrypted);

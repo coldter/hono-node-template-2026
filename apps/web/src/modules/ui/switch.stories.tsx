@@ -3,24 +3,24 @@ import { Label } from "./label";
 import { Switch } from "./switch";
 
 const meta = {
-  title: "UI/Switch",
+  args: {},
+  argTypes: {
+    checked: { control: "boolean" },
+    defaultChecked: { control: "boolean" },
+    disabled: { control: "boolean" },
+  },
   component: Switch,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Toggle control for binary on/off settings. Built on Radix Switch; supports controlled checked, defaultChecked, and disabled.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    checked: { control: "boolean" },
-    defaultChecked: { control: "boolean" },
-    disabled: { control: "boolean" },
-  },
-  args: {},
+  title: "UI/Switch",
 } satisfies Meta<typeof Switch>;
 
 export default meta;
@@ -38,7 +38,7 @@ export const Disabled: Story = {
 };
 
 export const DisabledChecked: Story = {
-  args: { disabled: true, defaultChecked: true },
+  args: { defaultChecked: true, disabled: true },
 };
 
 export const WithLabel: Story = {

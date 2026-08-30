@@ -14,7 +14,9 @@ export const useUserStore = create<UserStoreState>()(
   devtools(
     persist(
       (set) => ({
-        user: null,
+        clearUser: () => {
+          set({ user: null });
+        },
 
         setUser: (user: SessionUser) => {
           set({ user });
@@ -33,18 +35,15 @@ export const useUserStore = create<UserStoreState>()(
             return { user: updatedUser };
           });
         },
-
-        clearUser: () => {
-          set({ user: null });
-        },
+        user: null,
       }),
       {
         name: "user-store",
-        version: 1,
-        storage: createJSONStorage(() => localStorage),
         partialize: (state: UserStoreState) => ({
           user: state.user,
         }),
+        storage: createJSONStorage(() => localStorage),
+        version: 1,
       }
     ),
     { name: "UserStore" }

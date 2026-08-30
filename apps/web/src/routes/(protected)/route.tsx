@@ -21,10 +21,10 @@ export const Route = createFileRoute("/(protected)")({
       }
 
       throw redirect({
-        to: "/login",
         search: {
           redirect: location.href,
         },
+        to: "/login",
       });
     }
 

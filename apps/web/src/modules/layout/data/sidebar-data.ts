@@ -11,69 +11,69 @@ import {
 import type { SidebarData } from "@/modules/layout/types";
 
 export const sidebarData: SidebarData = {
-  user: {
-    name: "",
-    email: "",
-    avatar: "",
-  },
   navGroups: [
     {
-      title: "General",
       items: [
         {
+          icon: LayoutDashboard,
           title: "Dashboard",
           url: "/dashboard",
-          icon: LayoutDashboard,
         },
       ],
+      title: "General",
     },
     {
-      title: "System",
       items: [
         {
-          title: "Users",
-          url: "/users",
           icon: Users,
           permission: "user:list",
+          title: "Users",
+          url: "/users",
         },
         {
-          title: "Audit Logs",
-          url: "/audit-logs",
           icon: FileText,
           permission: "audit-log:list",
+          title: "Audit Logs",
+          url: "/audit-logs",
         },
       ],
+      title: "System",
     },
     {
-      title: "Other",
       items: [
         {
-          title: "Settings",
           icon: Settings,
           items: [
             {
+              icon: UserCog,
               title: "Profile",
               url: "/settings",
-              icon: UserCog,
             },
             {
+              icon: Palette,
               title: "Appearance",
               url: "/settings/appearance",
-              icon: Palette,
             },
             {
+              icon: Bell,
               title: "Notifications",
               url: "/settings/notifications",
-              icon: Bell,
             },
           ],
+          title: "Settings",
         },
         {
+          icon: HelpCircle,
           title: "Help Center",
           url: "/help-center",
-          icon: HelpCircle,
         },
       ],
+      title: "Other",
     },
   ],
+  user: {
+    avatar: "",
+    email: "",
+    name: "",
+  },
 };

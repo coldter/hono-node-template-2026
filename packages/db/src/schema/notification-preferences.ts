@@ -15,23 +15,22 @@ import { users } from "./auth";
 export const notificationPreferences = pgTable(
   "notification_preferences",
   {
+    createdAt: createdAt(),
+
+    emailEnabled: boolean("email_enabled").notNull().default(true),
     id: varchar("id", { length: 255 })
       .primaryKey()
       .$defaultFn(() => generatePrefixedCuid("ntfp")),
+    pushEnabled: boolean("push_enabled").notNull().default(true),
+    smsEnabled: boolean("sms_enabled").notNull().default(false),
+
+    // Preference type pattern (e.g., "security.*", "user.*", or "*" for global)
+    typePattern: varchar("type_pattern", { length: 100 }).notNull(),
+    updatedAt: updatedAt(),
 
     userId: varchar("user_id", { length: 255 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-
-    // Preference type pattern (e.g., "security.*", "user.*", or "*" for global)
-    typePattern: varchar("type_pattern", { length: 100 }).notNull(),
-
-    emailEnabled: boolean("email_enabled").notNull().default(true),
-    smsEnabled: boolean("sms_enabled").notNull().default(false),
-    pushEnabled: boolean("push_enabled").notNull().default(true),
-
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
   },
   (table) => [
     index("notification_preferences_user_id_idx").on(table.userId),

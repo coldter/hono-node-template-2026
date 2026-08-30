@@ -32,9 +32,9 @@ const auditLogsHandler = app.openapi(
     // events) are dropped and subtracted from meta.total via the pagination seam.
     const paginated = createPaginatedResponse({
       data: result.data,
-      total: result.meta.total,
-      query,
       formatter: formatAuditLog,
+      query,
+      total: result.meta.total,
     });
 
     return c.json(paginated, 200);

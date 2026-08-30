@@ -49,9 +49,9 @@ describe("server bootstrap CORS guard", () => {
   it("should throw at module load when CORS_ORIGIN is an empty array", async () => {
     vi.doMock("@/env", () => ({
       env: {
-        CORS_ORIGIN: [],
-        BASE_PATH: "",
         APP_NAME: "App",
+        BASE_PATH: "",
+        CORS_ORIGIN: [],
       },
     }));
 
@@ -63,11 +63,11 @@ describe("server bootstrap CORS guard", () => {
   it("should throw at module load when CORS_ORIGIN is not an array", async () => {
     vi.doMock("@/env", () => ({
       env: {
+        APP_NAME: "App",
+        BASE_PATH: "",
         // Simulate misconfigured env where CORS_ORIGIN parse produced a non-array.
         // boundary: deliberately mistyped to verify the runtime guard.
         CORS_ORIGIN: undefined,
-        BASE_PATH: "",
-        APP_NAME: "App",
       },
     }));
 
@@ -79,9 +79,9 @@ describe("server bootstrap CORS guard", () => {
   it("should boot successfully when CORS_ORIGIN contains at least one origin", async () => {
     vi.doMock("@/env", () => ({
       env: {
-        CORS_ORIGIN: ["https://example.com"],
-        BASE_PATH: "",
         APP_NAME: "App",
+        BASE_PATH: "",
+        CORS_ORIGIN: ["https://example.com"],
       },
     }));
 

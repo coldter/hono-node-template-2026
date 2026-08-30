@@ -38,8 +38,8 @@ export function AppearanceForm() {
   };
 
   const form = useForm<AppearanceFormValues>({
-    resolver: zodResolver(appearanceFormSchema),
     defaultValues,
+    resolver: zodResolver(appearanceFormSchema),
   });
 
   function onSubmit(data: AppearanceFormValues) {

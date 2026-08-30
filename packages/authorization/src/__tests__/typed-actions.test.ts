@@ -6,11 +6,11 @@ import type { Principal } from "../types";
 const NO_RESOURCE_LOADED = /no resource was loaded/;
 
 const auth = createAuthSchema({
+  globalPolicies: () => [],
+  principal: { status: principalAttribute<string>() },
+  relations: [],
   roles: ["admin", "user"],
   systemAdminRoles: ["admin"],
-  relations: [],
-  principal: { status: principalAttribute<string>() },
-  globalPolicies: () => [],
 });
 
 interface UserResource {
@@ -34,9 +34,9 @@ const userResource = auth.createResource<
 const registry = auth.buildRegistry({ user: userResource });
 
 const adminPrincipal: Principal = {
+  attributes: { status: "active" },
   id: "usr_admin",
   roles: ["admin"],
-  attributes: { status: "active" },
 };
 
 describe("typed actions (Change 1)", () => {
@@ -97,7 +97,7 @@ describe("typed actions (Change 1)", () => {
 
     // sanity: matching shape compiles
     const mw = authorize("user", "view", {
-      loadResource: async () => ({ id: "u1", createdBy: "u1" }),
+      loadResource: async () => ({ createdBy: "u1", id: "u1" }),
     });
     expect(mw).toBeDefined();
 

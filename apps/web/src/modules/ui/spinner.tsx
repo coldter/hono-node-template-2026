@@ -3,30 +3,30 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 const spinnerVariants = cva("", {
+  defaultVariants: {
+    size: "sm",
+    speed: "normal",
+    variant: "default",
+  },
   variants: {
     size: {
-      xs: "h-3 w-3",
-      sm: "h-4 w-4",
-      md: "h-6 w-6",
       lg: "h-8 w-8",
+      md: "h-6 w-6",
+      sm: "h-4 w-4",
       xl: "h-12 w-12",
+      xs: "h-3 w-3",
+    },
+    speed: {
+      fast: "[animation-duration:0.5s]",
+      normal: "[animation-duration:1s]",
+      slow: "[animation-duration:2s]",
     },
     variant: {
       default: "text-muted-foreground",
+      destructive: "text-destructive",
       primary: "text-primary",
       white: "text-white",
-      destructive: "text-destructive",
     },
-    speed: {
-      slow: "[animation-duration:2s]",
-      normal: "[animation-duration:1s]",
-      fast: "[animation-duration:0.5s]",
-    },
-  },
-  defaultVariants: {
-    size: "sm",
-    variant: "default",
-    speed: "normal",
   },
 });
 
@@ -45,7 +45,7 @@ const Spinner = ({
   type = "circle",
   ...props
 }: SpinnerProps) => {
-  const baseClasses = spinnerVariants({ size, variant, speed });
+  const baseClasses = spinnerVariants({ size, speed, variant });
   const animationClass = type === "pulse" ? "animate-pulse" : "animate-spin";
   const spinnerClasses = cn(baseClasses, animationClass, className);
 

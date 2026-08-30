@@ -29,11 +29,11 @@ import { sessionQueryOptions } from "@/query/session-query";
 
 const changePasswordSchema = z
   .object({
+    confirmPassword: z.string().min(1, "Please confirm your new password."),
     currentPassword: z.string().min(1, "Current password is required."),
     newPassword: z
       .string()
       .min(8, "New password must be at least 8 characters."),
-    confirmPassword: z.string().min(1, "Please confirm your new password."),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match.",
@@ -47,12 +47,12 @@ export function ChangePasswordDialog() {
   const queryClient = useQueryClient();
 
   const form = useForm<ChangePasswordValues>({
-    resolver: zodResolver(changePasswordSchema),
     defaultValues: {
+      confirmPassword: "",
       currentPassword: "",
       newPassword: "",
-      confirmPassword: "",
     },
+    resolver: zodResolver(changePasswordSchema),
   });
 
   async function onSubmit(data: ChangePasswordValues) {

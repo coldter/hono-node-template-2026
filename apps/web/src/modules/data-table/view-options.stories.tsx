@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, useTable } from "@tanstack/react-table";
+import type { DataTableFeatures } from "./features";
+import { dataTableFeatures } from "./features";
 import { DataTableViewOptions } from "./view-options";
 
 type Row = {
@@ -16,15 +14,15 @@ type Row = {
 
 const rows: Row[] = [
   {
-    name: "Ada",
-    email: "ada@example.com",
-    status: "active",
-    role: "admin",
     createdAt: "2024-01-01",
+    email: "ada@example.com",
+    name: "Ada",
+    role: "admin",
+    status: "active",
   },
 ];
 
-const columns: ColumnDef<Row>[] = [
+const columns: ColumnDef<DataTableFeatures, Row>[] = [
   { accessorKey: "name", header: "Name" },
   { accessorKey: "email", header: "Email" },
   { accessorKey: "status", header: "Status" },
@@ -33,10 +31,10 @@ const columns: ColumnDef<Row>[] = [
 ];
 
 function ViewOptionsHost() {
-  const table = useReactTable({
-    data: rows,
+  const table = useTable({
     columns,
-    getCoreRowModel: getCoreRowModel(),
+    data: rows,
+    features: dataTableFeatures,
   });
   return (
     <div className="flex justify-end">
@@ -46,18 +44,18 @@ function ViewOptionsHost() {
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/ViewOptions",
   component: ViewOptionsHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Dropdown to toggle column visibility. Hidden on small screens; lives at the end of `DataTableToolbar`.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/ViewOptions",
 } satisfies Meta<typeof ViewOptionsHost>;
 
 export default meta;

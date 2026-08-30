@@ -9,12 +9,6 @@ import { queryClient } from "@/query/query-client";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({
-  scrollRestoration: true,
-  scrollRestorationBehavior: "smooth",
-  defaultHashScrollIntoView: { behavior: "smooth" },
-  routeTree,
-  defaultPendingComponent: () => <FullPageLoadingState />,
-  defaultErrorComponent: AppError,
   context: {
     queryClient,
     // Session is resolved per-navigation by route beforeLoad hooks, never at
@@ -22,9 +16,15 @@ const router = createRouter({
     // stale session for the lifetime of the tab.
     session: null,
   },
+  defaultErrorComponent: AppError,
+  defaultHashScrollIntoView: { behavior: "smooth" },
+  defaultPendingComponent: () => <FullPageLoadingState />,
   defaultPendingMinMs: 0,
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
+  routeTree,
+  scrollRestoration: true,
+  scrollRestorationBehavior: "smooth",
 });
 
 declare module "@tanstack/react-router" {

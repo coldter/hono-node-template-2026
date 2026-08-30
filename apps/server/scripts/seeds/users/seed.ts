@@ -29,13 +29,13 @@ export const userSeed = async () => {
   const [user] = await db
     .insert(users)
     .values({
-      id: userId,
       email: defaultAdminUser.email,
-      name: defaultAdminUser.name,
       emailVerified: true,
-      status: "active",
-      roleSlugs: [SYSTEM_ROLES.ADMIN.slug],
       failedLoginAttempts: 0,
+      id: userId,
+      name: defaultAdminUser.name,
+      roleSlugs: [SYSTEM_ROLES.ADMIN.slug],
+      status: "active",
     })
     .returning();
 
@@ -46,11 +46,11 @@ export const userSeed = async () => {
 
   // Insert credential account for password-based login
   await db.insert(accounts).values({
-    id: createAccountId(),
     accountId: userId,
+    id: createAccountId(),
+    password: hashedPassword,
     providerId: "credential",
     userId,
-    password: hashedPassword,
   });
 
   console.info(

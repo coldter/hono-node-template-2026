@@ -8,6 +8,7 @@ export const sortOrderSchema = z
 export type SortOrder = z.infer<typeof sortOrderSchema>;
 
 export const paginationQuerySchema = z.object({
+  order: sortOrderSchema,
   page: z.coerce
     .number()
     .min(1)
@@ -25,16 +26,11 @@ export const paginationQuerySchema = z.object({
     .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
     .optional()
     .meta({ description: "Sort by column" }),
-  order: sortOrderSchema,
 });
 
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 
 export const paginationMetaSchema = z.object({
-  total: z.number().meta({ description: "Total number of items" }),
-  page: z.number().meta({ description: "Current page number" }),
-  perPage: z.number().meta({ description: "Items per page" }),
-  pageCount: z.number().meta({ description: "Total number of pages" }),
   hasNext: z.boolean().meta({ description: "Whether there is a next page" }),
   hasPrev: z
     .boolean()
@@ -43,10 +39,14 @@ export const paginationMetaSchema = z.object({
     .number()
     .nullable()
     .meta({ description: "Next page number or null" }),
+  page: z.number().meta({ description: "Current page number" }),
+  pageCount: z.number().meta({ description: "Total number of pages" }),
+  perPage: z.number().meta({ description: "Items per page" }),
   prevPage: z
     .number()
     .nullable()
     .meta({ description: "Previous page number or null" }),
+  total: z.number().meta({ description: "Total number of items" }),
 });
 
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
@@ -68,10 +68,10 @@ export interface PaginatedResponse<T> {
 }
 
 export const PAGINATION_DEFAULTS = {
-  PAGE: 1,
-  PER_PAGE: 20,
   MAX_PER_PAGE: 100,
   ORDER: "desc" as SortOrder,
+  PAGE: 1,
+  PER_PAGE: 20,
 } as const;
 
 export function getPaginationParams(query: Partial<PaginationQuery>) {
@@ -81,10 +81,10 @@ export function getPaginationParams(query: Partial<PaginationQuery>) {
     PAGINATION_DEFAULTS.MAX_PER_PAGE
   );
   const offset = (page - 1) * perPage;
-  const sort = query.sort;
+  const { sort } = query;
   const order = query.order ?? PAGINATION_DEFAULTS.ORDER;
 
-  return { page, perPage, offset, sort, order } as const;
+  return { offset, order, page, perPage, sort } as const;
 }
 
 // Formatter may return null/undefined to drop a row (e.g. enum drift). When rows
@@ -126,14 +126,14 @@ export function createPaginatedResponse<T, R>(options: {
     return {
       data: formatted,
       meta: {
-        total: adjustedTotal,
-        page,
-        perPage,
-        pageCount,
         hasNext: page < pageCount,
         hasPrev: page > 1,
         nextPage: page < pageCount ? page + 1 : null,
+        page,
+        pageCount,
+        perPage,
         prevPage: page > 1 ? page - 1 : null,
+        total: adjustedTotal,
       },
     };
   }
@@ -142,14 +142,14 @@ export function createPaginatedResponse<T, R>(options: {
   return {
     data,
     meta: {
-      total,
-      page,
-      perPage,
-      pageCount,
       hasNext: page < pageCount,
       hasPrev: page > 1,
       nextPage: page < pageCount ? page + 1 : null,
+      page,
+      pageCount,
+      perPage,
       prevPage: page > 1 ? page - 1 : null,
+      total,
     },
   };
 }

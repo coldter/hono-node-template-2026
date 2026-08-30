@@ -3,18 +3,18 @@ import { useEffect, useRef } from "react";
 import { SkipToMain } from "./skip-to-main";
 
 const meta = {
-  title: "Common/SkipToMain",
   component: SkipToMain,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Accessibility affordance that appears at the top of the page only when focused. Jumps keyboard users past navigation to the main content.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Common/SkipToMain",
 } satisfies Meta<typeof SkipToMain>;
 
 export default meta;

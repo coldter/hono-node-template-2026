@@ -127,17 +127,17 @@ function Carousel({
   return (
     <CarouselContext.Provider
       value={{
-        carouselRef,
         api,
+        autoplay,
+        autoplayDelay,
+        canScrollNext,
+        canScrollPrev,
+        carouselRef,
         opts,
         orientation:
           orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
-        scrollPrev,
         scrollNext,
-        canScrollPrev,
-        canScrollNext,
-        autoplay,
-        autoplayDelay,
+        scrollPrev,
       }}
     >
       <section

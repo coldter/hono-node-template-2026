@@ -9,23 +9,23 @@ import {
 
 const auditLogsRoutes = {
   listAuditLogs: createRouteConfig({
-    operationId: "listAuditLogs",
-    method: "get",
-    path: "/",
-    guard: [authorize("audit-log", "list")],
-    tags: ["audit-logs"],
-    summary: "List audit logs",
     description: "Returns a paginated list of audit logs with optional filters",
+    guard: [authorize("audit-log", "list")],
+    method: "get",
+    operationId: "listAuditLogs",
+    path: "/",
     request: { query: listAuditLogsQuerySchema },
     responses: {
       200: {
-        description: "Audit logs",
         content: {
           "application/json": { schema: listAuditLogsResponseSchema },
         },
+        description: "Audit logs",
       },
       ...commonErrorResponses,
     },
+    summary: "List audit logs",
+    tags: ["audit-logs"],
   }),
 } as const;
 

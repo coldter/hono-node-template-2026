@@ -8,10 +8,10 @@ import {
 import { TopNav } from "./top-nav";
 
 const links = [
-  { title: "Overview", href: "/", isActive: true },
-  { title: "Customers", href: "/customers", isActive: false },
-  { title: "Products", href: "/products", isActive: false },
-  { title: "Settings", href: "/settings", isActive: false, disabled: true },
+  { href: "/", isActive: true, title: "Overview" },
+  { href: "/customers", isActive: false, title: "Customers" },
+  { href: "/products", isActive: false, title: "Products" },
+  { disabled: true, href: "/settings", isActive: false, title: "Settings" },
 ];
 
 function renderWithRouter() {
@@ -23,28 +23,28 @@ function renderWithRouter() {
     ),
   });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Features/Layout/TopNav",
+  args: {
+    links,
+  },
   component: TopNav,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Horizontal navigation used in authenticated layouts. Collapses to a dropdown on small screens and marks the active link.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
-  args: {
-    links,
-  },
+  title: "Features/Layout/TopNav",
 } satisfies Meta<typeof TopNav>;
 
 export default meta;

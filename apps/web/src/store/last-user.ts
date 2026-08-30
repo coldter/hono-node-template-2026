@@ -19,27 +19,26 @@ export const useLastUserStore = create<LastUserStoreState>()(
   devtools(
     persist(
       (set) => ({
+        clearLastUser: () => {
+          set({ lastUser: null });
+        },
         lastUser: null,
 
         setLastUser: (user: LastUser | SessionUser) => {
           set({
             lastUser: {
-              id: user.id,
               email: user.email,
-              name: user.name,
+              id: user.id,
               image: user.image ?? null,
+              name: user.name,
             },
           });
-        },
-
-        clearLastUser: () => {
-          set({ lastUser: null });
         },
       }),
       {
         name: "last-user-store",
-        version: 1,
         storage: createJSONStorage(() => localStorage),
+        version: 1,
       }
     ),
     { name: "LastUserStore" }

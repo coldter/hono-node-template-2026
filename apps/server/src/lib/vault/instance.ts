@@ -18,13 +18,13 @@ function buildProviderConfig(): ProviderConfig {
             "[warn] VAULT_MASTER_KEY not set. Using generated key for this session."
           );
           console.warn(`   Add to .env: VAULT_MASTER_KEY=${generatedKey}`);
-          return { provider: "local", masterKey: generatedKey };
+          return { masterKey: generatedKey, provider: "local" };
         }
         throw new Error(
           "VAULT_MASTER_KEY is required for local encryption provider"
         );
       }
-      return { provider: "local", masterKey: key };
+      return { masterKey: key, provider: "local" };
     }
 
     case "aws-kms":
@@ -58,25 +58,24 @@ export function getVault(): Vault {
 }
 
 export const vault = {
-  get instance(): Vault {
-    return getVault();
-  },
+  decrypt: (
+    ...args: Parameters<Vault["decrypt"]>
+  ): ReturnType<Vault["decrypt"]> => getVault().decrypt(...args),
+
+  decryptRaw: (...args: Parameters<Vault["decryptRaw"]>) =>
+    getVault().decryptRaw(...args),
 
   encrypt: (
     ...args: Parameters<Vault["encrypt"]>
   ): ReturnType<Vault["encrypt"]> => getVault().encrypt(...args),
 
-  decrypt: (
-    ...args: Parameters<Vault["decrypt"]>
-  ): ReturnType<Vault["decrypt"]> => getVault().decrypt(...args),
-
   encryptRaw: (...args: Parameters<Vault["encryptRaw"]>) =>
     getVault().encryptRaw(...args),
 
-  decryptRaw: (...args: Parameters<Vault["decryptRaw"]>) =>
-    getVault().decryptRaw(...args),
-
   hash: (...args: Parameters<Vault["hash"]>) => getVault().hash(...args),
+  get instance(): Vault {
+    return getVault();
+  },
 
   verifyHash: (...args: Parameters<Vault["verifyHash"]>) =>
     getVault().verifyHash(...args),

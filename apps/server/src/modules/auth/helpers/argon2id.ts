@@ -10,10 +10,10 @@ import { env } from "@/env";
 export const hashPassword = async (password: string) =>
   await hash(password, {
     memoryCost: 19_456,
-    timeCost: 2,
     outputLen: 32,
     parallelism: 1,
     secret: Buffer.from(env.BETTER_AUTH_SECRET, "utf-8"),
+    timeCost: 2,
   });
 
 /**

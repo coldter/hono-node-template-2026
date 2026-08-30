@@ -13,9 +13,9 @@ describe("principalNotActive", () => {
   it("returns true when status is not active", () => {
     const ctx: ConditionContext = {
       principal: {
+        attributes: { status: "inactive" },
         id: "u1",
         roles: ["user"],
-        attributes: { status: "inactive" },
       },
     };
     expect(condition.evaluate(ctx)).toBe(true);
@@ -24,9 +24,9 @@ describe("principalNotActive", () => {
   it("returns false when status is active", () => {
     const ctx: ConditionContext = {
       principal: {
+        attributes: { status: "active" },
         id: "u1",
         roles: ["user"],
-        attributes: { status: "active" },
       },
     };
     expect(condition.evaluate(ctx)).toBe(false);
@@ -34,7 +34,7 @@ describe("principalNotActive", () => {
 
   it("returns true when status is missing", () => {
     const ctx: ConditionContext = {
-      principal: { id: "u1", roles: ["user"], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: ["user"] },
     };
     expect(condition.evaluate(ctx)).toBe(true);
   });
@@ -46,7 +46,7 @@ describe("createOwnerCondition", () => {
 
   it("returns true when principal is owner", () => {
     const ctx: ConditionContext<{ createdBy: string }> = {
-      principal: { id: "u1", roles: ["user"], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: ["user"] },
       resource: { createdBy: "u1" },
     };
     expect(condition.evaluate(ctx)).toBe(true);
@@ -54,7 +54,7 @@ describe("createOwnerCondition", () => {
 
   it("returns false when principal is not owner", () => {
     const ctx: ConditionContext<{ createdBy: string }> = {
-      principal: { id: "u1", roles: ["user"], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: ["user"] },
       resource: { createdBy: "u2" },
     };
     expect(condition.evaluate(ctx)).toBe(false);
@@ -62,7 +62,7 @@ describe("createOwnerCondition", () => {
 
   it("returns false when no resource", () => {
     const ctx: ConditionContext<{ createdBy: string }> = {
-      principal: { id: "u1", roles: ["user"], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: ["user"] },
     };
     expect(condition.evaluate(ctx)).toBe(false);
   });
@@ -73,7 +73,7 @@ describe("createSelfTargetCondition", () => {
 
   it("returns true when resource id matches principal id", () => {
     const ctx: ConditionContext<{ id: string }> = {
-      principal: { id: "u1", roles: [], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: [] },
       resource: { id: "u1" },
     };
     expect(condition.evaluate(ctx)).toBe(true);
@@ -81,7 +81,7 @@ describe("createSelfTargetCondition", () => {
 
   it("returns false when ids differ", () => {
     const ctx: ConditionContext<{ id: string }> = {
-      principal: { id: "u1", roles: [], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: [] },
       resource: { id: "u2" },
     };
     expect(condition.evaluate(ctx)).toBe(false);
@@ -95,7 +95,7 @@ describe("createPredicateCondition", () => {
       "custom:draft-check"
     );
     const ctx: ConditionContext<{ status: string }> = {
-      principal: { id: "u1", roles: [], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: [] },
       resource: { status: "draft" },
     };
     expect(condition.evaluate(ctx)).toBe(true);
@@ -107,7 +107,7 @@ describe("createPredicateCondition", () => {
       "custom:async-check"
     );
     const ctx: ConditionContext = {
-      principal: { id: "u1", roles: [], attributes: {} },
+      principal: { attributes: {}, id: "u1", roles: [] },
     };
     await expect(condition.evaluate(ctx)).resolves.toBe(true);
   });

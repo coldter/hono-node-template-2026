@@ -21,25 +21,25 @@ function renderWithProviders() {
     ),
   });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Features/Layout/AppTitle",
   component: AppTitle,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Sidebar header with the app logo, app name, and company name. Hides text when the sidebar is collapsed.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Features/Layout/AppTitle",
 } satisfies Meta<typeof AppTitle>;
 
 export default meta;

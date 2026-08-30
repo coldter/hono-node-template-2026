@@ -14,18 +14,18 @@ import {
 } from "./sheet";
 
 const meta = {
-  title: "UI/Sheet",
   component: Sheet,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Slide-in panel anchored to an edge of the viewport. Built on Radix Dialog; supports top, right, bottom, and left sides.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "UI/Sheet",
 } satisfies Meta<typeof Sheet>;
 
 export default meta;

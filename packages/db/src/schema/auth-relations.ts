@@ -10,16 +10,16 @@ import { generatePrefixedCuid, ID_PREFIXES } from "../ids";
 export const authRelationsTable = pgTable(
   "auth_relations",
   {
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdBy: text("created_by").notNull(),
     id: text("id")
       .primaryKey()
       .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.relation)),
-    subjectType: text("subject_type").notNull(),
-    subjectId: text("subject_id").notNull(),
-    relation: text("relation").notNull(),
-    objectType: text("object_type").notNull(),
     objectId: text("object_id").notNull(),
-    createdBy: text("created_by").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    objectType: text("object_type").notNull(),
+    relation: text("relation").notNull(),
+    subjectId: text("subject_id").notNull(),
+    subjectType: text("subject_type").notNull(),
   },
   (t) => [
     uniqueIndex("auth_rel_unique").on(

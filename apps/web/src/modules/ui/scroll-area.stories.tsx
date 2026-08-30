@@ -6,24 +6,24 @@ const tags = Array.from({ length: 50 }, (_, i) => `Tag ${i + 1}`);
 const wideItems = Array.from({ length: 30 }, (_, i) => `Column ${i + 1}`);
 
 const meta = {
-  title: "UI/ScrollArea",
-  component: ScrollArea,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Styled scroll container with custom scrollbar. Supports vertical and horizontal orientations.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
     orientation: {
       control: "radio",
       options: ["vertical", "horizontal"],
     },
   },
+  component: ScrollArea,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Styled scroll container with custom scrollbar. Supports vertical and horizontal orientations.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "UI/ScrollArea",
 } satisfies Meta<typeof ScrollArea>;
 
 export default meta;

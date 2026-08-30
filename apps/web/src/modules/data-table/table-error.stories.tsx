@@ -33,18 +33,18 @@ function ErrorHost({ message, colSpan }: ErrorHostProps) {
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/TableError",
   component: ErrorHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Row-level error state rendered inside the table body when the data query fails.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/TableError",
 } satisfies Meta<typeof ErrorHost>;
 
 export default meta;

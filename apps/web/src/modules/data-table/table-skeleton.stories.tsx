@@ -33,18 +33,18 @@ function SkeletonHost({ columnCount, rowCount }: SkeletonHostProps) {
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/TableSkeleton",
   component: SkeletonHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Row-level loading skeleton rendered inside the table body while data is loading.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/TableSkeleton",
 } satisfies Meta<typeof SkeletonHost>;
 
 export default meta;

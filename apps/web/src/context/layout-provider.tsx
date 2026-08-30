@@ -50,13 +50,13 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
 
   const contextValue = useMemo<LayoutContextType>(
     () => ({
-      resetLayout,
-      defaultCollapsible: DEFAULT_COLLAPSIBLE,
       collapsible,
-      setCollapsible,
+      defaultCollapsible: DEFAULT_COLLAPSIBLE,
       defaultVariant: DEFAULT_VARIANT,
-      variant,
+      resetLayout,
+      setCollapsible,
       setVariant,
+      variant,
     }),
     [collapsible, resetLayout, setCollapsible, setVariant, variant]
   );

@@ -6,10 +6,10 @@ export {
 } from "@repo/shared/users";
 
 export const USERS_SORT_COLUMNS = {
-  name: "name",
-  email: "email",
-  status: "status",
   createdAt: "createdAt",
+  email: "email",
+  name: "name",
+  status: "status",
   updatedAt: "updatedAt",
 } as const;
 

@@ -35,28 +35,28 @@ const hatchetLogger: LogConstructor = (context) => {
   const label = `hatchet:${context}`;
 
   const withMeta = (extra?: LogExtra) => ({
-    label,
     extra,
+    label,
   });
 
   return {
     debug(message, extra) {
       workFlowLogger.debug(message, withMeta(extra));
     },
-    info(message, extra) {
-      workFlowLogger.info(message, withMeta(extra));
-    },
-    green(message, extra) {
-      workFlowLogger.info(message, withMeta(extra));
-    },
-    warn(message, error, extra) {
-      workFlowLogger.warn(message, {
+    error(message, error, extra) {
+      workFlowLogger.error(message, {
         ...withMeta(extra),
         error,
       });
     },
-    error(message, error, extra) {
-      workFlowLogger.error(message, {
+    green(message, extra) {
+      workFlowLogger.info(message, withMeta(extra));
+    },
+    info(message, extra) {
+      workFlowLogger.info(message, withMeta(extra));
+    },
+    warn(message, error, extra) {
+      workFlowLogger.warn(message, {
         ...withMeta(extra),
         error,
       });
@@ -71,9 +71,9 @@ export function getHatchet(): HatchetClient | null {
 
   if (!hatchetClient) {
     hatchetClient = Hatchet.init({
-      token: env.HATCHET_CLIENT_TOKEN,
       log_level: toHatchetLogLevel(env.WORK_FLOWS_LOG_LEVEL),
       logger: hatchetLogger,
+      token: env.HATCHET_CLIENT_TOKEN,
     });
     logger.info("Hatchet client initialized");
   }

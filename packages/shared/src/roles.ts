@@ -1,13 +1,13 @@
 export const SYSTEM_ROLES = {
   ADMIN: {
-    slug: "admin",
-    name: "Admin",
     description: "Full system access",
+    name: "Admin",
+    slug: "admin",
   },
   USER: {
-    slug: "user",
-    name: "User",
     description: "Standard app user",
+    name: "User",
+    slug: "user",
   },
 } as const;
 

@@ -4,18 +4,18 @@ import { Button } from "./button";
 import { Toaster } from "./sonner";
 
 const meta = {
-  title: "UI/Toaster",
   component: Toaster,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Themed wrapper around sonner's Toaster. Trigger toasts via the imperative toast() API.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Toaster",
 } satisfies Meta<typeof Toaster>;
 
 export default meta;
@@ -77,9 +77,9 @@ export const PromiseToast: Story = {
             setTimeout(() => resolve({ name: "Report.pdf" }), 1500);
           });
           toast.promise(work, {
+            error: "Upload failed",
             loading: "Uploading file...",
             success: (data) => `${data.name} uploaded successfully`,
-            error: "Upload failed",
           });
         }}
       >

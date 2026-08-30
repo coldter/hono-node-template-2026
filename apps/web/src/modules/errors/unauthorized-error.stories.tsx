@@ -10,25 +10,25 @@ import { UnauthorisedError } from "./unauthorized-error";
 function renderWithRouter() {
   const rootRoute = createRootRoute({ component: UnauthorisedError });
   const router = createRouter({
-    routeTree: rootRoute,
     history: createMemoryHistory({ initialEntries: ["/"] }),
+    routeTree: rootRoute,
   });
   return <RouterProvider router={router} />;
 }
 
 const meta = {
-  title: "Errors/UnauthorizedError",
   component: UnauthorisedError,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "401 full-page view shown when a session is required but missing or invalid.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Errors/UnauthorizedError",
 } satisfies Meta<typeof UnauthorisedError>;
 
 export default meta;

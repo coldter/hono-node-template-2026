@@ -28,16 +28,16 @@ export class NodemailerTransport implements EmailTransport {
 
   private buildMailOptions(options: SendEmailOptions) {
     return {
+      bcc: options.bcc,
+      cc: options.cc,
       from: options.from
         ? `${options.from.name} <${options.from.address}>`
         : undefined,
-      to: options.to,
-      subject: options.subject,
       html: options.html,
-      text: options.text,
-      cc: options.cc,
-      bcc: options.bcc,
       replyTo: options.replyTo,
+      subject: options.subject,
+      text: options.text,
+      to: options.to,
     };
   }
 
@@ -48,8 +48,8 @@ export class NodemailerTransport implements EmailTransport {
       const info = await this.transporter.sendMail(mailOptions);
 
       return {
-        success: true,
         messageId: info.messageId,
+        success: true,
       };
     } catch (error) {
       const normalizedError =
@@ -95,8 +95,8 @@ export class NodemailerTransport implements EmailTransport {
           }
 
           return {
-            success: true,
             messageId: info.messageId,
+            success: true,
           };
         } catch (retryError) {
           const normalizedRetryError =
@@ -147,8 +147,8 @@ export class NodemailerTransport implements EmailTransport {
               const info = await ipv4Transport.sendMail(mailOptions);
 
               return {
-                success: true,
                 messageId: info.messageId,
+                success: true,
               };
             } finally {
               try {
@@ -196,8 +196,8 @@ export class NodemailerTransport implements EmailTransport {
 
       console.error("Nodemailer send failed:", enrichedError);
       return {
-        success: false,
         error: enrichedError,
+        success: false,
       };
     }
   }

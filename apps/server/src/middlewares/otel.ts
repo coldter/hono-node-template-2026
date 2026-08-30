@@ -18,22 +18,20 @@ export const customOtelMiddleware = createMiddleware<Env>(async (c, next) => {
     return next();
   }
 
-  const spanContext = httpSpan.spanContext();
-  const traceId = spanContext.traceId;
-  const spanId = spanContext.spanId;
+  const { traceId, spanId } = httpSpan.spanContext();
 
   c.set("otel", {
-    traceId,
     spanId,
+    traceId,
   });
 
   return tracer.startActiveSpan(
     "request.processing",
     {
       attributes: {
-        "http.request.url": sanitizeUrl(c.req.url),
-        "http.request.path": c.req.path,
         "http.request.method": c.req.method,
+        "http.request.path": c.req.path,
+        "http.request.url": sanitizeUrl(c.req.url),
       },
     },
     async (businessSpan: Span) => {
@@ -48,7 +46,7 @@ export const customOtelMiddleware = createMiddleware<Env>(async (c, next) => {
           businessSpan.setAttribute("user.id", user.id);
         }
 
-        const status = c.res.status;
+        const { status } = c.res;
         businessSpan.setAttribute("http.response.status_code", status);
 
         if (status >= 500) {

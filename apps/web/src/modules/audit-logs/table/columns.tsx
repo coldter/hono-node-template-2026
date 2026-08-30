@@ -4,6 +4,7 @@ import { Bot, Globe, User } from "lucide-react";
 import type { ListAuditLogsResponse } from "@/api.gen/types.gen";
 import { cn } from "@/lib/utils";
 import { DataTableColumnHeader } from "@/modules/data-table/column-header";
+import type { DataTableFeatures } from "@/modules/data-table/features";
 import { Badge } from "@/modules/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/modules/ui/tooltip";
 import { EventIcon } from "../event-icon";
@@ -18,17 +19,14 @@ import {
 export type AuditLog = ListAuditLogsResponse["data"][number];
 
 const actorTypeIcons: Record<string, typeof User> = {
-  user: User,
-  system: Bot,
   api: Globe,
+  system: Bot,
+  user: User,
 };
 
-export const auditLogsColumns: ColumnDef<AuditLog>[] = [
+export const auditLogsColumns: ColumnDef<DataTableFeatures, AuditLog>[] = [
   {
     accessorKey: "event",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Event" />
-    ),
     cell: ({ row }) => {
       const event = row.getValue<string>("event");
       const style = getEventBadgeStyle(event);
@@ -64,16 +62,15 @@ export const auditLogsColumns: ColumnDef<AuditLog>[] = [
       );
     },
     enableSorting: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Event" />
+    ),
     size: 320,
   },
   {
     accessorKey: "actorType",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Actor" />
-    ),
     cell: ({ row }) => {
-      const actorType = row.original.actorType;
-      const actorId = row.original.actorId;
+      const { actorId, actorType } = row.original;
       const ActorIcon = actorTypeIcons[actorType] ?? User;
       return (
         <div className="flex items-center gap-2">
@@ -105,16 +102,15 @@ export const auditLogsColumns: ColumnDef<AuditLog>[] = [
       );
     },
     enableSorting: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Actor" />
+    ),
     size: 180,
   },
   {
     accessorKey: "targetType",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Target" />
-    ),
     cell: ({ row }) => {
-      const targetType = row.original.targetType;
-      const targetId = row.original.targetId;
+      const { targetId, targetType } = row.original;
       return (
         <div className="flex flex-col">
           <span className="text-xs font-medium">
@@ -138,13 +134,13 @@ export const auditLogsColumns: ColumnDef<AuditLog>[] = [
       );
     },
     enableSorting: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Target" />
+    ),
     size: 160,
   },
   {
     accessorKey: "ipAddress",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="IP Address" />
-    ),
     cell: ({ row }) => {
       const ip = row.getValue<string | null>("ipAddress");
       return ip ? (
@@ -156,13 +152,13 @@ export const auditLogsColumns: ColumnDef<AuditLog>[] = [
       );
     },
     enableSorting: false,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="IP Address" />
+    ),
     size: 140,
   },
   {
     accessorKey: "createdAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="When" />
-    ),
     cell: ({ row }) => {
       const date = row.getValue<string>("createdAt");
       const dateObj = new Date(date);
@@ -178,6 +174,9 @@ export const auditLogsColumns: ColumnDef<AuditLog>[] = [
       );
     },
     enableSorting: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="When" />
+    ),
     size: 140,
   },
 ];

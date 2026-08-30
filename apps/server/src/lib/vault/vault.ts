@@ -27,11 +27,14 @@ export class VaultError extends Error {
   readonly code: VaultErrorCode;
   override readonly cause?: Error;
 
-  constructor(message: string, code: VaultErrorCode, cause?: Error) {
-    super(message);
+  constructor(
+    message: string,
+    code: VaultErrorCode,
+    options?: { cause?: unknown }
+  ) {
+    super(message, options?.cause ? { cause: options.cause } : undefined);
     this.name = "VaultError";
     this.code = code;
-    this.cause = cause;
   }
 }
 
@@ -66,9 +69,9 @@ export class Vault {
       const hash = hashData(encrypted);
 
       const result: VaultEncryptResult<T> = {
+        data,
         encrypted,
         hash,
-        data,
       };
 
       if (options.includeFingerprint && schema.fingerprint) {
@@ -83,10 +86,11 @@ export class Vault {
       if (error instanceof VaultError) {
         throw error;
       }
+      // biome-ignore lint/style/useErrorCause: cause is passed via positional options
       throw new VaultError(
         `Encryption failed: ${error instanceof Error ? error.message : "Unknown error"}`,
         "ENCRYPTION_FAILED",
-        error instanceof Error ? error : undefined
+        { cause: error }
       );
     }
   }
@@ -103,22 +107,23 @@ export class Vault {
 
       return {
         data,
-        schema: schema.id,
         metadata: {
-          version: envelope.v,
           algorithm: envelope.alg,
-          keyId: envelope.kid,
           createdAt: new Date(envelope.ts),
+          keyId: envelope.kid,
+          version: envelope.v,
         },
+        schema: schema.id,
       };
     } catch (error) {
       if (error instanceof VaultError) {
         throw error;
       }
+      // biome-ignore lint/style/useErrorCause: cause is passed via positional options
       throw new VaultError(
         `Decryption failed: ${error instanceof Error ? error.message : "Unknown error"}`,
         "DECRYPTION_FAILED",
-        error instanceof Error ? error : undefined
+        { cause: error }
       );
     }
   }
@@ -179,10 +184,12 @@ export class Vault {
     let parsed: unknown;
     try {
       parsed = JSON.parse(encrypted);
-    } catch {
+    } catch (error) {
+      // biome-ignore lint/style/useErrorCause: cause is passed via positional options
       throw new VaultError(
         "Invalid JSON in encrypted envelope",
-        "INVALID_ENVELOPE"
+        "INVALID_ENVELOPE",
+        { cause: error }
       );
     }
 

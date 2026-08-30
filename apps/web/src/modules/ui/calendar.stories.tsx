@@ -4,18 +4,18 @@ import type { DateRange } from "react-day-picker";
 import { Calendar } from "./calendar";
 
 const meta = {
-  title: "UI/Calendar",
   component: Calendar,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Wraps react-day-picker with shadcn styles. Supports single-date, multi-date, and range selection, plus disabled dates via the `disabled` prop.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Calendar",
 } satisfies Meta<typeof Calendar>;
 
 export default meta;

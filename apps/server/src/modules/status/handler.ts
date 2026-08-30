@@ -16,9 +16,9 @@ const statusHandler = app
     const checks = await checkReadiness();
     const ready = checks.database && checks.redis !== false;
     if (!ready) {
-      return c.json({ status: "unavailable" as const, checks }, 503);
+      return c.json({ checks, status: "unavailable" as const }, 503);
     }
-    return c.json({ status: "ok" as const, checks }, 200);
+    return c.json({ checks, status: "ok" as const }, 200);
   });
 
 export default statusHandler;

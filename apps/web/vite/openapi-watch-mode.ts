@@ -7,8 +7,7 @@ import { openApiConfig } from "../openapi-ts.config";
 
 const isValidUrl = (str: string) => {
   try {
-    new URL(str);
-    return true;
+    return new URL(str) instanceof URL;
   } catch {
     return false;
   }
@@ -65,14 +64,7 @@ export const watchBackendOpenApi = (): Plugin => {
   let debounceTimer: NodeJS.Timeout | null = null;
 
   return {
-    name: "watch-backend-openapi",
     apply: "serve",
-    configureServer(server) {
-      viteServer = server;
-      inputFilePath = getConfigInputPath(openApiConfig.input);
-      outputPath = getConfigInputPath(openApiConfig.output);
-      previousHash = hashFile();
-    },
 
     buildStart() {
       if (!(inputFilePath && outputPath)) {
@@ -129,5 +121,12 @@ export const watchBackendOpenApi = (): Plugin => {
         watcher = null;
       }
     },
+    configureServer(server) {
+      viteServer = server;
+      inputFilePath = getConfigInputPath(openApiConfig.input);
+      outputPath = getConfigInputPath(openApiConfig.output);
+      previousHash = hashFile();
+    },
+    name: "watch-backend-openapi",
   };
 };

@@ -13,11 +13,11 @@ import {
 } from "@/utils/pagination";
 
 const ALLOWED_SORT_COLUMNS = {
-  event: auditLogs.event,
   actorType: auditLogs.actorType,
-  targetType: auditLogs.targetType,
-  ipAddress: auditLogs.ipAddress,
   createdAt: auditLogs.createdAt,
+  event: auditLogs.event,
+  ipAddress: auditLogs.ipAddress,
+  targetType: auditLogs.targetType,
 } as const;
 
 export const auditLogService = {
@@ -25,14 +25,14 @@ export const auditLogService = {
     const [log] = await executor
       .insert(auditLogs)
       .values({
-        event: input.event,
         actorId: input.actorId,
         actorType: input.actorType ?? "user",
+        event: input.event,
+        ipAddress: input.ipAddress,
+        metadata: input.metadata,
         targetId: input.targetId,
         targetType: input.targetType,
-        ipAddress: input.ipAddress,
         userAgent: input.userAgent,
-        metadata: input.metadata,
       })
       .returning();
     return log;
@@ -90,8 +90,8 @@ export const auditLogService = {
 
     return createPaginatedResponse({
       data,
-      total: countResult?.total ?? 0,
       query,
+      total: countResult?.total ?? 0,
     });
   },
 };

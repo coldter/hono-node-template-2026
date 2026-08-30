@@ -27,8 +27,8 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
           // user on the login page after an intentional sign-out.
           useAlertStore.getState().clearDownAlert();
           await navigate({
-            to: "/login",
             replace: true,
+            to: "/login",
           });
           // Only after the protected tree unmounts: clear() refires mounted
           // observers, whose refetches would 401 against the revoked cookie.

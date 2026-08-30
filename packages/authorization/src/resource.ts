@@ -288,21 +288,21 @@ export function createResourceDefinition<
   }
 ): ResourceDef<TResource, TRole, TActions[number]> {
   const builder = new PolicyBuilder<TResource, TRole, TRelation, TOrgRole>({
-    resolveOwner: config.resolveOwner,
     relations: config.relations,
-    validRelations: schemaOpts?.validRelations,
+    resolveOwner: config.resolveOwner,
     validOrgRoles: schemaOpts?.validOrgRoles,
+    validRelations: schemaOpts?.validRelations,
   });
 
   const policies = config.policies(builder);
 
   return {
-    name,
     actions: config.actions,
+    name,
     policies,
-    resolveOwner: config.resolveOwner,
-    resolveOrganization: config.resolveOrganization,
     relations: config.relations,
+    resolveOrganization: config.resolveOrganization,
+    resolveOwner: config.resolveOwner,
   };
 }
 

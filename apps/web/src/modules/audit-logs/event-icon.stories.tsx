@@ -25,25 +25,25 @@ const ALL_EVENTS = [
 ] as const;
 
 const meta = {
-  title: "Features/AuditLogs/EventIcon",
-  component: EventIcon,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Resolves an audit-log event name to the matching Lucide icon via `getEventIconName`. Falls back to `Activity` when the event is unknown.",
-      },
-    },
-  },
-  tags: ["autodocs"],
+  args: { className: "size-4" },
   argTypes: {
     event: {
       control: "select",
       options: ALL_EVENTS,
     },
   },
-  args: { className: "size-4" },
+  component: EventIcon,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Resolves an audit-log event name to the matching Lucide icon via `getEventIconName`. Falls back to `Activity` when the event is unknown.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Features/AuditLogs/EventIcon",
 } satisfies Meta<typeof EventIcon>;
 
 export default meta;

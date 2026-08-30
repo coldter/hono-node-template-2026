@@ -2,18 +2,18 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Main } from "./main";
 
 const meta = {
-  title: "Features/Layout/Main",
   component: Main,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Page content wrapper. Applies consistent padding and caps width unless `fluid` is set; switches to a flex column when `fixed`.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Features/Layout/Main",
 } satisfies Meta<typeof Main>;
 
 export default meta;
@@ -34,7 +34,7 @@ export const Default: Story = {
 };
 
 export const Fluid: Story = {
-  args: { fluid: true, children: placeholder },
+  args: { children: placeholder, fluid: true },
 };
 
 export const Fixed: Story = {

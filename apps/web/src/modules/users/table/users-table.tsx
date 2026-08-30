@@ -1,4 +1,4 @@
-import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { useTable } from "@tanstack/react-table";
 import { useEffect } from "react";
 
 import type { NavigateFn } from "@/hooks/use-table-url-state";
@@ -7,6 +7,7 @@ import {
   DataTable,
   DataTablePagination,
   DataTableToolbar,
+  dataTableFeatures,
 } from "@/modules/data-table";
 import { Route, type UsersSearch } from "@/routes/(protected)/users/index";
 
@@ -20,15 +21,15 @@ export function UsersTable() {
   const tableNavigate: NavigateFn = ({ search: searchUpdate, replace }) => {
     if (typeof searchUpdate === "function") {
       routeNavigate({
-        search: (prev: UsersSearch) => ({ ...prev, ...searchUpdate(prev) }),
         replace,
+        search: (prev: UsersSearch) => ({ ...prev, ...searchUpdate(prev) }),
       });
     } else if (searchUpdate === true) {
-      routeNavigate({ search: true, replace });
+      routeNavigate({ replace, search: true });
     } else {
       routeNavigate({
-        search: (prev: UsersSearch) => ({ ...prev, ...searchUpdate }),
         replace,
+        search: (prev: UsersSearch) => ({ ...prev, ...searchUpdate }),
       });
     }
   };
@@ -40,26 +41,26 @@ export function UsersTable() {
     onSortingChange,
     ensurePageInRange,
   } = useTableUrlState({
-    search,
     navigate: tableNavigate,
     pagination: {
       defaultPage: 1,
       defaultPageSize: 20,
     },
+    search,
     sorting: {
-      defaultSort: "createdAt",
       defaultOrder: "desc",
+      defaultSort: "createdAt",
     },
   });
 
   const { data, isLoading, isError } = useUsersQuery({
+    order: sorting[0]?.desc ? "desc" : "asc",
     page: pagination.pageIndex + 1,
     perPage: pagination.pageSize,
-    sort: sorting[0]?.id,
-    order: sorting[0]?.desc ? "desc" : "asc",
-    search: search.search,
-    status: search.status,
     role: search.role,
+    search: search.search,
+    sort: sorting[0]?.id,
+    status: search.status,
   });
 
   const pageCount = data?.meta.pageCount ?? 0;
@@ -68,16 +69,17 @@ export function UsersTable() {
     ensurePageInRange(pageCount);
   }, [pageCount, ensurePageInRange]);
 
-  const table = useReactTable({
-    data: data?.data ?? [],
+  const table = useTable({
     columns: usersColumns,
-    pageCount,
-    state: { pagination, sorting },
-    onPaginationChange,
-    onSortingChange,
-    getCoreRowModel: getCoreRowModel(),
+    data: data?.data ?? [],
+    features: dataTableFeatures,
+    manualFiltering: true,
     manualPagination: true,
     manualSorting: true,
+    onPaginationChange,
+    onSortingChange,
+    pageCount,
+    state: { pagination, sorting },
   });
 
   return (

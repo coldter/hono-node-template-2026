@@ -13,40 +13,40 @@ import { Button } from "@/modules/ui/button";
 import { useAlertStore } from "@/store/alert";
 
 const downAlertConfig = {
-  offline: {
-    icon: CloudOff,
-    title: "You are offline",
-    content: "Check your internet connection.",
-    variant: "destructive",
-  },
   auth_expired: {
+    content: "Your login has expired. Please sign in again.",
     icon: KeyRound,
     title: "Session Expired",
-    content: "Your login has expired. Please sign in again.",
-    variant: "destructive",
-  },
-  session_invalidated: {
-    icon: KeyRound,
-    title: "Logged Out",
-    content: "Session expired or active elsewhere. Please sign in.",
     variant: "destructive",
   },
   auth_unavailable: {
+    content: "We are having trouble connecting to the authentication server.",
     icon: TriangleAlert,
     title: "Authentication Unavailable",
-    content: "We are having trouble connecting to the authentication server.",
-    variant: "destructive",
-  },
-  maintenance: {
-    icon: Construction,
-    title: "Under Maintenance",
-    content: "We are currently performing scheduled maintenance.",
     variant: "destructive",
   },
   forbidden: {
+    content: "You do not have permission to access this resource.",
     icon: ShieldAlert,
     title: "Access Denied",
-    content: "You do not have permission to access this resource.",
+    variant: "destructive",
+  },
+  maintenance: {
+    content: "We are currently performing scheduled maintenance.",
+    icon: Construction,
+    title: "Under Maintenance",
+    variant: "destructive",
+  },
+  offline: {
+    content: "Check your internet connection.",
+    icon: CloudOff,
+    title: "You are offline",
+    variant: "destructive",
+  },
+  session_invalidated: {
+    content: "Session expired or active elsewhere. Please sign in.",
+    icon: KeyRound,
+    title: "Logged Out",
     variant: "destructive",
   },
 } as const;

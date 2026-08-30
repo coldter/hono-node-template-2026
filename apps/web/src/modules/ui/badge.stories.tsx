@@ -3,28 +3,28 @@ import { BadgeCheck, Star } from "lucide-react";
 import { Badge } from "./badge";
 
 const meta = {
-  title: "UI/Badge",
+  args: {
+    children: "Badge",
+  },
+  argTypes: {
+    children: { control: "text" },
+    variant: {
+      control: "select",
+      options: ["default", "secondary", "destructive", "outline"],
+    },
+  },
   component: Badge,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Compact label for status, counts, or tags. Supports variant and asChild for composition.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    variant: {
-      control: "select",
-      options: ["default", "secondary", "destructive", "outline"],
-    },
-    children: { control: "text" },
-  },
-  args: {
-    children: "Badge",
-  },
+  title: "UI/Badge",
 } satisfies Meta<typeof Badge>;
 
 export default meta;
@@ -38,7 +38,7 @@ export const Secondary: Story = {
 };
 
 export const Destructive: Story = {
-  args: { variant: "destructive", children: "Error" },
+  args: { children: "Error", variant: "destructive" },
 };
 
 export const Outline: Story = {

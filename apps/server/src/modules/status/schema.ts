@@ -5,7 +5,6 @@ export const statusResponseSchema = z.object({
 });
 
 export const readinessResponseSchema = z.object({
-  status: z.enum(["ok", "unavailable"]),
   checks: z.object({
     database: z.boolean(),
     redis: z
@@ -13,4 +12,5 @@ export const readinessResponseSchema = z.object({
       .nullable()
       .openapi({ description: "null when Redis is not configured" }),
   }),
+  status: z.enum(["ok", "unavailable"]),
 });

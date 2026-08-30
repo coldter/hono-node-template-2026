@@ -2,26 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Spinner } from "./spinner";
 
 const meta = {
-  title: "UI/Spinner",
-  component: Spinner,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Loading indicator with multiple types (circle, dots, pulse, bars, ring), sizes, variants, and speeds.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
     size: {
       control: "radio",
       options: ["xs", "sm", "md", "lg", "xl"],
-    },
-    variant: {
-      control: "radio",
-      options: ["default", "primary", "white", "destructive"],
     },
     speed: {
       control: "radio",
@@ -31,7 +15,23 @@ const meta = {
       control: "radio",
       options: ["circle", "dots", "pulse", "bars", "ring"],
     },
+    variant: {
+      control: "radio",
+      options: ["default", "primary", "white", "destructive"],
+    },
   },
+  component: Spinner,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Loading indicator with multiple types (circle, dots, pulse, bars, ring), sizes, variants, and speeds.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "UI/Spinner",
 } satisfies Meta<typeof Spinner>;
 
 export default meta;
@@ -41,11 +41,11 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const Primary: Story = {
-  args: { variant: "primary", size: "md" },
+  args: { size: "md", variant: "primary" },
 };
 
 export const Destructive: Story = {
-  args: { variant: "destructive", size: "md" },
+  args: { size: "md", variant: "destructive" },
 };
 
 export const AllSizes: Story = {

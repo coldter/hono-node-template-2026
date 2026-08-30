@@ -37,11 +37,11 @@ export function handleError(err: Error, c: Context<Env>): Response {
   if (err instanceof HTTPException) {
     if (err.status >= 500) {
       logger.error("HTTPException 500", {
-        message: err.message,
-        status: err.status,
-        path: c.req.path,
-        method: c.req.method,
         contentType: c.req.header("content-type") ?? null,
+        message: err.message,
+        method: c.req.method,
+        path: c.req.path,
+        status: err.status,
         ...requestCorrelation(c),
       });
     }
@@ -94,11 +94,11 @@ export function handleError(err: Error, c: Context<Env>): Response {
   }
 
   logger.error("unhandled exception", {
-    name: err?.name,
-    message: err?.message,
     cause: err?.cause,
-    stack: err?.stack,
     constructor: err?.constructor.name,
+    message: err?.message,
+    name: err?.name,
+    stack: err?.stack,
     ...requestCorrelation(c),
   });
 

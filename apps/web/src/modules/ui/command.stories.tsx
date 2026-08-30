@@ -19,18 +19,18 @@ import {
 } from "./command";
 
 const meta = {
-  title: "UI/Command",
   component: Command,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Command menu / palette built on cmdk. Supports grouped items, shortcuts, separators, and an empty state for filtered results.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/Command",
 } satisfies Meta<typeof Command>;
 
 export default meta;

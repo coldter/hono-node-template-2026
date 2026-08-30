@@ -3,31 +3,31 @@ import { Input } from "./input";
 import { Label } from "./label";
 
 const meta = {
-  title: "UI/Input",
+  args: {
+    placeholder: "Type something...",
+  },
+  argTypes: {
+    "aria-invalid": { control: "boolean" },
+    disabled: { control: "boolean" },
+    placeholder: { control: "text" },
+    readOnly: { control: "boolean" },
+    type: {
+      control: "select",
+      options: ["text", "email", "password", "number", "search", "tel", "url"],
+    },
+  },
   component: Input,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Single-line text input styled to match the design system. Thin wrapper over the native input element that forwards all standard attributes and reacts to aria-invalid.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    type: {
-      control: "select",
-      options: ["text", "email", "password", "number", "search", "tel", "url"],
-    },
-    placeholder: { control: "text" },
-    disabled: { control: "boolean" },
-    readOnly: { control: "boolean" },
-    "aria-invalid": { control: "boolean" },
-  },
-  args: {
-    placeholder: "Type something...",
-  },
+  title: "UI/Input",
 } satisfies Meta<typeof Input>;
 
 export default meta;
@@ -37,19 +37,19 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const Email: Story = {
-  args: { type: "email", placeholder: "you@example.com" },
+  args: { placeholder: "you@example.com", type: "email" },
 };
 
 export const Password: Story = {
-  args: { type: "password", placeholder: "Password" },
+  args: { placeholder: "Password", type: "password" },
 };
 
 export const NumberType: Story = {
-  args: { type: "number", placeholder: "0" },
+  args: { placeholder: "0", type: "number" },
 };
 
 export const Search: Story = {
-  args: { type: "search", placeholder: "Search" },
+  args: { placeholder: "Search", type: "search" },
 };
 
 export const File: Story = {
@@ -57,11 +57,11 @@ export const File: Story = {
 };
 
 export const Disabled: Story = {
-  args: { disabled: true, defaultValue: "Cannot edit" },
+  args: { defaultValue: "Cannot edit", disabled: true },
 };
 
 export const ReadOnly: Story = {
-  args: { readOnly: true, defaultValue: "Read only value" },
+  args: { defaultValue: "Read only value", readOnly: true },
 };
 
 export const Invalid: Story = {
@@ -69,6 +69,7 @@ export const Invalid: Story = {
 };
 
 export const WithLabelAndHelp: Story = {
+  args: { placeholder: "you@example.com" },
   render: (args) => (
     <div className="grid w-80 gap-2">
       <Label htmlFor="email-story">Email</Label>
@@ -78,5 +79,4 @@ export const WithLabelAndHelp: Story = {
       </p>
     </div>
   ),
-  args: { placeholder: "you@example.com" },
 };

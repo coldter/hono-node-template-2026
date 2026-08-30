@@ -4,18 +4,18 @@ import { type DownAlertType, useAlertStore } from "@/store/alert";
 import { DownAlert } from "./down-alert";
 
 const meta = {
-  title: "Common/DownAlert",
   component: DownAlert,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Sticky top-of-window notice driven by the alert zustand store. Triggered for connectivity, auth, maintenance, and authorization states.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Common/DownAlert",
 } satisfies Meta<typeof DownAlert>;
 
 export default meta;

@@ -4,46 +4,46 @@ import { isPublicAccess } from "@/middlewares/guard/is-public-access";
 import { readinessResponseSchema, statusResponseSchema } from "./schema";
 
 const statusRoutes = {
-  getStatus: createRouteConfig({
-    operationId: "getStatus",
-    method: "get",
-    path: "/",
+  getReadiness: createRouteConfig({
+    description:
+      "Probes Postgres (and Redis when configured) with short timeouts; returns 503 when any dependency is unreachable",
     guard: isPublicAccess,
-    tags: ["status"],
-    summary: "Server reachability check",
-    description: "Returns 200 OK if the server is reachable",
+    method: "get",
+    operationId: "getReadiness",
+    path: "/ready",
     responses: {
       200: {
-        description: "Server is reachable",
+        content: {
+          "application/json": { schema: readinessResponseSchema },
+        },
+        description: "All dependencies are reachable",
+      },
+      503: {
+        content: {
+          "application/json": { schema: readinessResponseSchema },
+        },
+        description: "One or more dependencies are unreachable",
+      },
+    },
+    summary: "Dependency readiness check",
+    tags: ["status"],
+  }),
+  getStatus: createRouteConfig({
+    description: "Returns 200 OK if the server is reachable",
+    guard: isPublicAccess,
+    method: "get",
+    operationId: "getStatus",
+    path: "/",
+    responses: {
+      200: {
         content: {
           "application/json": { schema: statusResponseSchema },
         },
+        description: "Server is reachable",
       },
     },
-  }),
-  getReadiness: createRouteConfig({
-    operationId: "getReadiness",
-    method: "get",
-    path: "/ready",
-    guard: isPublicAccess,
+    summary: "Server reachability check",
     tags: ["status"],
-    summary: "Dependency readiness check",
-    description:
-      "Probes Postgres (and Redis when configured) with short timeouts; returns 503 when any dependency is unreachable",
-    responses: {
-      200: {
-        description: "All dependencies are reachable",
-        content: {
-          "application/json": { schema: readinessResponseSchema },
-        },
-      },
-      503: {
-        description: "One or more dependencies are unreachable",
-        content: {
-          "application/json": { schema: readinessResponseSchema },
-        },
-      },
-    },
   }),
 } as const;
 

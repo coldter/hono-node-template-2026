@@ -56,8 +56,8 @@ export function UserDetailPage() {
     activateMutation,
     unlockMutation,
   } = useUserDetailActions({
-    userId,
     status,
+    userId,
   });
 
   if (isLoading) {

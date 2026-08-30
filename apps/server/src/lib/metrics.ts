@@ -42,17 +42,17 @@ export function initializeMetrics(): void {
 
   const meter = metrics.getMeter(SERVICE_NAME);
   instruments = {
+    hatchetEventPushes: meter.createCounter("hatchet.events.pushed", {
+      description: "Hatchet event push attempts",
+    }),
     httpRequestDuration: meter.createHistogram("http.server.request.duration", {
-      unit: "s",
-      description: "Duration of HTTP server requests",
-      valueType: ValueType.DOUBLE,
       advice: { explicitBucketBoundaries: HTTP_DURATION_BUCKETS_SECONDS },
+      description: "Duration of HTTP server requests",
+      unit: "s",
+      valueType: ValueType.DOUBLE,
     }),
     rateLimitRejections: meter.createCounter("rate_limit.rejections", {
       description: "Requests rejected by the global rate limiter",
-    }),
-    hatchetEventPushes: meter.createCounter("hatchet.events.pushed", {
-      description: "Hatchet event push attempts",
     }),
   };
 
@@ -77,8 +77,8 @@ export function recordHttpRequestDuration(input: {
     "http.request.method": KNOWN_HTTP_METHODS.has(input.method)
       ? input.method
       : "_OTHER",
-    "http.route": input.route,
     "http.response.status_code": input.statusCode,
+    "http.route": input.route,
   });
 }
 

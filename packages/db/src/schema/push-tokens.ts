@@ -20,13 +20,17 @@ export type PushPlatform = (typeof PUSH_PLATFORM)[number];
 export const pushTokens = pgTable(
   "push_tokens",
   {
+    createdAt: createdAt(),
+    deviceId: varchar("device_id", { length: 255 }),
+    deviceName: varchar("device_name", { length: 100 }),
     id: varchar("id", { length: 255 })
       .primaryKey()
       .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.pushToken)),
 
-    userId: varchar("user_id", { length: 255 })
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    isActive: boolean("is_active").notNull().default(true),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+
+    platform: text("platform", { enum: PUSH_PLATFORM }).notNull(),
 
     sessionId: varchar("session_id", { length: 255 })
       .notNull()
@@ -34,16 +38,11 @@ export const pushTokens = pgTable(
 
     // Token from FCM/APNs
     token: text("token").notNull(),
-
-    platform: text("platform", { enum: PUSH_PLATFORM }).notNull(),
-    deviceId: varchar("device_id", { length: 255 }),
-    deviceName: varchar("device_name", { length: 100 }),
-
-    isActive: boolean("is_active").notNull().default(true),
-    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-
-    createdAt: createdAt(),
     updatedAt: updatedAt(),
+
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
   },
   (table) => [
     index("push_tokens_user_id_idx").on(table.userId),

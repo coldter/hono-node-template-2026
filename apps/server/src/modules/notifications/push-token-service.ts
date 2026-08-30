@@ -5,6 +5,22 @@ import { db } from "@/db";
 import type { PushTokenRecord, RegisterPushTokenInput } from "./types";
 
 export const notificationPushTokenService = {
+  async deactivatePushToken(tokenId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .update(pushTokens)
+      .set({ isActive: false })
+      .where(and(eq(pushTokens.id, tokenId), eq(pushTokens.userId, userId)))
+      .returning({ id: pushTokens.id });
+    return result.length > 0;
+  },
+
+  async deletePushTokenByToken(token: string): Promise<boolean> {
+    const result = await db
+      .delete(pushTokens)
+      .where(eq(pushTokens.token, token))
+      .returning({ id: pushTokens.id });
+    return result.length > 0;
+  },
   async listPushTokens(userId: string): Promise<PushTokenRecord[]> {
     return db
       .select()
@@ -36,13 +52,13 @@ export const notificationPushTokenService = {
       const [updated] = await db
         .update(pushTokens)
         .set({
-          userId,
-          sessionId,
-          platform: input.platform,
           deviceId: input.deviceId ?? existing.deviceId,
           deviceName: input.deviceName ?? existing.deviceName,
           isActive: true,
           lastUsedAt: new Date(),
+          platform: input.platform,
+          sessionId,
+          userId,
         })
         .where(eq(pushTokens.id, existing.id))
         .returning();
@@ -52,13 +68,13 @@ export const notificationPushTokenService = {
     const [newToken] = await db
       .insert(pushTokens)
       .values({
-        userId,
-        sessionId,
-        token: input.token,
-        platform: input.platform,
         deviceId: input.deviceId ?? null,
         deviceName: input.deviceName ?? null,
         isActive: true,
+        platform: input.platform,
+        sessionId,
+        token: input.token,
+        userId,
       })
       .returning();
 
@@ -67,22 +83,5 @@ export const notificationPushTokenService = {
     }
 
     return newToken;
-  },
-
-  async deactivatePushToken(tokenId: string, userId: string): Promise<boolean> {
-    const result = await db
-      .update(pushTokens)
-      .set({ isActive: false })
-      .where(and(eq(pushTokens.id, tokenId), eq(pushTokens.userId, userId)))
-      .returning({ id: pushTokens.id });
-    return result.length > 0;
-  },
-
-  async deletePushTokenByToken(token: string): Promise<boolean> {
-    const result = await db
-      .delete(pushTokens)
-      .where(eq(pushTokens.token, token))
-      .returning({ id: pushTokens.id });
-    return result.length > 0;
   },
 };

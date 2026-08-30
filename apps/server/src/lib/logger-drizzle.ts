@@ -16,7 +16,7 @@ function highlightSql(query: string): string {
   if (!highlight) {
     return query;
   }
-  return highlight(query, { language: "sql", ignoreIllegals: true });
+  return highlight(query, { ignoreIllegals: true, language: "sql" });
 }
 
 export class DrizzleLogger implements Logger {

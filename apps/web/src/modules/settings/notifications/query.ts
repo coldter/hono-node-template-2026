@@ -13,11 +13,11 @@ export const notificationPreferencesKeys = {
 
 export function useNotificationPreferencesQuery() {
   return useQuery({
-    queryKey: notificationPreferencesKeys.detail(),
     queryFn: async ({ signal }) => {
       const response = await getNotificationPreferences({ signal });
       return response.preferences;
     },
+    queryKey: notificationPreferencesKeys.detail(),
   });
 }
 
@@ -31,14 +31,14 @@ export function useUpdateNotificationPreferencesMutation() {
       const response = await updateNotificationPreferences({ body: data });
       return response.preferences;
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update preferences");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: notificationPreferencesKeys.all,
       });
       toast.success("Notification preferences updated");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update preferences");
     },
   });
 }

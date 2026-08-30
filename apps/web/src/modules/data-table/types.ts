@@ -2,12 +2,14 @@ import type {
   ColumnDef,
   OnChangeFn,
   PaginationState,
+  RowData,
   SortingState,
   Table,
 } from "@tanstack/react-table";
+import type { DataTableFeatures } from "./features";
 
-export type DataTableProps<TData> = {
-  columns: ColumnDef<TData>[];
+export type DataTableProps<TData extends RowData> = {
+  columns: ColumnDef<DataTableFeatures, TData>[];
   data: TData[];
   isLoading?: boolean;
   isError?: boolean;
@@ -17,5 +19,5 @@ export type DataTableProps<TData> = {
   onPaginationChange?: OnChangeFn<PaginationState>;
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
-  table?: Table<TData>;
+  table?: Table<DataTableFeatures, TData>;
 };

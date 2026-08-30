@@ -13,8 +13,8 @@ const serializeErrorMeta = format((info) => {
     const value = info[key];
     if (value instanceof Error) {
       info[key] = {
-        name: value.name,
         message: value.message,
+        name: value.name,
         stack: value.stack,
       };
     }
@@ -24,11 +24,12 @@ const serializeErrorMeta = format((info) => {
 
 export function getAppLogger(level: LogLevel = "info") {
   return createLogger({
-    level,
+    exitOnError: false,
     format: format.combine(
       format.errors({ stack: true }),
       serializeErrorMeta()
     ),
+    level,
     transports: [
       env.NODE_ENV === "production"
         ? new transports.Console({
@@ -45,7 +46,6 @@ export function getAppLogger(level: LogLevel = "info") {
             ),
           }),
     ],
-    exitOnError: false,
   });
 }
 

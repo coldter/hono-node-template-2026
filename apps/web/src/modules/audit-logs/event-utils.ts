@@ -6,143 +6,143 @@ type BadgeStyle = {
 };
 
 const eventCategoryMap: Record<string, EventCategory> = {
-  "auth.login.success": "auth",
   "auth.login.failed": "auth",
+  "auth.login.success": "auth",
   "auth.logout": "auth",
   "auth.password.changed": "auth",
   "auth.session.revoked": "auth",
-  "user.created": "user",
-  "user.updated": "user",
-  "user.deleted": "user",
-  "user.deactivated": "user",
-  "user.activated": "user",
-  "user.unlocked": "user",
-  "user.viewed": "user",
-  "user.listed": "user",
-  "role.created": "role",
-  "role.updated": "role",
-  "role.deleted": "role",
   "role.assigned": "role",
+  "role.created": "role",
+  "role.deleted": "role",
   "role.unassigned": "role",
+  "role.updated": "role",
+  "user.activated": "user",
+  "user.created": "user",
+  "user.deactivated": "user",
+  "user.deleted": "user",
+  "user.listed": "user",
+  "user.unlocked": "user",
+  "user.updated": "user",
+  "user.viewed": "user",
 };
 
 const eventDisplayNames: Record<string, string> = {
-  "auth.login.success": "Login Success",
   "auth.login.failed": "Login Failed",
+  "auth.login.success": "Login Success",
   "auth.logout": "Logout",
   "auth.password.changed": "Password Changed",
   "auth.session.revoked": "Session Revoked",
-  "user.created": "User Created",
-  "user.updated": "User Updated",
-  "user.deleted": "User Deleted",
-  "user.deactivated": "User Deactivated",
-  "user.activated": "User Activated",
-  "user.unlocked": "User Unlocked",
-  "user.viewed": "User Viewed",
-  "user.listed": "Users Listed",
-  "role.created": "Role Created",
-  "role.updated": "Role Updated",
-  "role.deleted": "Role Deleted",
   "role.assigned": "Role Assigned",
+  "role.created": "Role Created",
+  "role.deleted": "Role Deleted",
   "role.unassigned": "Role Unassigned",
+  "role.updated": "Role Updated",
+  "user.activated": "User Activated",
+  "user.created": "User Created",
+  "user.deactivated": "User Deactivated",
+  "user.deleted": "User Deleted",
+  "user.listed": "Users Listed",
+  "user.unlocked": "User Unlocked",
+  "user.updated": "User Updated",
+  "user.viewed": "User Viewed",
 };
 
 const eventBadgeStyles: Record<string, BadgeStyle> = {
-  "auth.login.success": {
-    variant: "default",
-    className:
-      "bg-emerald-600/15 text-emerald-700 border-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20",
-  },
   "auth.login.failed": {
-    variant: "destructive",
     className:
       "bg-red-600/15 text-red-700 border-red-600/20 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/20",
+    variant: "destructive",
+  },
+  "auth.login.success": {
+    className:
+      "bg-emerald-600/15 text-emerald-700 border-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20",
+    variant: "default",
   },
   "auth.logout": {
-    variant: "secondary",
     className:
       "bg-slate-600/10 text-slate-600 border-slate-600/15 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/15",
+    variant: "secondary",
   },
   "auth.password.changed": {
-    variant: "outline",
     className:
       "bg-amber-600/10 text-amber-700 border-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
+    variant: "outline",
   },
   "auth.session.revoked": {
-    variant: "outline",
     className:
       "bg-orange-600/10 text-orange-700 border-orange-600/20 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
-  },
-  "user.created": {
-    variant: "default",
-    className:
-      "bg-blue-600/15 text-blue-700 border-blue-600/20 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20",
-  },
-  "user.updated": {
     variant: "outline",
-    className:
-      "bg-sky-600/10 text-sky-700 border-sky-600/20 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20",
-  },
-  "user.deleted": {
-    variant: "destructive",
-    className:
-      "bg-red-600/15 text-red-700 border-red-600/20 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/20",
-  },
-  "user.deactivated": {
-    variant: "outline",
-    className:
-      "bg-orange-600/10 text-orange-700 border-orange-600/20 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
-  },
-  "user.activated": {
-    variant: "default",
-    className:
-      "bg-emerald-600/15 text-emerald-700 border-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20",
-  },
-  "user.unlocked": {
-    variant: "outline",
-    className:
-      "bg-teal-600/10 text-teal-700 border-teal-600/20 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20",
-  },
-  "user.viewed": {
-    variant: "secondary",
-    className:
-      "bg-slate-600/10 text-slate-600 border-slate-600/15 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/15",
-  },
-  "user.listed": {
-    variant: "secondary",
-    className:
-      "bg-slate-600/10 text-slate-600 border-slate-600/15 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/15",
-  },
-  "role.created": {
-    variant: "default",
-    className:
-      "bg-violet-600/15 text-violet-700 border-violet-600/20 dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/20",
-  },
-  "role.updated": {
-    variant: "outline",
-    className:
-      "bg-purple-600/10 text-purple-700 border-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20",
-  },
-  "role.deleted": {
-    variant: "destructive",
-    className:
-      "bg-red-600/15 text-red-700 border-red-600/20 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/20",
   },
   "role.assigned": {
-    variant: "outline",
     className:
       "bg-indigo-600/10 text-indigo-700 border-indigo-600/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20",
+    variant: "outline",
+  },
+  "role.created": {
+    className:
+      "bg-violet-600/15 text-violet-700 border-violet-600/20 dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/20",
+    variant: "default",
+  },
+  "role.deleted": {
+    className:
+      "bg-red-600/15 text-red-700 border-red-600/20 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/20",
+    variant: "destructive",
   },
   "role.unassigned": {
-    variant: "outline",
     className:
       "bg-fuchsia-600/10 text-fuchsia-700 border-fuchsia-600/20 dark:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:border-fuchsia-500/20",
+    variant: "outline",
+  },
+  "role.updated": {
+    className:
+      "bg-purple-600/10 text-purple-700 border-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20",
+    variant: "outline",
+  },
+  "user.activated": {
+    className:
+      "bg-emerald-600/15 text-emerald-700 border-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20",
+    variant: "default",
+  },
+  "user.created": {
+    className:
+      "bg-blue-600/15 text-blue-700 border-blue-600/20 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20",
+    variant: "default",
+  },
+  "user.deactivated": {
+    className:
+      "bg-orange-600/10 text-orange-700 border-orange-600/20 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
+    variant: "outline",
+  },
+  "user.deleted": {
+    className:
+      "bg-red-600/15 text-red-700 border-red-600/20 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/20",
+    variant: "destructive",
+  },
+  "user.listed": {
+    className:
+      "bg-slate-600/10 text-slate-600 border-slate-600/15 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/15",
+    variant: "secondary",
+  },
+  "user.unlocked": {
+    className:
+      "bg-teal-600/10 text-teal-700 border-teal-600/20 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20",
+    variant: "outline",
+  },
+  "user.updated": {
+    className:
+      "bg-sky-600/10 text-sky-700 border-sky-600/20 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20",
+    variant: "outline",
+  },
+  "user.viewed": {
+    className:
+      "bg-slate-600/10 text-slate-600 border-slate-600/15 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/15",
+    variant: "secondary",
   },
 };
 
 const defaultBadgeStyle: BadgeStyle = {
-  variant: "outline",
   className: "",
+  variant: "outline",
 };
 
 const eventBadgeDotClassNames = [
@@ -163,24 +163,24 @@ const eventBadgeDotClassNames = [
 // Lucide icon name strings -- we dynamically import in the component,
 // but keep a string map here so the util stays pure (no React deps).
 const eventIconNames: Record<string, string> = {
-  "auth.login.success": "LogIn",
   "auth.login.failed": "ShieldX",
+  "auth.login.success": "LogIn",
   "auth.logout": "LogOut",
   "auth.password.changed": "KeyRound",
   "auth.session.revoked": "ShieldAlert",
-  "user.created": "UserPlus",
-  "user.updated": "UserCog",
-  "user.deleted": "UserMinus",
-  "user.deactivated": "UserX",
-  "user.activated": "UserCheck",
-  "user.unlocked": "Unlock",
-  "user.viewed": "Eye",
-  "user.listed": "List",
-  "role.created": "ShieldCheck",
-  "role.updated": "Shield",
-  "role.deleted": "ShieldX",
   "role.assigned": "ShieldCheck",
+  "role.created": "ShieldCheck",
+  "role.deleted": "ShieldX",
   "role.unassigned": "ShieldAlert",
+  "role.updated": "Shield",
+  "user.activated": "UserCheck",
+  "user.created": "UserPlus",
+  "user.deactivated": "UserX",
+  "user.deleted": "UserMinus",
+  "user.listed": "List",
+  "user.unlocked": "Unlock",
+  "user.updated": "UserCog",
+  "user.viewed": "Eye",
 };
 
 /** @public ignore knip */

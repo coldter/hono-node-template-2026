@@ -7,11 +7,11 @@ describe("assertCanManageUserStatus", () => {
     await expect(
       assertCanManageUserStatus(
         {
+          email: "admin@example.com",
+          emailVerified: true,
           id: "usr_admin",
           roleSlugs: ["admin"],
           status: "active",
-          email: "admin@example.com",
-          emailVerified: true,
         },
         "deactivate",
         "usr_target"
@@ -23,11 +23,11 @@ describe("assertCanManageUserStatus", () => {
     await expect(
       assertCanManageUserStatus(
         {
+          email: "user@example.com",
+          emailVerified: true,
           id: "usr_user",
           roleSlugs: ["user"],
           status: "active",
-          email: "user@example.com",
-          emailVerified: true,
         },
         "deactivate",
         "usr_target"
@@ -39,11 +39,11 @@ describe("assertCanManageUserStatus", () => {
     await expect(
       assertCanManageUserStatus(
         {
+          email: "admin@example.com",
+          emailVerified: true,
           id: "usr_admin",
           roleSlugs: ["admin"],
           status: "active",
-          email: "admin@example.com",
-          emailVerified: true,
         },
         "deactivate",
         "usr_admin"
@@ -55,11 +55,11 @@ describe("assertCanManageUserStatus", () => {
     await expect(
       assertCanManageUserStatus(
         {
+          email: "admin@example.com",
+          emailVerified: true,
           id: "usr_admin",
           roleSlugs: ["admin"],
           status: "inactive",
-          email: "admin@example.com",
-          emailVerified: true,
         },
         "unlock",
         "usr_target"

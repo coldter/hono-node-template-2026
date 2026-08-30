@@ -40,8 +40,8 @@ export async function createWorker(): Promise<Worker | null> {
   }
 
   worker = await hatchet.worker("main-worker", {
-    workflows: workflowsToRegister,
     slots: env.HATCHET_WORKER_SLOTS,
+    workflows: workflowsToRegister,
   });
 
   return worker;

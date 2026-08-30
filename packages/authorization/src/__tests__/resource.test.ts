@@ -14,8 +14,8 @@ describe("PolicyBuilder", () => {
     "owner" | "member",
     "org_owner" | "org_member"
   >({
-    resolveOwner: (r) => r.createdBy,
     relations: { project: (r) => r.id },
+    resolveOwner: (r) => r.createdBy,
   });
 
   it("allow(role).to(action) produces correct rule", () => {
@@ -209,9 +209,9 @@ describe("createResourceDefinition", () => {
     >("project", {
       actions: ["view", "edit"],
       policies: (p) => [p.allow("admin").to("*")],
-      resolveOwner: (r) => r.createdBy,
-      resolveOrganization: (r) => r.id,
       relations: { project: (r) => r.id },
+      resolveOrganization: (r) => r.id,
+      resolveOwner: (r) => r.createdBy,
     });
 
     expect(resource.name).toBe("project");

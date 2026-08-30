@@ -14,13 +14,13 @@ const DOCS_REGEX = /\/docs*$/;
 const DOCS_AUTH_REGEX = /\/docs\/auth*$/;
 
 const openApiConfig = {
-  servers: [{ url: env.SERVER_URL }],
   info: {
+    description: "API documentation for the application",
     title: "Api Reference",
     version: "v1",
-    description: "API documentation for the application",
   },
   openapi: "3.1.0" as const,
+  servers: [{ url: env.SERVER_URL }],
 };
 
 export const docs = async (
@@ -45,11 +45,11 @@ export const docs = async (
   const registry = app.openAPIRegistry;
 
   registry.registerComponent("securitySchemes", "cookieAuth", {
-    type: "apiKey",
-    in: "cookie",
-    name: "session_token_v1",
     description:
       "Authentication cookie. Copy the cookie from your network tab and paste it here. If you don't have it, you need to sign in or sign up first.",
+    in: "cookie",
+    name: "session_token_v1",
+    type: "apiKey",
   });
 
   app.doc31("/openapi.json", openApiConfig);
@@ -69,25 +69,23 @@ export const docs = async (
 
   app.get("/docs", (c) =>
     Scalar<Env>({
-      url: "openapi.json",
-      theme: "deepSpace",
       customCss,
       servers: [
         {
-          url: `${new URL(c.req.url).origin}`,
           description: "Current",
+          url: `${new URL(c.req.url).origin}`,
         },
         {
-          url: `${c.req.url.replace(DOCS_REGEX, "/api")}`,
           description: "Current_With_Params",
+          url: `${c.req.url.replace(DOCS_REGEX, "/api")}`,
         },
         {
-          url: "http://localhost:3000",
           description: "Localhost",
+          url: "http://localhost:3000",
         },
         {
-          url: "{CUSTOM_URL}",
           description: "Custom",
+          url: "{CUSTOM_URL}",
           variables: {
             CUSTOM_URL: {
               default: "http://localhost:3000",
@@ -95,6 +93,8 @@ export const docs = async (
           },
         },
       ],
+      theme: "deepSpace",
+      url: "openapi.json",
     })(c, async () => {})
   );
 
@@ -102,24 +102,23 @@ export const docs = async (
     const authSchema = await auth.api.generateOpenAPISchema();
     return Scalar<Env>({
       content: authSchema,
-      theme: "deepSpace",
       customCss,
       servers: [
         {
-          url: `${new URL(c.req.url).origin}`,
           description: "Current",
+          url: `${new URL(c.req.url).origin}`,
         },
         {
-          url: `${c.req.url.replace(DOCS_AUTH_REGEX, "/api/auth")}`,
           description: "Current_With_Params",
+          url: `${c.req.url.replace(DOCS_AUTH_REGEX, "/api/auth")}`,
         },
         {
-          url: "http://localhost:3000/api/auth",
           description: "Localhost",
+          url: "http://localhost:3000/api/auth",
         },
         {
-          url: "{CUSTOM_URL}",
           description: "Custom",
+          url: "{CUSTOM_URL}",
           variables: {
             CUSTOM_URL: {
               default: "http://localhost:3000/api/auth",
@@ -127,6 +126,7 @@ export const docs = async (
           },
         },
       ],
+      theme: "deepSpace",
     })(c, async () => {});
   });
 };

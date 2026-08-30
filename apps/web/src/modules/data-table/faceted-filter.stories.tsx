@@ -1,13 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, useTable } from "@tanstack/react-table";
 import { CheckCircle2, Circle, Lock } from "lucide-react";
 import { DataTableFacetedFilter } from "./faceted-filter";
+import type { DataTableFeatures } from "./features";
+import { dataTableFeatures } from "./features";
 
 type Row = { status: "active" | "inactive" | "locked" };
 
@@ -19,7 +15,7 @@ const rows: Row[] = [
   { status: "locked" },
 ];
 
-const columns: ColumnDef<Row>[] = [
+const columns: ColumnDef<DataTableFeatures, Row>[] = [
   {
     accessorKey: "status",
     filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
@@ -27,20 +23,18 @@ const columns: ColumnDef<Row>[] = [
 ];
 
 const options = [
-  { label: "Active", value: "active", icon: CheckCircle2 },
-  { label: "Inactive", value: "inactive", icon: Circle },
-  { label: "Locked", value: "locked", icon: Lock },
+  { icon: CheckCircle2, label: "Active", value: "active" },
+  { icon: Circle, label: "Inactive", value: "inactive" },
+  { icon: Lock, label: "Locked", value: "locked" },
 ];
 
 type FilterHostProps = { title: string };
 
 function FilterHost({ title }: FilterHostProps) {
-  const table = useReactTable({
-    data: rows,
+  const table = useTable({
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
+    data: rows,
+    features: dataTableFeatures,
   });
   return (
     <DataTableFacetedFilter
@@ -52,18 +46,18 @@ function FilterHost({ title }: FilterHostProps) {
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/FacetedFilter",
   component: FilterHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Multi-select filter popover with facet counts, used inside `DataTableToolbar.filters`.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/FacetedFilter",
 } satisfies Meta<typeof FilterHost>;
 
 export default meta;

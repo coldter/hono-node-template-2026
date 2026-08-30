@@ -38,25 +38,25 @@ export const openApiConfig: UserConfig = {
   plugins: [
     {
       name: "@hey-api/client-fetch",
-      throwOnError: true,
       runtimeConfigPath: "@/api-config",
+      throwOnError: true,
     },
     {
       name: "@hey-api/sdk",
       responseStyle: "data",
     },
     {
+      infiniteQueryKeys: true,
+      infiniteQueryOptions: true,
+      mutationOptions: true,
       // Generate typed `queryOptions`, query keys, and mutation options
       // helpers. We do not enable the opinionated `useQuery` / `useMutation`
       // hook generators because the repo already has custom query hooks in
       // `apps/web/src/modules/*/query.ts` that layer on permission guards
       // and toast handling. Callers should compose with `queryOptions`.
       name: "@tanstack/react-query",
-      queryOptions: true,
       queryKeys: true,
-      mutationOptions: true,
-      infiniteQueryOptions: true,
-      infiniteQueryKeys: true,
+      queryOptions: true,
     },
     {
       name: "zod",

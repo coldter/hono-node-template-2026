@@ -61,9 +61,9 @@ const usersHandler = app
     // so a single drifted status value cannot crash the list endpoint.
     const paginated = createPaginatedResponse({
       data: result.data,
-      total: result.meta.total,
-      query,
       formatter: toUserSummaryResponse,
+      query,
+      total: result.meta.total,
     });
 
     return c.json(paginated, 200);
@@ -85,10 +85,10 @@ const usersHandler = app
 
     return c.json(
       {
-        profile: toMyAccountResponse(account),
         notifications: {
           unreadCount,
         },
+        profile: toMyAccountResponse(account),
       },
       200
     );
@@ -123,9 +123,9 @@ const usersHandler = app
     );
 
     await pushEvent(EVENTS.USER_CREATED, {
-      userId: user.id,
       email: user.email,
       name: user.name,
+      userId: user.id,
     });
 
     return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 201);

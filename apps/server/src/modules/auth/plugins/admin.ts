@@ -39,11 +39,11 @@ const EMPTY_AUDIT_CONTEXT = {
 
 function getAuthorizationActor(user: AuthSessionUser) {
   return {
+    email: user.email,
+    emailVerified: user.emailVerified,
     id: user.id,
     roleSlugs: user.roleSlugs ?? [],
     status: user.status,
-    email: user.email,
-    emailVerified: user.emailVerified,
   };
 }
 
@@ -56,7 +56,10 @@ async function assertCanManageUserStatusWithApiError(
     await assertCanManageUserStatus(actor, action, targetUserId);
   } catch (error) {
     if (error instanceof AuthorizationError) {
-      throw new APIError("FORBIDDEN", { message: "Permission denied" });
+      throw new APIError("FORBIDDEN", {
+        cause: error,
+        message: "Permission denied",
+      });
     }
     throw error;
   }
@@ -69,7 +72,10 @@ async function runUserStatusMutationWithApiError(
     await mutation();
   } catch (error) {
     if (error instanceof UserNotFoundError) {
-      throw new APIError("NOT_FOUND", { message: "User not found" });
+      throw new APIError("NOT_FOUND", {
+        cause: error,
+        message: "User not found",
+      });
     }
     throw error;
   }
@@ -77,40 +83,91 @@ async function runUserStatusMutationWithApiError(
 
 export const adminPlugin = () =>
   ({
-    id: "admin",
     endpoints: {
-      deactivateUser: createAuthEndpoint(
-        "/admin/deactivate-user",
+      activateUser: createAuthEndpoint(
+        "/admin/activate-user",
         {
-          method: "POST",
-          use: [sessionMiddleware],
           body: z.object({
             userId: z.string().min(1),
-            reason: z.string().optional(),
           }),
           metadata: {
             openapi: {
-              operationId: "deactivateUser",
-              summary: "Deactivate a user",
               description:
-                "Sets user status to inactive and revokes all sessions",
+                "Sets user status to active and clears deactivation info",
+              operationId: "activateUser",
               responses: {
                 200: {
-                  description: "User deactivated successfully",
                   content: {
                     "application/json": {
                       schema: {
-                        type: "object",
                         properties: {
                           success: { type: "boolean" },
                         },
+                        type: "object",
                       },
                     },
                   },
+                  description: "User activated successfully",
                 },
               },
+              summary: "Activate a user",
             },
           },
+          method: "POST",
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          const currentUser = getAuthSessionUser(ctx);
+
+          await assertCanManageUserStatusWithApiError(
+            currentUser,
+            "activate",
+            ctx.body.userId
+          );
+
+          await runUserStatusMutationWithApiError(() =>
+            userService.activate(
+              ctx.body.userId,
+              currentUser.id,
+              EMPTY_AUDIT_CONTEXT
+            )
+          );
+
+          return ctx.json({ success: true });
+        }
+      ),
+      deactivateUser: createAuthEndpoint(
+        "/admin/deactivate-user",
+        {
+          body: z.object({
+            reason: z.string().optional(),
+            userId: z.string().min(1),
+          }),
+          metadata: {
+            openapi: {
+              description:
+                "Sets user status to inactive and revokes all sessions",
+              operationId: "deactivateUser",
+              responses: {
+                200: {
+                  content: {
+                    "application/json": {
+                      schema: {
+                        properties: {
+                          success: { type: "boolean" },
+                        },
+                        type: "object",
+                      },
+                    },
+                  },
+                  description: "User deactivated successfully",
+                },
+              },
+              summary: "Deactivate a user",
+            },
+          },
+          method: "POST",
+          use: [sessionMiddleware],
         },
         async (ctx) => {
           const currentUser = getAuthSessionUser(ctx);
@@ -139,89 +196,36 @@ export const adminPlugin = () =>
         }
       ),
 
-      activateUser: createAuthEndpoint(
-        "/admin/activate-user",
-        {
-          method: "POST",
-          use: [sessionMiddleware],
-          body: z.object({
-            userId: z.string().min(1),
-          }),
-          metadata: {
-            openapi: {
-              operationId: "activateUser",
-              summary: "Activate a user",
-              description:
-                "Sets user status to active and clears deactivation info",
-              responses: {
-                200: {
-                  description: "User activated successfully",
-                  content: {
-                    "application/json": {
-                      schema: {
-                        type: "object",
-                        properties: {
-                          success: { type: "boolean" },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        async (ctx) => {
-          const currentUser = getAuthSessionUser(ctx);
-
-          await assertCanManageUserStatusWithApiError(
-            currentUser,
-            "activate",
-            ctx.body.userId
-          );
-
-          await runUserStatusMutationWithApiError(() =>
-            userService.activate(
-              ctx.body.userId,
-              currentUser.id,
-              EMPTY_AUDIT_CONTEXT
-            )
-          );
-
-          return ctx.json({ success: true });
-        }
-      ),
-
       unlockUser: createAuthEndpoint(
         "/admin/unlock-user",
         {
-          method: "POST",
-          use: [sessionMiddleware],
           body: z.object({
             userId: z.string().min(1),
           }),
           metadata: {
             openapi: {
-              operationId: "unlockUser",
-              summary: "Unlock a user",
               description: "Resets lockout status and failed login attempts",
+              operationId: "unlockUser",
               responses: {
                 200: {
-                  description: "User unlocked successfully",
                   content: {
                     "application/json": {
                       schema: {
-                        type: "object",
                         properties: {
                           success: { type: "boolean" },
                         },
+                        type: "object",
                       },
                     },
                   },
+                  description: "User unlocked successfully",
                 },
               },
+              summary: "Unlock a user",
             },
           },
+          method: "POST",
+          use: [sessionMiddleware],
         },
         async (ctx) => {
           const currentUser = getAuthSessionUser(ctx);
@@ -244,6 +248,7 @@ export const adminPlugin = () =>
         }
       ),
     },
+    id: "admin",
   }) satisfies BetterAuthPlugin;
 
 export async function assertCanManageUserStatus(

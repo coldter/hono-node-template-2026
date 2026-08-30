@@ -27,32 +27,32 @@ initErrorReporting();
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
-  notFoundComponent: () => <Navigate to="/login" />,
   errorComponent: AppError,
   head: () => ({
+    links: [
+      {
+        href: "/favicon.ico",
+        rel: "icon",
+      },
+    ],
     meta: [
       {
         title: brand.appName,
       },
       {
-        name: "description",
         content: "Web application",
+        name: "description",
       },
       {
         charSet: "utf-8",
       },
       {
-        name: "viewport",
         content: "width=device-width, initial-scale=1",
-      },
-    ],
-    links: [
-      {
-        rel: "icon",
-        href: "/favicon.ico",
+        name: "viewport",
       },
     ],
   }),
+  notFoundComponent: () => <Navigate to="/login" />,
 });
 
 function RootComponent() {

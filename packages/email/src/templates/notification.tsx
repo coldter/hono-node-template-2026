@@ -41,8 +41,8 @@ export function NotificationEmail({
 }
 
 NotificationEmail.PreviewProps = {
-  subject: "Card share invitation",
-  body: "John wants to share a card ending in 4242 with you.",
-  actionUrl: "https://example.com/shares/123",
   actionLabel: "View Invitation",
+  actionUrl: "https://example.com/shares/123",
+  body: "John wants to share a card ending in 4242 with you.",
+  subject: "Card share invitation",
 } satisfies NotificationEmailProps;

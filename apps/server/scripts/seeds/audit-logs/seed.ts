@@ -42,21 +42,21 @@ const generateMetadata = (
 ): Record<string, unknown> | null => {
   if (event === "user.updated") {
     return {
-      changes: {
-        name: { from: faker.person.fullName(), to: faker.person.fullName() },
-        email: { from: faker.internet.email(), to: faker.internet.email() },
-      },
       changedFields: ["name", "email"],
+      changes: {
+        email: { from: faker.internet.email(), to: faker.internet.email() },
+        name: { from: faker.person.fullName(), to: faker.person.fullName() },
+      },
     };
   }
   if (event === "auth.login.failed") {
     return {
+      attempts: faker.number.int({ max: 5, min: 1 }),
       reason: faker.helpers.arrayElement([
         "invalid_password",
         "account_locked",
         "invalid_email",
       ]),
-      attempts: faker.number.int({ min: 1, max: 5 }),
     };
   }
   if (event === "role.assigned" || event === "role.unassigned") {
@@ -99,19 +99,19 @@ export const auditLogsSeed = async () => {
     const targetType = getTargetTypeForEvent(event);
 
     return {
-      id: faker.string.uuid(),
-      event,
       actorId:
         actorType === "user" && userIds.length > 0
           ? faker.helpers.arrayElement(userIds)
           : null,
       actorType,
+      createdAt: faker.date.recent({ days: 30 }),
+      event,
+      id: faker.string.uuid(),
+      ipAddress: faker.internet.ipv4(),
+      metadata: generateMetadata(event),
       targetId: targetType ? faker.string.uuid() : null,
       targetType,
-      ipAddress: faker.internet.ipv4(),
       userAgent: faker.internet.userAgent(),
-      metadata: generateMetadata(event),
-      createdAt: faker.date.recent({ days: 30 }),
     };
   });
 

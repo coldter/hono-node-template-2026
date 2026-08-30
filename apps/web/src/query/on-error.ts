@@ -46,7 +46,7 @@ const getErrorPath = (error: unknown): string | undefined => {
   if (!isObjectRecord(error)) {
     return;
   }
-  const path = error.path;
+  const { path } = error;
   return typeof path === "string" ? path : undefined;
 };
 
@@ -63,7 +63,7 @@ const getErrorMessage = (error: unknown): string => {
       return nested.message;
     }
 
-    const message = error.message;
+    const { message } = error;
     if (typeof message === "string" && message && message !== "Error") {
       return message;
     }

@@ -9,11 +9,11 @@ export function mockUser(
   }> = {}
 ) {
   return {
-    id: overrides.id ?? nanoid(),
-    email: overrides.email ?? faker.internet.email().toLowerCase(),
-    name: overrides.name ?? faker.person.fullName(),
-    emailVerified: true,
     createdAt: new Date(),
+    email: overrides.email ?? faker.internet.email().toLowerCase(),
+    emailVerified: true,
+    id: overrides.id ?? nanoid(),
+    name: overrides.name ?? faker.person.fullName(),
     updatedAt: new Date(),
   };
 }
@@ -26,11 +26,11 @@ export function mockSession(
   }> = {}
 ) {
   return {
-    id: overrides.id ?? nanoid(),
-    userId,
-    token: nanoid(),
-    expiresAt: overrides.expiresAt ?? faker.date.future(),
     createdAt: new Date(),
+    expiresAt: overrides.expiresAt ?? faker.date.future(),
+    id: overrides.id ?? nanoid(),
+    token: nanoid(),
     updatedAt: new Date(),
+    userId,
   };
 }

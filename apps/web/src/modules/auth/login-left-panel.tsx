@@ -10,28 +10,28 @@ import { SellingPoint } from "./selling-point";
 
 const sellingPoints = [
   {
+    bgGradient: "from-indigo-600 via-purple-600 to-pink-500",
+    description: "Sign in to access your dashboard and manage your projects",
     key: "welcome",
     title: "Welcome Back",
-    description: "Sign in to access your dashboard and manage your projects",
-    bgGradient: "from-indigo-600 via-purple-600 to-pink-500",
   },
   {
+    bgGradient: "from-emerald-500 via-teal-500 to-cyan-500",
+    description: "Built for performance with real-time updates",
     key: "fast",
     title: "Fast and Reliable",
-    description: "Built for performance with real-time updates",
-    bgGradient: "from-emerald-500 via-teal-500 to-cyan-500",
   },
   {
+    bgGradient: "from-orange-500 via-red-500 to-pink-500",
+    description: "Your data is protected with enterprise-grade security",
     key: "secure",
     title: "Secure by Design",
-    description: "Your data is protected with enterprise-grade security",
-    bgGradient: "from-orange-500 via-red-500 to-pink-500",
   },
   {
+    bgGradient: "from-blue-600 via-indigo-600 to-violet-600",
+    description: "Designed with simplicity and usability in mind",
     key: "intuitive",
     title: "Intuitive Interface",
-    description: "Designed with simplicity and usability in mind",
-    bgGradient: "from-blue-600 via-indigo-600 to-violet-600",
   },
 ];
 
@@ -48,8 +48,8 @@ export function LoginLeftPanel() {
           autoplayDelay={5000}
           className="h-full w-full [&>div]:h-full [&>div]:min-h-full"
           opts={{
-            loop: true,
             align: "center",
+            loop: true,
           }}
         >
           <CarouselContent className="h-full">

@@ -6,18 +6,18 @@ export type AuditLogsQueryParams = NonNullable<ListAuditLogsData["query"]>;
 
 export const auditLogsKeys = {
   all: ["audit-logs"] as const,
-  lists: () => [...auditLogsKeys.all, "list"] as const,
   list: (params: AuditLogsQueryParams) =>
     [...auditLogsKeys.lists(), params] as const,
+  lists: () => [...auditLogsKeys.all, "list"] as const,
 };
 
 export function auditLogsListQueryOptions(params: AuditLogsQueryParams) {
   return queryOptions({
-    queryKey: auditLogsKeys.list(params),
     queryFn: async ({ signal }) => {
       const response = await listAuditLogs({ query: params, signal });
       return response;
     },
+    queryKey: auditLogsKeys.list(params),
   });
 }
 

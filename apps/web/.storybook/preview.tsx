@@ -3,11 +3,22 @@ import type { Preview } from "@storybook/react-vite";
 import "../src/index.css";
 
 const preview: Preview = {
+  decorators: [
+    withThemeByClassName({
+      defaultTheme: "light",
+      themes: {
+        dark: "dark",
+        light: "",
+      },
+    }),
+  ],
   parameters: {
-    controls: {
-      matchers: {
-        color: /(background|color)$/i,
-        date: /Date$/i,
+    a11y: {
+      config: {
+        rules: [
+          { enabled: true, id: "color-contrast" },
+          { enabled: true, id: "label" },
+        ],
       },
     },
     backgrounds: {
@@ -18,41 +29,30 @@ const preview: Preview = {
         { name: "dark", value: "#0a0a0a" },
       ],
     },
-    layout: "centered",
-    a11y: {
-      config: {
-        rules: [
-          { id: "color-contrast", enabled: true },
-          { id: "label", enabled: true },
-        ],
+    controls: {
+      matchers: {
+        color: /(background|color)$/i,
+        date: /Date$/i,
       },
     },
+    layout: "centered",
     viewport: {
       viewports: {
+        desktop: {
+          name: "Desktop",
+          styles: { height: "900px", width: "1440px" },
+        },
         mobile: {
           name: "Mobile",
-          styles: { width: "375px", height: "667px" },
+          styles: { height: "667px", width: "375px" },
         },
         tablet: {
           name: "Tablet",
-          styles: { width: "768px", height: "1024px" },
-        },
-        desktop: {
-          name: "Desktop",
-          styles: { width: "1440px", height: "900px" },
+          styles: { height: "1024px", width: "768px" },
         },
       },
     },
   },
-  decorators: [
-    withThemeByClassName({
-      themes: {
-        light: "",
-        dark: "dark",
-      },
-      defaultTheme: "light",
-    }),
-  ],
 };
 
 export default preview;

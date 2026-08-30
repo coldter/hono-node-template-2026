@@ -1,41 +1,39 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, useTable } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./column-header";
+import type { DataTableFeatures } from "./features";
+import { dataTableFeatures } from "./features";
 
 type Row = { name: string };
 
 const rows: Row[] = [{ name: "Ada" }];
 
-const columns: ColumnDef<Row>[] = [
+const columns: ColumnDef<DataTableFeatures, Row>[] = [
   {
     accessorKey: "name",
+    enableSorting: true,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Name" />
     ),
-    enableSorting: true,
   },
 ];
 
 type HeaderHostProps = { title: string; canHide?: boolean };
 
 function HeaderHost({ title, canHide = true }: HeaderHostProps) {
-  const table = useReactTable({
-    data: rows,
+  const table = useTable({
     columns: [
       {
         accessorKey: "name",
+        enableHiding: canHide,
+        enableSorting: true,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={title} />
         ),
-        enableSorting: true,
-        enableHiding: canHide,
       },
     ],
-    getCoreRowModel: getCoreRowModel(),
+    data: rows,
+    features: dataTableFeatures,
   });
   const column = table.getColumn("name");
   if (!column) {
@@ -45,18 +43,18 @@ function HeaderHost({ title, canHide = true }: HeaderHostProps) {
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/ColumnHeader",
   component: HeaderHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Sortable column header with a dropdown menu (Asc/Desc/Hide). Used via `columns.header` in `ColumnDef`.",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/ColumnHeader",
 } satisfies Meta<typeof HeaderHost>;
 
 export default meta;
@@ -68,16 +66,16 @@ export const Default: Story = {
 };
 
 export const NonHideable: Story = {
-  args: { title: "Actions", canHide: false },
+  args: { canHide: false, title: "Actions" },
 };
 
 export const NonSortable: Story = {
   args: { title: "Name (static)" },
   render: () => {
-    const table = useReactTable({
-      data: rows,
+    const table = useTable({
       columns: columns.map((c) => ({ ...c, enableSorting: false })),
-      getCoreRowModel: getCoreRowModel(),
+      data: rows,
+      features: dataTableFeatures,
     });
     const column = table.getColumn("name");
     if (!column) {

@@ -28,30 +28,29 @@ export const useUIStore = create<UIStoreState>()(
   devtools(
     persist(
       (set) => ({
-        theme: DEFAULT_THEME,
-        setTheme: (theme) => set({ theme }),
-
         collapsible: DEFAULT_COLLAPSIBLE,
-        setCollapsible: (collapsible) => set({ collapsible }),
-
-        variant: DEFAULT_VARIANT,
-        setVariant: (variant) => set({ variant }),
-
-        sidebarOpen: DEFAULT_SIDEBAR_OPEN,
-        setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
 
         resetUI: () =>
           set({
-            theme: DEFAULT_THEME,
             collapsible: DEFAULT_COLLAPSIBLE,
-            variant: DEFAULT_VARIANT,
             sidebarOpen: DEFAULT_SIDEBAR_OPEN,
+            theme: DEFAULT_THEME,
+            variant: DEFAULT_VARIANT,
           }),
+        setCollapsible: (collapsible) => set({ collapsible }),
+        setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+        setTheme: (theme) => set({ theme }),
+        setVariant: (variant) => set({ variant }),
+
+        sidebarOpen: DEFAULT_SIDEBAR_OPEN,
+        theme: DEFAULT_THEME,
+
+        variant: DEFAULT_VARIANT,
       }),
       {
         name: "ui-store",
-        version: 1,
         storage: createJSONStorage(() => localStorage),
+        version: 1,
       }
     ),
     { name: "UIStore" }

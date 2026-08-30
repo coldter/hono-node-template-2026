@@ -43,24 +43,23 @@ export function parseOtlpHeaders(value: string): Record<string, string> {
 
 const envSchema = z
   .object({
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
-    PORT: z.coerce.number().default(3000),
-    // Winston npm levels only; pino-style values (fatal/trace/silent) would
-    // silently suppress all output because winston treats them as unknown.
-    LOG_LEVEL: z
-      .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
-      .default("info"),
-    WORK_FLOWS_LOG_LEVEL: z
-      .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
-      .default("warn"),
     APP_NAME: z.string().default("App"),
-    COMPANY_NAME: z.string().default("Acme Inc."),
-    SUPPORT_EMAIL: z.email().default("support@example.com"),
-    BRAND_PRIMARY_COLOR: z.string().default("#2563eb"),
-    LOGO_TEXT: z.string().default("App"),
     APP_URL: z.url().default("http://localhost:3001"),
+    BASE_PATH: z.string().default(""),
+    BETTER_AUTH_SECRET: z.string(),
+    BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
+    BRAND_PRIMARY_COLOR: z.string().default("#2563eb"),
+    COMPANY_NAME: z.string().default("Acme Inc."),
+    CORS_ORIGIN: z
+      .string()
+      .transform((val) => val.split(",").map((s) => s.trim())),
+    DATABASE_TEST_URL: z.string().optional(),
+    DATABASE_URL: z.string().min(1).max(1000),
+    DB_POOL_MAX: z.coerce.number().default(10),
+    EMAIL_FROM: z.email().default("noreply@example.com"),
+    EMAIL_FROM_NAME: z.string().default("App"),
+
+    EMAIL_PROVIDER: z.enum(["nodemailer", "console"]).default("console"),
     ENABLE_DOCS: z
       .string()
       .default("true")
@@ -69,53 +68,42 @@ const envSchema = z
       .string()
       .default("false")
       .transform((val) => val === "true" || val === "1"),
-    DATABASE_URL: z.string().min(1).max(1000),
-    DATABASE_TEST_URL: z.string().optional(),
-    DB_POOL_MAX: z.coerce.number().default(10),
-    SKIP_DB: z
-      .string()
-      .transform((val) => val === "true" || val === "1")
-      .optional(),
-    CORS_ORIGIN: z
-      .string()
-      .transform((val) => val.split(",").map((s) => s.trim())),
-    TRUST_PROXY: z
-      .string()
-      .default("false")
-      .transform((val) => val === "true" || val === "1"),
-    REDIS_URL: z.string().optional(),
     ENABLE_SIGNUP: z
       .string()
       .default("false")
       .transform((val) => val === "true" || val === "1"),
-    BASE_PATH: z.string().default(""),
-    SERVER_URL: z.string().default("http://localhost:3100"),
-    BETTER_AUTH_SECRET: z.string(),
-    BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
+
+    FCM_PROVIDER: z.enum(["firebase", "console"]).default("console"),
+    FIREBASE_SERVICE_ACCOUNT_KEY_BASE64: z.string().optional(),
+    HATCHET_CLIENT_HOST_PORT: z.string().default("localhost:7077"),
+    HATCHET_CLIENT_TLS_STRATEGY: z
+      .enum(["none", "tls", "mtls"])
+      .default("none"),
+    HATCHET_CLIENT_TOKEN: z.string().optional(),
 
     HATCHET_ENABLED: z
       .string()
       .default("false")
       .transform((val) => val === "true" || val === "1"),
-    HATCHET_CLIENT_TOKEN: z.string().optional(),
-    HATCHET_CLIENT_TLS_STRATEGY: z
-      .enum(["none", "tls", "mtls"])
-      .default("none"),
-    HATCHET_CLIENT_HOST_PORT: z.string().default("localhost:7077"),
-    HATCHET_WORKER_SLOTS: z.coerce.number().default(10),
     HATCHET_THROW_ON_ERROR: z
       .string()
       .default("false")
       .transform((val) => val === "true" || val === "1"),
+    HATCHET_WORKER_SLOTS: z.coerce.number().default(10),
+    // Winston npm levels only; pino-style values (fatal/trace/silent) would
+    // silently suppress all output because winston treats them as unknown.
+    LOG_LEVEL: z
+      .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
+      .default("info"),
+    LOGO_TEXT: z.string().default("App"),
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
 
     OTEL_ENABLED: z
       .string()
       .default("false")
       .transform((val) => val === "true" || val === "1"),
-
-    OTEL_TRACES_ENDPOINT: z.url().optional(),
-    OTEL_METRICS_ENDPOINT: z.url().optional(),
-    OTEL_LOGS_ENDPOINT: z.url().optional(),
 
     OTEL_EXPORTER_OTLP_HEADERS: z
       .string()
@@ -134,26 +122,38 @@ const envSchema = z
           return z.NEVER;
         }
       }),
+    OTEL_LOGS_ENDPOINT: z.url().optional(),
+    OTEL_METRICS_ENDPOINT: z.url().optional(),
 
-    EMAIL_PROVIDER: z.enum(["nodemailer", "console"]).default("console"),
-    EMAIL_FROM: z.email().default("noreply@example.com"),
-    EMAIL_FROM_NAME: z.string().default("App"),
+    OTEL_TRACES_ENDPOINT: z.url().optional(),
+    PORT: z.coerce.number().default(3000),
+    REDIS_URL: z.string().optional(),
+    SERVER_URL: z.string().default("http://localhost:3100"),
+    SKIP_DB: z
+      .string()
+      .transform((val) => val === "true" || val === "1")
+      .optional(),
     SMTP_HOST: z.string().optional(),
-    SMTP_PORT: z.coerce.number().optional(),
-    SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
+    SMTP_PORT: z.coerce.number().optional(),
     SMTP_SECURE: z
       .string()
       .default("false")
       .transform((val) => val === "true" || val === "1"),
-
-    FCM_PROVIDER: z.enum(["firebase", "console"]).default("console"),
-    FIREBASE_SERVICE_ACCOUNT_KEY_BASE64: z.string().optional(),
+    SMTP_USER: z.string().optional(),
+    SUPPORT_EMAIL: z.email().default("support@example.com"),
+    TRUST_PROXY: z
+      .string()
+      .default("false")
+      .transform((val) => val === "true" || val === "1"),
+    VAULT_MASTER_KEY: z.string().length(64).optional(),
 
     VAULT_PROVIDER: z
       .enum(["local", "aws-kms", "gcp-kms", "azure-keyvault"])
       .default("local"),
-    VAULT_MASTER_KEY: z.string().length(64).optional(),
+    WORK_FLOWS_LOG_LEVEL: z
+      .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
+      .default("warn"),
   })
   .refine((data) => !data.HATCHET_ENABLED || data.HATCHET_CLIENT_TOKEN, {
     message: "HATCHET_CLIENT_TOKEN is required when HATCHET_ENABLED=true",

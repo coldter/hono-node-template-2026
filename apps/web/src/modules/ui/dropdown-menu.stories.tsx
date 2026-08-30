@@ -19,18 +19,18 @@ import {
 } from "./dropdown-menu";
 
 const meta = {
-  title: "UI/DropdownMenu",
   component: DropdownMenu,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "Radix dropdown menu with items, groups, separators, shortcuts, checkbox items, radio items, and submenus.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "UI/DropdownMenu",
 } satisfies Meta<typeof DropdownMenu>;
 
 export default meta;

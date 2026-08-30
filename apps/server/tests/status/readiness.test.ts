@@ -7,13 +7,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/db", () => ({
-  isDbSkipped: false,
   db: { execute: mocks.execute },
+  isDbSkipped: false,
 }));
 
 vi.mock("@/lib/redis", () => ({
-  isRedisEnabled: () => mocks.redisEnabled.value,
   getRedis: async () => ({ ping: mocks.ping }),
+  isRedisEnabled: () => mocks.redisEnabled.value,
 }));
 
 import statusHandler from "@/modules/status/handler";
@@ -36,8 +36,8 @@ describe("GET /ready", () => {
 
     expect(res.status).toBe(200);
     expect((await res.json()) as ReadinessBody).toEqual({
-      status: "ok",
       checks: { database: true, redis: null },
+      status: "ok",
     });
   });
 
@@ -48,8 +48,8 @@ describe("GET /ready", () => {
 
     expect(res.status).toBe(503);
     expect((await res.json()) as ReadinessBody).toEqual({
-      status: "unavailable",
       checks: { database: false, redis: null },
+      status: "unavailable",
     });
   });
 
@@ -61,8 +61,8 @@ describe("GET /ready", () => {
 
     expect(res.status).toBe(503);
     expect((await res.json()) as ReadinessBody).toEqual({
-      status: "unavailable",
       checks: { database: true, redis: false },
+      status: "unavailable",
     });
   });
 
@@ -73,8 +73,8 @@ describe("GET /ready", () => {
 
     expect(res.status).toBe(200);
     expect((await res.json()) as ReadinessBody).toEqual({
-      status: "ok",
       checks: { database: true, redis: true },
+      status: "ok",
     });
   });
 });

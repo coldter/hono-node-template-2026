@@ -2,7 +2,6 @@ import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
-  tags: ["-lintignore"],
   ignoreIssues: {
     "apps/web/src/modules/ui/**": ["exports"],
     "packages/authorization/package.json": ["optionalPeerDependencies"],
@@ -11,13 +10,27 @@ const config: KnipConfig = {
     exports: "warn",
     types: "warn",
   },
+  tags: ["-lintignore"],
   workspaces: {
     ".": {
       ignoreDependencies: ["tsx"],
     },
+    "apps/server": {
+      entry: ["scripts/**/*.ts", "mocks/**/*.ts", "tests/**/*.ts"],
+      ignoreFiles: ["src/rcp-client.ts"],
+      paths: {
+        "@/*": ["./src/*"],
+      },
+      project: [
+        "src/**/*.ts",
+        "scripts/**/*.ts",
+        "mocks/**/*.ts",
+        "tests/**/*.ts",
+        "*.ts",
+      ],
+    },
     "apps/web": {
       entry: ["src/routes/**/*.tsx", "src/api-config.ts"],
-      project: ["src/**/*.{ts,tsx}", "*.{ts,tsx}"],
       ignore: ["src/api.gen/**"],
       ignoreDependencies: [
         "postcss",
@@ -28,20 +41,7 @@ const config: KnipConfig = {
       paths: {
         "@/*": ["./src/*"],
       },
-    },
-    "apps/server": {
-      entry: ["scripts/**/*.ts", "mocks/**/*.ts", "tests/**/*.ts"],
-      project: [
-        "src/**/*.ts",
-        "scripts/**/*.ts",
-        "mocks/**/*.ts",
-        "tests/**/*.ts",
-        "*.ts",
-      ],
-      ignoreFiles: ["src/rcp-client.ts"],
-      paths: {
-        "@/*": ["./src/*"],
-      },
+      project: ["src/**/*.{ts,tsx}", "*.{ts,tsx}"],
     },
     "packages/*": {
       project: ["**/*.{ts,tsx}"],

@@ -3,21 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "check-types": "tsgo --noEmit",
-    "check-types:backup": "tsc --noEmit",
-    "test": "vitest run"
-  },
   "exports": {
     ".": "./src/index.ts",
     "./hono": "./src/hono.ts",
     "./drizzle": "./src/drizzle.ts"
   },
+  "scripts": {
+    "check-types": "tsgo --noEmit",
+    "check-types:backup": "tsc --noEmit",
+    "test": "vitest run"
+  },
   "devDependencies": {
     "@typescript/native-preview": "beta",
-    "hono": "^4.12.25",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "hono": "^4.13.5",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
     "drizzle-orm": "^1.0.0-rc.4-5d5b77c",

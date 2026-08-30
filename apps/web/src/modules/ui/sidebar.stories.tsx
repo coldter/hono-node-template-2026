@@ -24,18 +24,18 @@ import {
 } from "./sidebar";
 
 const meta = {
-  title: "UI/Sidebar",
   component: Sidebar,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "Full-page application sidebar with SidebarProvider, Sidebar composition, SidebarInset for main content, and keyboard shortcut support. Supports variant=sidebar|floating|inset and collapsible=offcanvas|icon|none.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "UI/Sidebar",
 } satisfies Meta<typeof Sidebar>;
 
 export default meta;
@@ -45,11 +45,11 @@ type Story = StoryObj<typeof meta>;
 type NavItem = { title: string; icon: LucideIcon };
 
 const navItems: NavItem[] = [
-  { title: "Home", icon: Home },
-  { title: "Inbox", icon: Inbox },
-  { title: "Search", icon: Search },
-  { title: "Team", icon: Users },
-  { title: "Settings", icon: Settings },
+  { icon: Home, title: "Home" },
+  { icon: Inbox, title: "Inbox" },
+  { icon: Search, title: "Search" },
+  { icon: Users, title: "Team" },
+  { icon: Settings, title: "Settings" },
 ];
 
 function DemoSidebar({

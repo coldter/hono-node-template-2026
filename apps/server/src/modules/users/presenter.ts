@@ -42,14 +42,14 @@ export function toUserSummaryResponse(user: UserSummaryRecord) {
     return null;
   }
   return {
-    id: user.id,
-    name: user.name,
+    createdAt: user.createdAt.toISOString(),
     email: user.email,
     emailVerified: user.emailVerified,
+    id: user.id,
     image: user.image,
-    status: parsedStatus.data,
+    name: user.name,
     roleSlugs: user.roleSlugs,
-    createdAt: user.createdAt.toISOString(),
+    status: parsedStatus.data,
     updatedAt: user.updatedAt.toISOString(),
   };
 }
@@ -60,32 +60,32 @@ export function toUserDetailResponse(user: UserDetailRecord) {
     return null;
   }
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    emailVerified: user.emailVerified,
-    image: user.image,
-    status: parsedStatus.data,
-    roleSlugs: user.roleSlugs,
     createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
-    failedLoginAttempts: user.failedLoginAttempts,
-    lockedUntil: user.lockedUntil?.toISOString() ?? null,
     deactivatedAt: user.deactivatedAt?.toISOString() ?? null,
     deactivatedBy: user.deactivatedBy,
     deactivatedReason: user.deactivatedReason,
+    email: user.email,
+    emailVerified: user.emailVerified,
+    failedLoginAttempts: user.failedLoginAttempts,
+    id: user.id,
+    image: user.image,
+    lockedUntil: user.lockedUntil?.toISOString() ?? null,
+    name: user.name,
+    roleSlugs: user.roleSlugs,
+    status: parsedStatus.data,
+    updatedAt: user.updatedAt.toISOString(),
   };
 }
 
 export function toMyAccountResponse(user: MyAccountRecord) {
   return {
-    id: user.id,
-    name: user.name,
+    createdAt: user.createdAt.toISOString(),
     email: user.email,
     emailVerified: user.emailVerified,
+    id: user.id,
     image: user.image,
+    name: user.name,
     onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() ?? null,
-    createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
 }

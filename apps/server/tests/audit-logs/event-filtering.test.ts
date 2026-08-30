@@ -3,12 +3,12 @@ import type { Context, Next } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/middlewares/rate-limit", () => ({
-  rateLimiter: vi.fn().mockReturnValue(async (_c: Context, next: Next) => {
-    await next();
-  }),
   globalRateLimitMW: async (_c: Context, next: Next) => {
     await next();
   },
+  rateLimiter: vi.fn().mockReturnValue(async (_c: Context, next: Next) => {
+    await next();
+  }),
 }));
 
 vi.mock("@/auth/middleware", () => ({
@@ -23,8 +23,8 @@ const findMock = vi.fn();
 
 vi.mock("@/modules/audit-logs/service", () => ({
   auditLogService: {
-    find: (...args: unknown[]) => findMock(...args),
     create: vi.fn(),
+    find: (...args: unknown[]) => findMock(...args),
   },
 }));
 
@@ -47,26 +47,26 @@ type ListResponseBody = {
 describe("audit-logs handler event filtering", () => {
   it("should drop rows with unknown event keys via flatMap", async () => {
     const baseRow = {
-      id: "row_known",
-      event: "user.created",
       actorId: "usr_actor",
       actorType: "user",
+      createdAt: new Date("2026-05-01T00:00:00.000Z"),
+      event: "user.created",
+      id: "row_known",
+      ipAddress: "127.0.0.1",
+      metadata: null,
       targetId: "usr_target",
       targetType: "user",
-      ipAddress: "127.0.0.1",
       userAgent: "vitest",
-      metadata: null,
-      createdAt: new Date("2026-05-01T00:00:00.000Z"),
     };
     const unknownRow = {
       ...baseRow,
-      id: "row_unknown",
       event: "legacy.unknown.event",
+      id: "row_unknown",
     };
 
     findMock.mockResolvedValueOnce({
       data: [baseRow, unknownRow],
-      meta: { total: 2, page: 1, perPage: 20, pageCount: 1 },
+      meta: { page: 1, pageCount: 1, perPage: 20, total: 2 },
     });
 
     const response = await auditLogsHandler.request(
@@ -84,24 +84,24 @@ describe("audit-logs handler event filtering", () => {
 
   it("should include rows whose event matches a known AUDIT_EVENT_KEY", async () => {
     const knownEvents = [
-      { id: "r1", event: "auth.login.success" },
-      { id: "r2", event: "role.assigned" },
+      { event: "auth.login.success", id: "r1" },
+      { event: "role.assigned", id: "r2" },
     ];
     const rows = knownEvents.map((e) => ({
       ...e,
       actorId: null,
       actorType: "user",
+      createdAt: new Date("2026-05-01T00:00:00.000Z"),
+      ipAddress: null,
+      metadata: null,
       targetId: null,
       targetType: null,
-      ipAddress: null,
       userAgent: null,
-      metadata: null,
-      createdAt: new Date("2026-05-01T00:00:00.000Z"),
     }));
 
     findMock.mockResolvedValueOnce({
       data: rows,
-      meta: { total: 2, page: 1, perPage: 20, pageCount: 1 },
+      meta: { page: 1, pageCount: 1, perPage: 20, total: 2 },
     });
 
     const response = await auditLogsHandler.request(
@@ -120,31 +120,31 @@ describe("audit-logs handler event filtering", () => {
     findMock.mockResolvedValueOnce({
       data: [
         {
-          id: "r_keep",
-          event: "user.viewed",
           actorId: null,
           actorType: "user",
+          createdAt: new Date("2026-05-01T00:00:00.000Z"),
+          event: "user.viewed",
+          id: "r_keep",
+          ipAddress: null,
+          metadata: null,
           targetId: null,
           targetType: null,
-          ipAddress: null,
           userAgent: null,
-          metadata: null,
-          createdAt: new Date("2026-05-01T00:00:00.000Z"),
         },
         {
-          id: "r_drop",
-          event: "unknown.event",
           actorId: null,
           actorType: "user",
+          createdAt: new Date("2026-05-01T00:00:00.000Z"),
+          event: "unknown.event",
+          id: "r_drop",
+          ipAddress: null,
+          metadata: null,
           targetId: null,
           targetType: null,
-          ipAddress: null,
           userAgent: null,
-          metadata: null,
-          createdAt: new Date("2026-05-01T00:00:00.000Z"),
         },
       ],
-      meta: { total: 2, page: 1, perPage: 20, pageCount: 1 },
+      meta: { page: 1, pageCount: 1, perPage: 20, total: 2 },
     });
 
     const response = await auditLogsHandler.request(

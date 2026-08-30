@@ -31,7 +31,7 @@ if (env.NODE_ENV === "production") {
 
 function prettyJson(data: unknown): string {
   const json = JSON.stringify(data, null, 2);
-  return highlight(json, { language: "json", ignoreIllegals: true });
+  return highlight(json, { ignoreIllegals: true, language: "json" });
 }
 
 function printHeader(): void {
@@ -65,7 +65,7 @@ async function resolveUser(
   const isUserId = identifier.startsWith("usr_");
 
   const [user] = await db
-    .select({ id: users.id, email: users.email, name: users.name })
+    .select({ email: users.email, id: users.id, name: users.name })
     .from(users)
     .where(isUserId ? eq(users.id, identifier) : eq(users.email, identifier))
     .limit(1);
@@ -203,12 +203,12 @@ async function sendCommand(
   } else {
     const allTypes = Object.values(NOTIFICATION_TYPES);
     type = await select({
-      message: "Select notification type:",
       choices: allTypes.map((t) => ({
+        description: `channels: ${NOTIFICATION_TYPE_CONFIG[t].channels.join(", ")} | priority: ${NOTIFICATION_TYPE_CONFIG[t].priority}`,
         name: t,
         value: t,
-        description: `channels: ${NOTIFICATION_TYPE_CONFIG[t].channels.join(", ")} | priority: ${NOTIFICATION_TYPE_CONFIG[t].priority}`,
       })),
+      message: "Select notification type:",
     });
   }
 
@@ -225,11 +225,11 @@ async function sendCommand(
   );
 
   const result = await notificationService.send({
-    userId: user.id,
-    type,
-    subject: `Test: ${typeName}`,
     body: `Test notification for ${type} triggered via push-debug CLI.`,
     props: { debugTool: true },
+    subject: `Test: ${typeName}`,
+    type,
+    userId: user.id,
   });
 
   console.log(chalk.bold("\nResult:"));
@@ -283,31 +283,38 @@ async function sendDirectCommand(identifier: string): Promise<void> {
   let deliveredCount = 0;
   let failedCount = 0;
 
-  for (const token of tokens) {
-    const device = token.deviceName ?? "unknown device";
-    const testId = `debug_${Date.now()}`;
+  const results = await Promise.all(
+    tokens.map(async (token) => {
+      const device = token.deviceName ?? "unknown device";
+      const testId = `debug_${Date.now()}`;
 
-    const result = await provider.send({
-      token: token.token,
-      data: {
-        notificationId: testId,
-        type: "debug.test",
-        title: "Push Debug Test",
-        body: `Direct test push sent at ${new Date().toLocaleTimeString()}`,
-        priority: "high",
-        deepLink: `notification/${testId}`,
-      },
-    });
+      const result = await provider.send({
+        data: {
+          body: `Direct test push sent at ${new Date().toLocaleTimeString()}`,
+          deepLink: `notification/${testId}`,
+          notificationId: testId,
+          priority: "high",
+          title: "Push Debug Test",
+          type: "debug.test",
+        },
+        token: token.token,
+      });
 
+      return { device, result, token };
+    })
+  );
+
+  const invalidTokens: string[] = [];
+  for (const { device, result, token } of results) {
     if (result.success) {
-      deliveredCount++;
+      deliveredCount += 1;
       console.log(
         chalk.dim(
           `  Token ${token.id} (${token.platform}, ${device}):  ${chalk.green("SUCCESS")}  msgId=${result.messageId}`
         )
       );
     } else {
-      failedCount++;
+      failedCount += 1;
       const invalidNote = result.invalidToken
         ? chalk.red(" (token removed)")
         : "";
@@ -318,9 +325,17 @@ async function sendDirectCommand(identifier: string): Promise<void> {
       );
 
       if (result.invalidToken) {
-        await notificationService.deletePushTokenByToken(token.token);
+        invalidTokens.push(token.token);
       }
     }
+  }
+
+  if (invalidTokens.length > 0) {
+    await Promise.all(
+      invalidTokens.map((token) =>
+        notificationService.deletePushTokenByToken(token)
+      )
+    );
   }
 
   console.log(
@@ -383,8 +398,8 @@ async function sendRawCommand(
   }
 
   const proceed = await confirm({
-    message: `Send this payload to ${tokens.length} token(s)?`,
     default: true,
+    message: `Send this payload to ${tokens.length} token(s)?`,
   });
 
   if (!proceed) {
@@ -396,23 +411,30 @@ async function sendRawCommand(
   let deliveredCount = 0;
   let failedCount = 0;
 
-  for (const token of tokens) {
-    const device = token.deviceName ?? "unknown device";
+  const results = await Promise.all(
+    tokens.map(async (token) => {
+      const device = token.deviceName ?? "unknown device";
 
-    const result = await provider.send({
-      token: token.token,
-      data: stringData,
-    });
+      const result = await provider.send({
+        data: stringData,
+        token: token.token,
+      });
 
+      return { device, result, token };
+    })
+  );
+
+  const invalidTokens: string[] = [];
+  for (const { device, result, token } of results) {
     if (result.success) {
-      deliveredCount++;
+      deliveredCount += 1;
       console.log(
         chalk.dim(
           `  Token ${token.id} (${token.platform}, ${device}):  ${chalk.green("SUCCESS")}  msgId=${result.messageId}`
         )
       );
     } else {
-      failedCount++;
+      failedCount += 1;
       const invalidNote = result.invalidToken
         ? chalk.red(" (token removed)")
         : "";
@@ -423,9 +445,17 @@ async function sendRawCommand(
       );
 
       if (result.invalidToken) {
-        await notificationService.deletePushTokenByToken(token.token);
+        invalidTokens.push(token.token);
       }
     }
+  }
+
+  if (invalidTokens.length > 0) {
+    await Promise.all(
+      invalidTokens.map((token) =>
+        notificationService.deletePushTokenByToken(token)
+      )
+    );
   }
 
   console.log(
@@ -449,8 +479,8 @@ async function sendAllTypesCommand(identifier: string): Promise<void> {
   );
 
   const proceed = await confirm({
-    message: `Send ${pushTypes.length} notifications via full pipeline?`,
     default: false,
+    message: `Send ${pushTypes.length} notifications via full pipeline?`,
   });
 
   if (!proceed) {
@@ -461,33 +491,40 @@ async function sendAllTypesCommand(identifier: string): Promise<void> {
   let successCount = 0;
   let failCount = 0;
 
-  for (const type of pushTypes) {
-    const typeName = type.replace(/[._]/g, " ");
-    try {
-      const result = await notificationService.send({
-        userId: user.id,
-        type,
-        subject: `Test: ${typeName}`,
-        body: `Test notification for ${type} triggered via push-debug CLI.`,
-        props: { debugTool: true },
-      });
+  const results = await Promise.all(
+    pushTypes.map(async (type) => {
+      const typeName = type.replace(/[._]/g, " ");
+      try {
+        const result = await notificationService.send({
+          body: `Test notification for ${type} triggered via push-debug CLI.`,
+          props: { debugTool: true },
+          subject: `Test: ${typeName}`,
+          type,
+          userId: user.id,
+        });
 
-      const sent = result.sentChannels.length > 0;
-      if (sent) {
-        successCount++;
-        console.log(chalk.dim(`  ${chalk.green("SENT")}     ${type}`));
-      } else {
-        failCount++;
-        console.log(
-          chalk.dim(
-            `  ${chalk.yellow("FILTERED")}  ${type}  (no channels enabled)`
-          )
-        );
+        return { sent: result.sentChannels.length > 0, type };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "unknown error";
+        return { error: msg, sent: false, type };
       }
-    } catch (error) {
-      failCount++;
-      const msg = error instanceof Error ? error.message : "unknown error";
-      console.log(chalk.dim(`  ${chalk.red("ERROR")}    ${type}  ${msg}`));
+    })
+  );
+
+  for (const { error, sent, type } of results) {
+    if (error) {
+      failCount += 1;
+      console.log(chalk.dim(`  ${chalk.red("ERROR")}    ${type}  ${error}`));
+    } else if (sent) {
+      successCount += 1;
+      console.log(chalk.dim(`  ${chalk.green("SENT")}     ${type}`));
+    } else {
+      failCount += 1;
+      console.log(
+        chalk.dim(
+          `  ${chalk.yellow("FILTERED")}  ${type}  (no channels enabled)`
+        )
+      );
     }
   }
 
@@ -534,8 +571,8 @@ async function cleanupCommand(identifier: string): Promise<void> {
   }
 
   const proceed = await confirm({
-    message: `Delete ${inactiveTokens.length} inactive token(s)?`,
     default: false,
+    message: `Delete ${inactiveTokens.length} inactive token(s)?`,
   });
 
   if (!proceed) {
@@ -543,9 +580,11 @@ async function cleanupCommand(identifier: string): Promise<void> {
     return;
   }
 
-  for (const token of inactiveTokens) {
-    await notificationService.deletePushTokenByToken(token.token);
-  }
+  await Promise.all(
+    inactiveTokens.map((token) =>
+      notificationService.deletePushTokenByToken(token.token)
+    )
+  );
 
   console.log(
     chalk.green(`\nDeleted ${inactiveTokens.length} inactive token(s).`)
@@ -558,43 +597,44 @@ async function interactiveMenu(): Promise<void> {
   printHeader();
 
   while (true) {
+    // biome-ignore lint/performance/noAwaitInLoops: each prompt must be answered before the next one
     const action = await select({
-      message: "Choose an operation:",
       choices: [
         {
-          name: "Inspect user",
-          value: "inspect",
           description:
             "View push tokens, recent notifications, and preferences",
+          name: "Inspect user",
+          value: "inspect",
         },
         {
+          description: "Send via notificationService -> Hatchet -> Firebase",
           name: "Send notification (full pipeline)",
           value: "send",
-          description: "Send via notificationService -> Hatchet -> Firebase",
         },
         {
+          description: "Send test push directly via Firebase provider",
           name: "Send direct (bypass Hatchet)",
           value: "send-direct",
-          description: "Send test push directly via Firebase provider",
         },
         {
+          description: "Send custom JSON payload directly to Firebase",
           name: "Send raw payload",
           value: "send-raw",
-          description: "Send custom JSON payload directly to Firebase",
         },
         {
-          name: "Send all push types",
-          value: "send-all-types",
           description:
             "Send every push-enabled notification type via full pipeline",
+          name: "Send all push types",
+          value: "send-all-types",
         },
         {
+          description: "List and delete inactive push tokens",
           name: "Cleanup inactive tokens",
           value: "cleanup",
-          description: "List and delete inactive push tokens",
         },
         { name: "Exit", value: "exit" },
       ],
+      message: "Choose an operation:",
     });
 
     if (action === "exit") {
@@ -646,7 +686,7 @@ async function interactiveMenu(): Promise<void> {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const command = args[0];
+  const [command, identifier, typeArg] = args;
 
   if (!command) {
     await interactiveMenu();
@@ -657,7 +697,6 @@ async function main(): Promise<void> {
 
   switch (command) {
     case "inspect": {
-      const identifier = args[1];
       if (!identifier) {
         console.error(chalk.red("Usage: push:debug inspect <userId|email>"));
         process.exit(1);
@@ -666,18 +705,16 @@ async function main(): Promise<void> {
       break;
     }
     case "send": {
-      const identifier = args[1];
       if (!identifier) {
         console.error(
           chalk.red("Usage: push:debug send <userId|email> [type]")
         );
         process.exit(1);
       }
-      await sendCommand(identifier, args[2]);
+      await sendCommand(identifier, typeArg);
       break;
     }
     case "send-direct": {
-      const identifier = args[1];
       if (!identifier) {
         console.error(
           chalk.red("Usage: push:debug send-direct <userId|email>")
@@ -688,7 +725,6 @@ async function main(): Promise<void> {
       break;
     }
     case "send-raw": {
-      const identifier = args[1];
       if (!identifier) {
         console.error(
           chalk.red(
@@ -711,7 +747,6 @@ async function main(): Promise<void> {
       break;
     }
     case "send-all-types": {
-      const identifier = args[1];
       if (!identifier) {
         console.error(
           chalk.red("Usage: push:debug send-all-types <userId|email>")
@@ -722,7 +757,6 @@ async function main(): Promise<void> {
       break;
     }
     case "cleanup": {
-      const identifier = args[1];
       if (!identifier) {
         console.error(chalk.red("Usage: push:debug cleanup <userId|email>"));
         process.exit(1);

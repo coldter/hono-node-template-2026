@@ -5,18 +5,7 @@ import { Label } from "@/modules/ui/label";
 import { ContentSection } from "./content-section";
 
 const meta = {
-  title: "Features/Settings/ContentSection",
   component: ContentSection,
-  parameters: {
-    layout: "padded",
-    docs: {
-      description: {
-        component:
-          "Titled section shell used for settings pages. Provides a heading, description, separator, and a scrollable content area.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   decorators: [
     (Story) => (
       <div className="h-[520px] w-[720px] rounded-md border bg-background p-6">
@@ -24,6 +13,17 @@ const meta = {
       </div>
     ),
   ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Titled section shell used for settings pages. Provides a heading, description, separator, and a scrollable content area.",
+      },
+    },
+    layout: "padded",
+  },
+  tags: ["autodocs"],
+  title: "Features/Settings/ContentSection",
 } satisfies Meta<typeof ContentSection>;
 
 export default meta;
@@ -32,8 +32,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Profile: Story = {
   args: {
-    title: "Profile",
-    desc: "This is how others will see you on the site.",
     children: (
       <form className="space-y-4">
         <div className="space-y-2">
@@ -47,5 +45,7 @@ export const Profile: Story = {
         <Button type="button">Save changes</Button>
       </form>
     ),
+    desc: "This is how others will see you on the site.",
+    title: "Profile",
   },
 };

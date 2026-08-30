@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import {
-  type ColumnDef,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, useTable } from "@tanstack/react-table";
+import type { DataTableFeatures } from "./features";
+import { dataTableFeatures } from "./features";
 import { DataTablePagination } from "./pagination";
 
 type Row = { id: number };
@@ -12,7 +9,9 @@ type Row = { id: number };
 const makeRows = (count: number): Row[] =>
   Array.from({ length: count }, (_, i) => ({ id: i + 1 }));
 
-const columns: ColumnDef<Row>[] = [{ accessorKey: "id", header: "ID" }];
+const columns: ColumnDef<DataTableFeatures, Row>[] = [
+  { accessorKey: "id", header: "ID" },
+];
 
 type PaginationHostProps = {
   rowCount: number;
@@ -25,12 +24,11 @@ function PaginationHost({
   pageSize,
   pageIndex,
 }: PaginationHostProps) {
-  const table = useReactTable({
-    data: makeRows(rowCount),
+  const table = useTable({
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize, pageIndex } },
+    data: makeRows(rowCount),
+    features: dataTableFeatures,
+    initialState: { pagination: { pageIndex, pageSize } },
   });
 
   return (
@@ -41,18 +39,18 @@ function PaginationHost({
 }
 
 const meta = {
-  title: "Patterns/DataTable/Parts/Pagination",
   component: PaginationHost,
   parameters: {
-    layout: "padded",
     docs: {
       description: {
         component:
           "Pagination control: page-size selector, jump-to-first/last, prev/next, and numbered buttons (with ellipsis for many pages).",
       },
     },
+    layout: "padded",
   },
   tags: ["autodocs"],
+  title: "Patterns/DataTable/Parts/Pagination",
 } satisfies Meta<typeof PaginationHost>;
 
 export default meta;
@@ -60,17 +58,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: { rowCount: 100, pageSize: 10, pageIndex: 1 },
+  args: { pageIndex: 1, pageSize: 10, rowCount: 100 },
 };
 
 export const FirstPage: Story = {
-  args: { rowCount: 100, pageSize: 10, pageIndex: 0 },
+  args: { pageIndex: 0, pageSize: 10, rowCount: 100 },
 };
 
 export const LastPage: Story = {
-  args: { rowCount: 100, pageSize: 10, pageIndex: 9 },
+  args: { pageIndex: 9, pageSize: 10, rowCount: 100 },
 };
 
 export const SinglePage: Story = {
-  args: { rowCount: 5, pageSize: 10, pageIndex: 0 },
+  args: { pageIndex: 0, pageSize: 10, rowCount: 5 },
 };

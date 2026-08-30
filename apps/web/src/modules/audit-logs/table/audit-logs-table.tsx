@@ -1,12 +1,8 @@
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, useTable } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import type { NavigateFn } from "@/hooks/use-table-url-state";
 import { useTableUrlState } from "@/hooks/use-table-url-state";
-import { DataTablePagination } from "@/modules/data-table";
+import { DataTablePagination, dataTableFeatures } from "@/modules/data-table";
 import { TableEmpty } from "@/modules/data-table/table-empty";
 import { TableError } from "@/modules/data-table/table-error";
 import { TableSkeleton } from "@/modules/data-table/table-skeleton";
@@ -34,15 +30,15 @@ export function AuditLogsTable() {
   const tableNavigate: NavigateFn = ({ search: searchUpdate, replace }) => {
     if (typeof searchUpdate === "function") {
       routeNavigate({
-        search: (prev) => ({ ...prev, ...searchUpdate(prev) }),
         replace,
+        search: (prev) => ({ ...prev, ...searchUpdate(prev) }),
       });
     } else if (searchUpdate === true) {
-      routeNavigate({ search: true, replace });
+      routeNavigate({ replace, search: true });
     } else {
       routeNavigate({
-        search: (prev) => ({ ...prev, ...searchUpdate }),
         replace,
+        search: (prev) => ({ ...prev, ...searchUpdate }),
       });
     }
   };
@@ -54,25 +50,25 @@ export function AuditLogsTable() {
     onSortingChange,
     ensurePageInRange,
   } = useTableUrlState({
-    search,
     navigate: tableNavigate,
     pagination: {
       defaultPage: 1,
       defaultPageSize: 20,
     },
+    search,
     sorting: {
-      defaultSort: "createdAt",
       defaultOrder: "desc",
+      defaultSort: "createdAt",
     },
   });
 
   const { data, isLoading, isError } = useAuditLogsQuery({
+    actorId: search.actorId,
+    event: search.event,
+    order: sorting[0]?.desc ? "desc" : "asc",
     page: pagination.pageIndex + 1,
     perPage: pagination.pageSize,
     sort: sorting[0]?.id,
-    order: sorting[0]?.desc ? "desc" : "asc",
-    event: search.event,
-    actorId: search.actorId,
     targetType: search.targetType,
   });
 
@@ -82,16 +78,17 @@ export function AuditLogsTable() {
     ensurePageInRange(pageCount);
   }, [pageCount, ensurePageInRange]);
 
-  const table = useReactTable({
-    data: data?.data ?? [],
+  const table = useTable({
     columns: auditLogsColumns,
-    pageCount,
-    state: { pagination, sorting },
-    onPaginationChange,
-    onSortingChange,
-    getCoreRowModel: getCoreRowModel(),
+    data: data?.data ?? [],
+    features: dataTableFeatures,
+    manualFiltering: true,
     manualPagination: true,
     manualSorting: true,
+    onPaginationChange,
+    onSortingChange,
+    pageCount,
+    state: { pagination, sorting },
   });
 
   function handleRowClick(log: AuditLog) {
@@ -108,7 +105,7 @@ export function AuditLogsTable() {
       return <TableSkeleton columnCount={auditLogsColumns.length} />;
     }
 
-    const rows = table.getRowModel().rows;
+    const { rows } = table.getRowModel();
     if (rows.length === 0) {
       return (
         <TableEmpty

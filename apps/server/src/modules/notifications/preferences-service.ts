@@ -7,6 +7,25 @@ import { db, type Executor } from "@/db";
 import type { PreferencesRecord, UpdatePreferencesInput } from "./types";
 
 export const notificationPreferencesService = {
+  async ensureDefaultPreferences(
+    userId: string,
+    executor: Executor = db
+  ): Promise<PreferencesRecord[]> {
+    const existing =
+      await notificationPreferencesService.getPreferences(userId);
+    if (existing.length === 0) {
+      return notificationPreferencesService.updatePreferences(
+        userId,
+        {
+          emailEnabled: true,
+          pushEnabled: true,
+          smsEnabled: false,
+        },
+        executor
+      );
+    }
+    return existing;
+  },
   async getPreferences(userId: string): Promise<PreferencesRecord[]> {
     return db
       .select()
@@ -23,11 +42,11 @@ export const notificationPreferencesService = {
     return executor.transaction(async (tx) => {
       const values: NewNotificationPreference[] = [
         {
-          userId,
-          typePattern: "*",
           emailEnabled: input.emailEnabled ?? true,
-          smsEnabled: input.smsEnabled ?? false,
           pushEnabled: input.pushEnabled ?? true,
+          smsEnabled: input.smsEnabled ?? false,
+          typePattern: "*",
+          userId,
         },
       ];
 
@@ -37,11 +56,11 @@ export const notificationPreferencesService = {
         )) {
           const channels = override.channels ?? [];
           values.push({
-            userId,
-            typePattern,
             emailEnabled: channels.includes("email"),
-            smsEnabled: channels.includes("sms"),
             pushEnabled: channels.includes("push"),
+            smsEnabled: channels.includes("sms"),
+            typePattern,
+            userId,
           });
         }
       }
@@ -50,15 +69,15 @@ export const notificationPreferencesService = {
         .insert(notificationPreferences)
         .values(values)
         .onConflictDoUpdate({
+          set: {
+            emailEnabled: sql`EXCLUDED.email_enabled`,
+            pushEnabled: sql`EXCLUDED.push_enabled`,
+            smsEnabled: sql`EXCLUDED.sms_enabled`,
+          },
           target: [
             notificationPreferences.userId,
             notificationPreferences.typePattern,
           ],
-          set: {
-            emailEnabled: sql`EXCLUDED.email_enabled`,
-            smsEnabled: sql`EXCLUDED.sms_enabled`,
-            pushEnabled: sql`EXCLUDED.push_enabled`,
-          },
         });
 
       return tx
@@ -67,25 +86,5 @@ export const notificationPreferencesService = {
         .where(eq(notificationPreferences.userId, userId))
         .orderBy(asc(notificationPreferences.typePattern));
     });
-  },
-
-  async ensureDefaultPreferences(
-    userId: string,
-    executor: Executor = db
-  ): Promise<PreferencesRecord[]> {
-    const existing =
-      await notificationPreferencesService.getPreferences(userId);
-    if (existing.length === 0) {
-      return notificationPreferencesService.updatePreferences(
-        userId,
-        {
-          emailEnabled: true,
-          smsEnabled: false,
-          pushEnabled: true,
-        },
-        executor
-      );
-    }
-    return existing;
   },
 };

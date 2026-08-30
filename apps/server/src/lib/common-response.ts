@@ -12,84 +12,84 @@ type ResponseConfig = Parameters<typeof createRoute>[0]["responses"];
 const failWithErrorSchema = z.object({
   error: z.object({
     code: z.string().optional(),
-    message: z.string().optional(),
     details: z.string().optional(),
+    message: z.string().optional(),
   }),
 });
 
 export const commonErrorResponses = {
   400: {
-    description: "Bad request: problem processing request.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
       },
     },
+    description: "Bad request: problem processing request.",
   },
   401: {
-    description: "Unauthorized: authentication required.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
       },
     },
+    description: "Unauthorized: authentication required.",
   },
   403: {
-    description: "Forbidden: insufficient permissions.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
       },
     },
+    description: "Forbidden: insufficient permissions.",
   },
   404: {
-    description: "Not found: resource does not exist.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
       },
     },
+    description: "Not found: resource does not exist.",
   },
   409: {
+    content: {
+      "application/json": {
+        schema: failWithErrorSchema,
+      },
+    },
     description:
       "Conflict: the request conflicts with current state (e.g. unique constraint violation).",
-    content: {
-      "application/json": {
-        schema: failWithErrorSchema,
-      },
-    },
   },
   422: {
+    content: {
+      "application/json": {
+        schema: failWithErrorSchema,
+      },
+    },
     description:
       "Unprocessable entity: request body failed validation (Zod schema).",
-    content: {
-      "application/json": {
-        schema: failWithErrorSchema,
-      },
-    },
   },
   429: {
-    description: "Too many requests: rate limit exceeded.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
       },
     },
+    description: "Too many requests: rate limit exceeded.",
   },
   500: {
-    description: "Server error: something went wrong.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
       },
     },
+    description: "Server error: something went wrong.",
   },
   503: {
-    description: "Service unavailable: dependency is not currently available.",
     content: {
       "application/json": {
         schema: failWithErrorSchema,
       },
     },
+    description: "Service unavailable: dependency is not currently available.",
   },
 } satisfies ResponseConfig;

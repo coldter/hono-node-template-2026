@@ -6,14 +6,11 @@ import { authorization } from "./registry";
 const app = new OpenAPIHono<Env>();
 
 const capabilitiesRoute = createRoute({
-  operationId: "getAuthorizationCapabilities",
   method: "get",
+  operationId: "getAuthorizationCapabilities",
   path: "/",
-  tags: ["Authorization"],
-  summary: "Get current user authorization capabilities",
   responses: {
     200: {
-      description: "User capabilities",
       content: {
         "application/json": {
           schema: z.object({
@@ -21,9 +18,9 @@ const capabilitiesRoute = createRoute({
           }),
         },
       },
+      description: "User capabilities",
     },
     401: {
-      description: "Unauthorized",
       content: {
         "application/json": {
           schema: z.object({
@@ -34,8 +31,11 @@ const capabilitiesRoute = createRoute({
           }),
         },
       },
+      description: "Unauthorized",
     },
   },
+  summary: "Get current user authorization capabilities",
+  tags: ["Authorization"],
 });
 
 app.openapi(capabilitiesRoute, async (c) => {

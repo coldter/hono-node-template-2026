@@ -16,12 +16,12 @@
     "check-types": "tsgo --noEmit",
     "check-types:backup": "tsc --noEmit"
   },
-  "devDependencies": {
-    "@typescript/native-preview": "beta",
-    "typescript": "^6.0.3"
-  },
   "dependencies": {
     "@repo/authorization": "workspace:*"
+  },
+  "devDependencies": {
+    "@typescript/native-preview": "beta",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "zod": "^4.3.6"

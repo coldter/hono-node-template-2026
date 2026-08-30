@@ -33,6 +33,6 @@ export function WelcomeEmail({ userName, loginUrl }: WelcomeEmailProps) {
 }
 
 WelcomeEmail.PreviewProps = {
-  userName: "Ada",
   loginUrl: "https://example.com/login",
+  userName: "Ada",
 } satisfies WelcomeEmailProps;
