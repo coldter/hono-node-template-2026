@@ -9,28 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as protectedRouteRouteImport } from './routes/(protected)/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as Errors503RouteImport } from './routes/errors/503'
-import { Route as Errors500RouteImport } from './routes/errors/500'
-import { Route as Errors404RouteImport } from './routes/errors/404'
-import { Route as Errors403RouteImport } from './routes/errors/403'
-import { Route as Errors401RouteImport } from './routes/errors/401'
-import { Route as protectedSettingsRouteRouteImport } from './routes/(protected)/settings/route'
+import { Route as protectedRouteRouteImport } from './routes/(protected)/route'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as protectedHelpCenterRouteRouteImport } from './routes/(protected)/help-center/route'
-import { Route as protectedUsersIndexRouteImport } from './routes/(protected)/users/index'
-import { Route as protectedSettingsIndexRouteImport } from './routes/(protected)/settings/index'
-import { Route as protectedDashboardIndexRouteImport } from './routes/(protected)/dashboard/index'
+import { Route as protectedSettingsRouteRouteImport } from './routes/(protected)/settings/route'
+import { Route as Errors401RouteImport } from './routes/errors/401'
+import { Route as Errors403RouteImport } from './routes/errors/403'
+import { Route as Errors404RouteImport } from './routes/errors/404'
+import { Route as Errors500RouteImport } from './routes/errors/500'
+import { Route as Errors503RouteImport } from './routes/errors/503'
 import { Route as protectedAuditLogsIndexRouteImport } from './routes/(protected)/audit-logs/index'
-import { Route as protectedUsersUserIdRouteImport } from './routes/(protected)/users/$userId'
-import { Route as protectedSettingsNotificationsRouteImport } from './routes/(protected)/settings/notifications'
+import { Route as protectedDashboardIndexRouteImport } from './routes/(protected)/dashboard/index'
+import { Route as protectedSettingsIndexRouteImport } from './routes/(protected)/settings/index'
 import { Route as protectedSettingsAppearanceRouteImport } from './routes/(protected)/settings/appearance'
+import { Route as protectedSettingsNotificationsRouteImport } from './routes/(protected)/settings/notifications'
+import { Route as protectedUsersIndexRouteImport } from './routes/(protected)/users/index'
+import { Route as protectedUsersUserIdRouteImport } from './routes/(protected)/users/$userId'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const protectedRouteRoute = protectedRouteRouteImport.update({
+  id: '/(protected)',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -38,44 +42,10 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const protectedRouteRoute = protectedRouteRouteImport.update({
-  id: '/(protected)',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Errors503Route = Errors503RouteImport.update({
-  id: '/errors/503',
-  path: '/errors/503',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Errors500Route = Errors500RouteImport.update({
-  id: '/errors/500',
-  path: '/errors/500',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Errors404Route = Errors404RouteImport.update({
-  id: '/errors/404',
-  path: '/errors/404',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Errors403Route = Errors403RouteImport.update({
-  id: '/errors/403',
-  path: '/errors/403',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Errors401Route = Errors401RouteImport.update({
-  id: '/errors/401',
-  path: '/errors/401',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const protectedSettingsRouteRoute = protectedSettingsRouteRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => protectedRouteRoute,
 } as any)
 const protectedHelpCenterRouteRoute =
   protectedHelpCenterRouteRouteImport.update({
@@ -83,9 +53,44 @@ const protectedHelpCenterRouteRoute =
     path: '/help-center',
     getParentRoute: () => protectedRouteRoute,
   } as any)
-const protectedUsersIndexRoute = protectedUsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
+const protectedSettingsRouteRoute = protectedSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => protectedRouteRoute,
+} as any)
+const Errors401Route = Errors401RouteImport.update({
+  id: '/errors/401',
+  path: '/errors/401',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Errors403Route = Errors403RouteImport.update({
+  id: '/errors/403',
+  path: '/errors/403',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Errors404Route = Errors404RouteImport.update({
+  id: '/errors/404',
+  path: '/errors/404',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Errors500Route = Errors500RouteImport.update({
+  id: '/errors/500',
+  path: '/errors/500',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Errors503Route = Errors503RouteImport.update({
+  id: '/errors/503',
+  path: '/errors/503',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const protectedAuditLogsIndexRoute = protectedAuditLogsIndexRouteImport.update({
+  id: '/audit-logs/',
+  path: '/audit-logs/',
+  getParentRoute: () => protectedRouteRoute,
+} as any)
+const protectedDashboardIndexRoute = protectedDashboardIndexRouteImport.update({
+  id: '/dashboard/',
+  path: '/dashboard/',
   getParentRoute: () => protectedRouteRoute,
 } as any)
 const protectedSettingsIndexRoute = protectedSettingsIndexRouteImport.update({
@@ -93,14 +98,21 @@ const protectedSettingsIndexRoute = protectedSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => protectedSettingsRouteRoute,
 } as any)
-const protectedDashboardIndexRoute = protectedDashboardIndexRouteImport.update({
-  id: '/dashboard/',
-  path: '/dashboard/',
-  getParentRoute: () => protectedRouteRoute,
-} as any)
-const protectedAuditLogsIndexRoute = protectedAuditLogsIndexRouteImport.update({
-  id: '/audit-logs/',
-  path: '/audit-logs/',
+const protectedSettingsAppearanceRoute =
+  protectedSettingsAppearanceRouteImport.update({
+    id: '/appearance',
+    path: '/appearance',
+    getParentRoute: () => protectedSettingsRouteRoute,
+  } as any)
+const protectedSettingsNotificationsRoute =
+  protectedSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => protectedSettingsRouteRoute,
+  } as any)
+const protectedUsersIndexRoute = protectedUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
   getParentRoute: () => protectedRouteRoute,
 } as any)
 const protectedUsersUserIdRoute = protectedUsersUserIdRouteImport.update({
@@ -108,18 +120,6 @@ const protectedUsersUserIdRoute = protectedUsersUserIdRouteImport.update({
   path: '/users/$userId',
   getParentRoute: () => protectedRouteRoute,
 } as any)
-const protectedSettingsNotificationsRoute =
-  protectedSettingsNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => protectedSettingsRouteRoute,
-  } as any)
-const protectedSettingsAppearanceRoute =
-  protectedSettingsAppearanceRouteImport.update({
-    id: '/appearance',
-    path: '/appearance',
-    getParentRoute: () => protectedSettingsRouteRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -253,18 +253,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(protected)': {
@@ -274,32 +267,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/errors/503': {
-      id: '/errors/503'
-      path: '/errors/503'
-      fullPath: '/errors/503'
-      preLoaderRoute: typeof Errors503RouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/errors/500': {
-      id: '/errors/500'
-      path: '/errors/500'
-      fullPath: '/errors/500'
-      preLoaderRoute: typeof Errors500RouteImport
-      parentRoute: typeof rootRouteImport
+    '/(protected)/help-center': {
+      id: '/(protected)/help-center'
+      path: '/help-center'
+      fullPath: '/help-center'
+      preLoaderRoute: typeof protectedHelpCenterRouteRouteImport
+      parentRoute: typeof protectedRouteRoute
     }
-    '/errors/404': {
-      id: '/errors/404'
-      path: '/errors/404'
-      fullPath: '/errors/404'
-      preLoaderRoute: typeof Errors404RouteImport
+    '/(protected)/settings': {
+      id: '/(protected)/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof protectedSettingsRouteRouteImport
+      parentRoute: typeof protectedRouteRoute
+    }
+    '/errors/401': {
+      id: '/errors/401'
+      path: '/errors/401'
+      fullPath: '/errors/401'
+      preLoaderRoute: typeof Errors401RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/errors/403': {
@@ -309,32 +309,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Errors403RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/errors/401': {
-      id: '/errors/401'
-      path: '/errors/401'
-      fullPath: '/errors/401'
-      preLoaderRoute: typeof Errors401RouteImport
+    '/errors/404': {
+      id: '/errors/404'
+      path: '/errors/404'
+      fullPath: '/errors/404'
+      preLoaderRoute: typeof Errors404RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(protected)/settings': {
-      id: '/(protected)/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof protectedSettingsRouteRouteImport
+    '/errors/500': {
+      id: '/errors/500'
+      path: '/errors/500'
+      fullPath: '/errors/500'
+      preLoaderRoute: typeof Errors500RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/errors/503': {
+      id: '/errors/503'
+      path: '/errors/503'
+      fullPath: '/errors/503'
+      preLoaderRoute: typeof Errors503RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(protected)/audit-logs/': {
+      id: '/(protected)/audit-logs/'
+      path: '/audit-logs'
+      fullPath: '/audit-logs/'
+      preLoaderRoute: typeof protectedAuditLogsIndexRouteImport
       parentRoute: typeof protectedRouteRoute
     }
-    '/(protected)/help-center': {
-      id: '/(protected)/help-center'
-      path: '/help-center'
-      fullPath: '/help-center'
-      preLoaderRoute: typeof protectedHelpCenterRouteRouteImport
-      parentRoute: typeof protectedRouteRoute
-    }
-    '/(protected)/users/': {
-      id: '/(protected)/users/'
-      path: '/users'
-      fullPath: '/users/'
-      preLoaderRoute: typeof protectedUsersIndexRouteImport
+    '/(protected)/dashboard/': {
+      id: '/(protected)/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof protectedDashboardIndexRouteImport
       parentRoute: typeof protectedRouteRoute
     }
     '/(protected)/settings/': {
@@ -344,26 +351,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedSettingsIndexRouteImport
       parentRoute: typeof protectedSettingsRouteRoute
     }
-    '/(protected)/dashboard/': {
-      id: '/(protected)/dashboard/'
-      path: '/dashboard'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof protectedDashboardIndexRouteImport
-      parentRoute: typeof protectedRouteRoute
-    }
-    '/(protected)/audit-logs/': {
-      id: '/(protected)/audit-logs/'
-      path: '/audit-logs'
-      fullPath: '/audit-logs/'
-      preLoaderRoute: typeof protectedAuditLogsIndexRouteImport
-      parentRoute: typeof protectedRouteRoute
-    }
-    '/(protected)/users/$userId': {
-      id: '/(protected)/users/$userId'
-      path: '/users/$userId'
-      fullPath: '/users/$userId'
-      preLoaderRoute: typeof protectedUsersUserIdRouteImport
-      parentRoute: typeof protectedRouteRoute
+    '/(protected)/settings/appearance': {
+      id: '/(protected)/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof protectedSettingsAppearanceRouteImport
+      parentRoute: typeof protectedSettingsRouteRoute
     }
     '/(protected)/settings/notifications': {
       id: '/(protected)/settings/notifications'
@@ -372,12 +365,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedSettingsNotificationsRouteImport
       parentRoute: typeof protectedSettingsRouteRoute
     }
-    '/(protected)/settings/appearance': {
-      id: '/(protected)/settings/appearance'
-      path: '/appearance'
-      fullPath: '/settings/appearance'
-      preLoaderRoute: typeof protectedSettingsAppearanceRouteImport
-      parentRoute: typeof protectedSettingsRouteRoute
+    '/(protected)/users/': {
+      id: '/(protected)/users/'
+      path: '/users'
+      fullPath: '/users/'
+      preLoaderRoute: typeof protectedUsersIndexRouteImport
+      parentRoute: typeof protectedRouteRoute
+    }
+    '/(protected)/users/$userId': {
+      id: '/(protected)/users/$userId'
+      path: '/users/$userId'
+      fullPath: '/users/$userId'
+      preLoaderRoute: typeof protectedUsersUserIdRouteImport
+      parentRoute: typeof protectedRouteRoute
     }
   }
 }
