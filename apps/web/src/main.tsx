@@ -11,9 +11,7 @@ import { routeTree } from "./routeTree.gen";
 const router = createRouter({
   context: {
     queryClient,
-    // Session is resolved per-navigation by route beforeLoad hooks, never at
-    // boot: awaiting it here would blank-screen every cold load and freeze a
-    // stale session for the lifetime of the tab.
+
     session: null,
   },
   defaultErrorComponent: AppError,

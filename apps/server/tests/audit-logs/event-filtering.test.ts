@@ -28,7 +28,6 @@ vi.mock("@/modules/audit-logs/service", () => ({
   },
 }));
 
-// Stub the auth handler so importing the main router does not boot Better Auth.
 vi.mock("@/modules/auth/handler", () => ({
   default: new OpenAPIHono(),
 }));

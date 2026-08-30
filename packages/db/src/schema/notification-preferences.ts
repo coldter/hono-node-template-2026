@@ -9,9 +9,6 @@ import { createdAt, updatedAt } from "../helpers";
 import { generatePrefixedCuid } from "../ids";
 import { users } from "./auth";
 
-/**
- * User notification preferences per channel and type.
- */
 export const notificationPreferences = pgTable(
   "notification_preferences",
   {
@@ -24,7 +21,6 @@ export const notificationPreferences = pgTable(
     pushEnabled: boolean("push_enabled").notNull().default(true),
     smsEnabled: boolean("sms_enabled").notNull().default(false),
 
-    // Preference type pattern (e.g., "security.*", "user.*", or "*" for global)
     typePattern: varchar("type_pattern", { length: 100 }).notNull(),
     updatedAt: updatedAt(),
 

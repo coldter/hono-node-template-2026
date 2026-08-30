@@ -1,5 +1,3 @@
-// Server captures CORS_ORIGIN at module load, so each scenario uses
-// vi.resetModules + a fresh dynamic import to re-evaluate the guard.
 import type { Context, Next } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -65,8 +63,7 @@ describe("server bootstrap CORS guard", () => {
       env: {
         APP_NAME: "App",
         BASE_PATH: "",
-        // Simulate misconfigured env where CORS_ORIGIN parse produced a non-array.
-        // boundary: deliberately mistyped to verify the runtime guard.
+
         CORS_ORIGIN: undefined,
       },
     }));

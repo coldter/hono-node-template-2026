@@ -16,9 +16,6 @@ import {
   resolveClientIp,
 } from "@/middlewares/request-log";
 
-// Sample 429 logs with a plain counter (first rejection, then 1-in-N): an
-// attack can produce thousands of 429s per second, and per-key dedup would
-// need an evicting map whose memory scales with attacker IP diversity.
 const REJECTION_LOG_SAMPLE_RATE = 50;
 let rejectionCount = 0;
 
@@ -31,12 +28,9 @@ export const globalRateLimitMW = rateLimiter<Env>({
           prefix: "global-rl:",
           sendCommand: async (...args: string[]) => {
             const client = await getRedis();
-            // boundary: node-redis v6 sendCommand is generic over the reply
-            // type; rate-limit-redis RedisReply is structurally what raw
-            // string commands return.
+
             return client.sendCommand<RedisReply>(args);
           },
-          // boundary: rate-limit-redis implements the express-rate-limit Store
           // contract hono-rate-limiter consumes; only the init() options
           // parameter types differ, and init only reads windowMs, which
           // hono-rate-limiter's config provides.
@@ -66,13 +60,10 @@ export const globalRateLimitMW = rateLimiter<Env>({
       trustProxy: env.TRUST_PROXY,
     });
 
-    // Fail closed: a request with no resolvable client IP must not land in a
-    // shared anonymous bucket.
     if (key) {
       return key;
     }
-    // This branch firing in production almost always means TRUST_PROXY does
-    // not match the deployment's proxy chain.
+
     logger.warn("rate limit key unresolvable, failing closed with 429", {
       hasForwardedFor: Boolean(forwardedFor),
       hasRemoteAddress: Boolean(remoteAddress),
@@ -85,7 +76,6 @@ export const globalRateLimitMW = rateLimiter<Env>({
       message: "Too many requests, please try again later.",
     });
   },
-  // Docker healthchecks hit status every 30s; counting them burns the shared
-  // local bucket and Redis round-trips, and readiness must never 429.
+
   skip: (c) => isHealthCheckPath(c.req.path),
 });

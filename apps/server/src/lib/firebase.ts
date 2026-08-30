@@ -17,7 +17,7 @@ interface PushMessage {
 
 interface PushSendResult {
   error?: string;
-  /** True if the token is invalid and should be removed */
+
   invalidToken?: boolean;
   messageId?: string;
   success: boolean;

@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-// zod/mini: autoCodeSplitting cannot extract validateSearch, so classic zod
-// here would ship in the eager entry chunk for every visitor.
+
 import * as z from "zod/mini";
 
 import { Authorized } from "@/components/authorized";
@@ -21,14 +20,11 @@ export const usersSearchSchema = z.object({
 
 export type UsersSearch = z.infer<typeof usersSearchSchema>;
 
-// Must mirror UsersTable's useTableUrlState derivation exactly; a different
-// params object changes the query key and the loader's fetch is wasted.
 function usersListParams(search: UsersSearch) {
   return {
     order: search.order ?? ("desc" as const),
     page: Math.max(1, search.page ?? 1),
-    // useTableUrlState reads the "pageSize" search key, which this schema does
-    // not define, so the table always fetches the default page size.
+
     perPage: 20,
     role: search.role,
     search: search.search,
@@ -48,8 +44,7 @@ export const Route = createFileRoute("/(protected)/users/")({
   ),
   loader: async ({ context, deps }) => {
     const { queryClient } = context;
-    // prefetchQuery (not ensureQueryData) so fetch failures keep rendering the
-    // inline TableError instead of replacing the page with the errorComponent.
+
     await queryClient.prefetchQuery(capabilitiesQueryOptions);
     const capabilities = queryClient.getQueryData(
       capabilitiesQueryOptions.queryKey

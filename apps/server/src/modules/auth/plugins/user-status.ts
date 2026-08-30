@@ -20,8 +20,6 @@ export type UserWithStatusFields = {
   twoFactorEnabled: boolean;
 };
 
-// `fieldName` MUST match the database adapter's column name, which is not
-// always the database schema's column name. Diverging breaks Better Auth reads.
 export const enhancedUserPlugin = () =>
   ({
     id: "user-status",

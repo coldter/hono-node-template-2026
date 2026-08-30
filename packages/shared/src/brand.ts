@@ -1,11 +1,3 @@
-/**
- * Runtime brand configuration shared across server, web, and email packages.
- *
- * Display strings (app name, company name, support email, etc.) are read from
- * environment variables so consumers of this template can rebrand without
- * touching source files.
- */
-
 export type BrandConfig = {
   appName: string;
   companyName: string;
@@ -26,11 +18,6 @@ export const BRAND_DEFAULTS: BrandConfig = {
 
 type EnvSource = Record<string, string | undefined>;
 
-/**
- * Read brand configuration from an env-like object. Both server-side
- * (`APP_NAME`) and Vite-style (`VITE_APP_NAME`) variable names are
- * accepted so the same helper works on the server and in the web bundle.
- */
 export function getBrandConfig(env: EnvSource): BrandConfig {
   return {
     appName: env.APP_NAME ?? env.VITE_APP_NAME ?? BRAND_DEFAULTS.appName,

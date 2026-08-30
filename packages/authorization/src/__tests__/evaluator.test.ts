@@ -8,8 +8,6 @@ import type {
   Principal,
 } from "../types";
 
-// Helpers
-
 function allowRule(
   roles: string[] | "*",
   actions: string[] | "*",
@@ -42,8 +40,6 @@ function denyRule(
   };
 }
 
-// Principals
-
 const activePrincipal: Principal = {
   attributes: { status: "active" },
   id: "usr_1",
@@ -55,8 +51,6 @@ const inactivePrincipal: Principal = {
   id: "usr_2",
   roles: ["user"],
 };
-
-// Conditions used in tests
 
 function ownerCondition(): Condition {
   return {
@@ -118,8 +112,6 @@ function throwingCondition(): Condition {
     type: "where",
   };
 }
-
-// Defaults for EvaluateInput
 
 const defaults = {
   action: "read",
@@ -259,7 +251,7 @@ describe("evaluate", () => {
       principal: activePrincipal,
       resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
     });
-    // The allow policy is skipped, so no match -> default deny
+
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
@@ -342,7 +334,6 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  // Fail-closed: a throwing condition denies rather than allowing.
   it("returns EVALUATION_ERROR when a condition throws", async () => {
     const result = await evaluate({
       ...defaults,
@@ -451,12 +442,6 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(true);
     });
 
-    // Regression: previously checkOrgScoping picked the FIRST policy role
-    // matching the principal's roles via find(), then asked if THAT role was
-    // a system admin. A principal with ["admin","member"] against a policy
-    // with roles ["member","admin"] would match "member" first and miss the
-    // bypass. The fix asks "does the principal have any system admin role?"
-    // independently of which policy role matched.
     it("system admin bypass fires regardless of policy role order", async () => {
       const adminMemberPrincipal: Principal = {
         attributes: { status: "active" },
@@ -468,9 +453,7 @@ describe("evaluate", () => {
         principal: adminMemberPrincipal,
         resolveOrganization,
         resource: { orgId: "org_any" },
-        // Policy lists "member" before "admin"; member is NOT a system admin
-        // role. Without the fix, the principal lacks an org and would be
-        // denied with ORG_CONTEXT_MISSING.
+
         resourcePolicies: [allowRule(["member", "admin"], ["read"])],
         systemAdminRoles: ["admin"],
       });
@@ -489,7 +472,6 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(true);
     });
 
-    // Org scoping only applies when resolveOrganization is provided and resource is present
     it("skips org check when resolveOrganization is not provided", async () => {
       const result = await evaluate({
         ...defaults,
@@ -536,7 +518,7 @@ describe("evaluate", () => {
           denyRule(["user"], ["read"]),
         ],
       });
-      // Deny is checked first regardless of array order
+
       expect(result.allowed).toBe(false);
       if (!result.allowed) {
         expect(result.reason).toBe("EXPLICIT_DENY");
@@ -544,14 +526,13 @@ describe("evaluate", () => {
     });
 
     it("global deny only fires for deny effect policies", async () => {
-      // An allow rule in globalPolicies is not checked in the global deny phase
       const result = await evaluate({
         ...defaults,
         globalPolicies: [allowRule("*", "*")],
         principal: activePrincipal,
         resourcePolicies: [],
       });
-      // The global allow is ignored; no resource policies match -> default deny
+
       expect(result.allowed).toBe(false);
       if (!result.allowed) {
         expect(result.reason).toBe("NO_MATCHING_POLICY");

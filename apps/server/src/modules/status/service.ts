@@ -5,12 +5,10 @@ import { getRedis, isRedisEnabled } from "@/lib/redis";
 
 export type ReadinessChecks = {
   database: boolean;
-  // null = Redis is not configured, so it does not gate readiness.
+
   redis: boolean | null;
 };
 
-// The pool's server-side statement_timeout (30s) is far too slow for a
-// healthcheck probe; orchestrators mark the container unhealthy long before.
 const DEFAULT_PROBE_TIMEOUT_MS = 2000;
 
 async function withProbeTimeout<T>(
@@ -35,7 +33,6 @@ async function withProbeTimeout<T>(
 
 async function probeDatabase(timeoutMs: number): Promise<boolean> {
   if (isDbSkipped) {
-    // SKIP_DB deployments have no database to gate readiness on.
     return true;
   }
   try {

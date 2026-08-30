@@ -160,8 +160,6 @@ const eventBadgeDotClassNames = [
   ["slate", "bg-slate-500"],
 ] as const;
 
-// Lucide icon name strings -- we dynamically import in the component,
-// but keep a string map here so the util stays pure (no React deps).
 const eventIconNames: Record<string, string> = {
   "auth.login.failed": "ShieldX",
   "auth.login.success": "LogIn",
@@ -183,7 +181,6 @@ const eventIconNames: Record<string, string> = {
   "user.viewed": "Eye",
 };
 
-/** @public ignore knip */
 export function getEventCategory(event: string): EventCategory {
   return eventCategoryMap[event] ?? "auth";
 }
@@ -316,12 +313,6 @@ export function getEventDescription(
   }
 }
 
-/**
- * All unique event types for filter options.
- */
 export const ALL_EVENT_TYPES = Object.keys(eventDisplayNames);
 
-/**
- * All unique target types for filter options.
- */
 export const ALL_TARGET_TYPES = ["user", "role", "session"] as const;

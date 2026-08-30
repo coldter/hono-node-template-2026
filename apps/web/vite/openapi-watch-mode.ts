@@ -70,7 +70,7 @@ export const watchBackendOpenApi = (): Plugin => {
       if (!(inputFilePath && outputPath)) {
         return;
       }
-      // Close watcher if exist to avoid duplicate watchers and memory leaks
+
       if (watcher) {
         watcher.close();
         watcher = null;
@@ -89,7 +89,6 @@ export const watchBackendOpenApi = (): Plugin => {
               if (newHash !== previousHash) {
                 previousHash = newHash;
 
-                // Stop Vite from reacting to openapi-ts writes
                 const chokidarWatcher = viteServer?.watcher;
                 chokidarWatcher?.unwatch(outputPath);
 
@@ -110,7 +109,7 @@ export const watchBackendOpenApi = (): Plugin => {
             } catch (e) {
               console.error("[openapi-ts] Failed to read or hash file:", e);
             }
-          }, 100); // Debounce delay to batch multiple rapid changes
+          }, 100);
         }
       });
     },

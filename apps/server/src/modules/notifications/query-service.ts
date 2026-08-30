@@ -67,7 +67,6 @@ export const notificationQueryService = {
     }
 
     if (query.status) {
-      // Explicit status filter takes precedence over unreadOnly
       conditions.push(eq(notifications.status, query.status));
     } else if (query.unreadOnly) {
       conditions.push(...buildUnreadConditions());

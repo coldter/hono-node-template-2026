@@ -43,9 +43,7 @@ export async function withSpan<T>(
       const err = error instanceof Error ? error : new Error(String(error));
 
       span.setAttribute("error.type", err.constructor.name);
-      // Message and stack are recorded as-is: REDACTION_CONFIG covers
-      // attributes, not exception events, and winston already logs error
-      // messages unredacted.
+
       span.recordException(err);
       span.setStatus({
         code: SpanStatusCode.ERROR,
@@ -156,7 +154,6 @@ export function getSpanId(): string | undefined {
 export function getTraceIdFromContext(c: {
   get: (key: string) => unknown;
 }): string | null {
-  // boundary: structural context typed as `get(key) -> unknown`; otel slot shape lives in lib/context.ts
   const otelContext = c.get("otel") as { traceId?: string } | undefined;
   return otelContext?.traceId || null;
 }

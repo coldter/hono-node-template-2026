@@ -35,7 +35,6 @@ if (env.NODE_ENV !== "production") {
 }
 
 if (isRedisEnabled()) {
-  // Misconfigured REDIS_URL should fail loudly at boot, not at first request.
   await getRedis();
 } else if (env.NODE_ENV === "production") {
   logger.warn(
@@ -73,8 +72,7 @@ async function runShutdownPhase(
 function closeHttpServer(): Promise<void> {
   return new Promise((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
-    // close() only stops new connections; idle keep-alive sockets would
-    // otherwise hold the server open until the force-exit timeout.
+
     if ("closeIdleConnections" in server) {
       server.closeIdleConnections();
     }
@@ -100,7 +98,7 @@ async function shutdown(signal: string): Promise<void> {
   await runShutdownPhase("hatchet worker", stopWorker);
   await runShutdownPhase("redis", closeRedis);
   await runShutdownPhase("pg pool", closeDb);
-  // Last so spans emitted by the phases above still get flushed.
+
   await runShutdownPhase("opentelemetry", shutdownOpenTelemetry);
 
   process.exit(0);

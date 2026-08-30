@@ -16,7 +16,6 @@ import type {
 export function formatNotificationSummary(
   notification: NotificationRecord
 ): NotificationSummary {
-  // Only push supports read tracking; email and SMS return null/null
   const isReadTrackable = notification.channel === "push";
 
   return {
@@ -53,13 +52,9 @@ export function formatPushTokenSummary(
   };
 }
 
-/**
- * Aggregates multiple preference records into a single summary.
- */
 export function formatPreferencesSummary(
   preferences: PreferencesRecord[]
 ): PreferencesSummary {
-  // Find global preferences (pattern "*" or "global")
   const globalPrefs = preferences.find(
     (p) => p.typePattern === "*" || p.typePattern === "global"
   );
@@ -93,9 +88,6 @@ export function formatPreferencesSummary(
   };
 }
 
-/**
- * Throws if user is not authenticated.
- */
 export function requireUserId(c: Context<Env>): string {
   const user = c.get("user");
   if (!user) {
@@ -104,9 +96,6 @@ export function requireUserId(c: Context<Env>): string {
   return user.id;
 }
 
-/**
- * Throws if session is not available.
- */
 export function requireSessionId(c: Context<Env>): string {
   const session = c.get("session");
   if (!session) {
@@ -115,16 +104,11 @@ export function requireSessionId(c: Context<Env>): string {
   return session.id;
 }
 
-/**
- * Resolve which channels are enabled for a given notification type based on user preferences.
- * Priority: exact type match > wildcard "*" > defaults (all enabled).
- */
 export function resolveEnabledChannels(
   preferences: PreferencesRecord[],
   notificationType: string,
   requestedChannels: NotificationChannel[]
 ): NotificationChannel[] {
-  // Find most specific preference: exact type match first, then wildcard
   const exactMatch = preferences.find(
     (p) => p.typePattern === notificationType
   );
@@ -132,7 +116,6 @@ export function resolveEnabledChannels(
   const prefs = exactMatch ?? wildcardMatch;
 
   if (!prefs) {
-    // No preferences set, allow all requested channels
     return requestedChannels;
   }
 

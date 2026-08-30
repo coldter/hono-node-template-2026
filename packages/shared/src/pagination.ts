@@ -87,9 +87,6 @@ export function getPaginationParams(query: Partial<PaginationQuery>) {
   return { offset, order, page, perPage, sort } as const;
 }
 
-// Formatter may return null/undefined to drop a row (e.g. enum drift). When rows
-// drop, meta.total is adjusted downward so data.length matches meta. Only drops
-// on the current page are visible, so adjusted total is a lower bound.
 export function createPaginatedResponse<T>(options: {
   data: T[];
   total: number;

@@ -7,7 +7,6 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock TanStack Router
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual("@tanstack/react-router");
   return {
@@ -32,7 +31,6 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
-// Mock localStorage
 const localStorageMock = {
   clear: vi.fn(),
   getItem: vi.fn(),
@@ -43,7 +41,6 @@ const localStorageMock = {
 };
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
-// Mock matchMedia
 Object.defineProperty(window, "matchMedia", {
   value: vi.fn().mockImplementation((query: string) => ({
     addEventListener: vi.fn(),
@@ -58,14 +55,12 @@ Object.defineProperty(window, "matchMedia", {
   writable: true,
 });
 
-// Mock ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
   observe: vi.fn(),
   unobserve: vi.fn(),
 }));
 
-// Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
   observe: vi.fn(),

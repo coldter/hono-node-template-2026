@@ -18,7 +18,7 @@ export const users = pgTable("users", {
   deactivatedReason: text("deactivated_reason"),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
-  // Lockout fields (from userStatusPlugin)
+
   failedLoginAttempts: integer("failed_login_attempts").default(0).notNull(),
   id: varchar("id", { length: 255 })
     .primaryKey()
@@ -29,9 +29,9 @@ export const users = pgTable("users", {
   onboardingCompletedAt: timestamp("onboarding_completed_at", {
     withTimezone: true,
   }),
-  // Role assignment (from userStatusPlugin)
+
   roleSlugs: text("role_slugs").array().default([]).notNull(),
-  // User status fields (from userStatusPlugin)
+
   status: text("status").default("active").notNull(),
   twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -120,10 +120,6 @@ export const verifications = pgTable(
   (table) => [index("verifications_identifier_idx").on(table.identifier)]
 );
 
-/**
- * JWKS table
- * Used by better-auth JWT plugin for storing JSON Web Key Sets (key rotation)
- */
 export const jwkss = pgTable("jwks", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -136,14 +132,9 @@ export const jwkss = pgTable("jwks", {
   publicKey: text("public_key").notNull(),
 });
 
-/**
- * Two-Factor Authentication table
- * Used by better-auth twoFactor plugin for storing OTP secrets and backup codes
- */
 export const twoFactors = pgTable(
   "two_factors",
   {
-    // Backup codes for recovery (JSON array)
     backupCodes: text("backup_codes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -151,7 +142,7 @@ export const twoFactors = pgTable(
     id: varchar("id", { length: 255 })
       .primaryKey()
       .$defaultFn(() => generatePrefixedCuid("2fa")),
-    // Secret for TOTP (not used in our OTP-only setup, but required by plugin)
+
     secret: text("secret"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()

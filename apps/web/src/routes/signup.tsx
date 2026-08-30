@@ -22,7 +22,7 @@ export const Route = createFileRoute("/signup")({
     if (!signupEnabled) {
       throw redirect({ to: "/login" });
     }
-    // Fail open to the form: a failed session probe must not block sign-up.
+
     const session = await context.queryClient
       .ensureQueryData(sessionQueryOptions)
       .catch(() => null);

@@ -2,9 +2,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderOptions, render } from "@testing-library/react";
 import type * as React from "react";
 
-/**
- * Disables retries and caching for predictable test behavior.
- */
 export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -28,9 +25,6 @@ function AllProviders({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * Use this instead of importing render directly from @testing-library/react.
- */
 function customRender(
   ui: React.ReactElement,
   options?: Omit<RenderOptions, "wrapper">

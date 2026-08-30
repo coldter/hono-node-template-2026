@@ -22,7 +22,6 @@ function errorResponse(
   };
 }
 
-// Lets a 500 log line be joined to its structured request log entry.
 function requestCorrelation(c: Context<Env>): {
   request_id: string | null;
   trace_id: string | null;

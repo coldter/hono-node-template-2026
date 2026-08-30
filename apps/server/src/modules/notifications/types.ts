@@ -27,11 +27,11 @@ export interface ListNotificationsQuery extends PaginationQuery {
 
 export interface SendNotificationInput {
   body: string;
-  /** Override default channels */
+
   channels?: NotificationChannel[];
-  /** Override default priority */
+
   priority?: NotificationPriority;
-  /** Additional props for templates/deep links */
+
   props?: Record<string, unknown>;
   subject: string;
   type: NotificationType;
@@ -42,7 +42,7 @@ export interface RegisterPushTokenInput {
   deviceId?: string;
   deviceName?: string;
   platform: PushPlatform;
-  /** FCM/APNs token */
+
   token: string;
 }
 
@@ -50,7 +50,7 @@ export interface UpdatePreferencesInput {
   emailEnabled?: boolean;
   pushEnabled?: boolean;
   smsEnabled?: boolean;
-  /** Per-type pattern preferences (e.g., "security.*" -> { channels: ["push"] }) */
+
   typeOverrides?: Record<
     string,
     {
@@ -107,11 +107,10 @@ export interface PreferencesSummary {
 }
 
 export interface SendResult {
-  /** Channels attempted */
   channels: NotificationChannel[];
   failedChannels: { channel: NotificationChannel; error: string }[];
-  /** Notification IDs (one per channel) */
+
   notificationIds: string[];
-  /** Successfully sent to channels */
+
   sentChannels: NotificationChannel[];
 }

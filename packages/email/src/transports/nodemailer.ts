@@ -81,7 +81,6 @@ export class NodemailerTransport implements EmailTransport {
           const info = await toggledTransport.sendMail(mailOptions);
           retrySucceeded = true;
 
-          // Persist corrected transport; subsequent sends skip the retry path.
           const previousTransporter = this.transporter;
           this.transporter = toggledTransport;
           this.config = toggledSecureConfig;

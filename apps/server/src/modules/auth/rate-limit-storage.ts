@@ -1,5 +1,3 @@
-// Structural subset of the redis v6 client: avoids the non-portable
-// ReturnType<typeof createClient> generics and lets tests pass a plain fake.
 type RateLimitRedisClient = {
   get: (key: string) => Promise<string | null>;
   setEx: (key: string, seconds: number, value: string) => Promise<string>;
@@ -31,7 +29,7 @@ export function createRedisRateLimitStorage(
     if (!raw) {
       return;
     }
-    // boundary: sole writer of these keys; value shape is our own serialization
+
     return JSON.parse(raw) as RateLimitEntry;
   };
 

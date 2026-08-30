@@ -10,13 +10,7 @@ export type BaseNavItem = {
   title: string;
   badge?: string;
   icon?: React.ElementType;
-  /**
-   * Capability key required to show this nav item.
-   *
-   * - undefined: No capability required (always visible)
-   * - null: Explicitly no capability required (always visible)
-   * - string: Capability key that must be true in capabilities map
-   */
+
   permission?: string | null;
 };
 

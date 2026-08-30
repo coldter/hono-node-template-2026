@@ -1,11 +1,3 @@
-// DataTable compound pattern (canonical for this repo):
-// - All tables follow this composition:
-//     <DataTableToolbar>  ->  <DataTable>  ->  <DataTablePagination>
-// - Sortable columns use `DataTableColumnHeader`.
-// - Real features wire URL state via `useTableUrlState`; stories bypass that
-//   and use plain local `useReactTable` state.
-// - Feature stories live under `Features/<Feature>/...` so they never pollute
-//   the `UI/` or `Patterns/` namespaces.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ColumnDef, useTable } from "@tanstack/react-table";
 import { CheckCircle2, Circle, Lock, Shield, User } from "lucide-react";

@@ -2,12 +2,8 @@ import chalk from "chalk";
 import type { Logger } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 
-// Created once: the label is static, so there is no need to allocate a child
-// logger per query.
 const drizzleLogger = logger.child({ label: "drizzle" });
 
-// cli-highlight pulls in highlight.js (~150ms import, several MB RSS), so only
-// load it when debug logging can actually emit queries.
 const highlight = drizzleLogger.isDebugEnabled()
   ? (await import("cli-highlight")).highlight
   : null;
@@ -21,9 +17,6 @@ function highlightSql(query: string): string {
 
 export class DrizzleLogger implements Logger {
   logQuery(query: string, params: unknown[]): void {
-    // Winston evaluates the message arguments before filtering by level, so the
-    // syntax-highlight and placeholder-substitution work below would run for
-    // every query even when debug logging is disabled. Guard it explicitly.
     if (!drizzleLogger.isDebugEnabled()) {
       return;
     }

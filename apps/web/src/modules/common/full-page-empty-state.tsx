@@ -6,9 +6,9 @@ interface FullPageEmptyStateProps {
   children?: React.ReactNode;
   className?: string;
   description?: string;
-  /** Lucide icon component, rendered at size 60 with stroke width 1. */
+
   icon?: LucideIcon;
-  /** Custom icon node. Takes precedence over `icon` when provided. */
+
   iconSlot?: ReactNode;
   title: string;
 }

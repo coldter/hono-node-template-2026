@@ -57,7 +57,6 @@ export function DeactivateDialog({
         userId: user.id,
       });
     } catch {
-      // Keep dialog open; the mutation onError already surfaces a toast.
       return;
     }
     form.reset();

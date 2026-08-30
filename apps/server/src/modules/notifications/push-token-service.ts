@@ -34,8 +34,6 @@ export const notificationPushTokenService = {
     sessionId: string,
     input: RegisterPushTokenInput
   ): Promise<PushTokenRecord> {
-    // Token is unique, so a single lookup serves both the cross-user
-    // take-over check and the same-user upsert decision.
     const [existing] = await db
       .select()
       .from(pushTokens)

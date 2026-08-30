@@ -1,5 +1,3 @@
-// Core authorization engine -- framework-agnostic, zero dependencies
-
 export {
   createOrgRoleCondition,
   createOwnerCondition,

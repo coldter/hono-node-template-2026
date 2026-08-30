@@ -1,8 +1,5 @@
 import { faker } from "@faker-js/faker";
 
-/**
- * Generate a random ID similar to nanoid.
- */
 export function nanoid(size = 21): string {
   const alphabet =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

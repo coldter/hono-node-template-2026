@@ -87,8 +87,6 @@ export const loginSecurityPlugin = () =>
               });
             }
 
-            // Guard the reset so clean sign-ins skip a no-op write (one dead
-            // tuple per login otherwise).
             await db
               .update(schema.users)
               .set({

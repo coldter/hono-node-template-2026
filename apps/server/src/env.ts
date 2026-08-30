@@ -1,11 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
 
-/**
- * Parses OTLP exporter headers from the OTEL-standard comma-separated
- * `key=value,key2=value2` format, falling back to a JSON object for
- * backward compatibility. Throws on malformed input.
- */
 export function parseOtlpHeaders(value: string): Record<string, string> {
   const trimmed = value.trim();
   if (trimmed.startsWith("{")) {
@@ -29,7 +24,6 @@ export function parseOtlpHeaders(value: string): Record<string, string> {
 
   const headers: Record<string, string> = {};
   for (const pair of trimmed.split(",")) {
-    // Split on the first "=" only: header values like "Bearer a=b" are legal.
     const separatorIndex = pair.indexOf("=");
     const key = separatorIndex > 0 ? pair.slice(0, separatorIndex).trim() : "";
     const headerValue = pair.slice(separatorIndex + 1).trim();
@@ -90,8 +84,7 @@ const envSchema = z
       .default("false")
       .transform((val) => val === "true" || val === "1"),
     HATCHET_WORKER_SLOTS: z.coerce.number().default(10),
-    // Winston npm levels only; pino-style values (fatal/trace/silent) would
-    // silently suppress all output because winston treats them as unknown.
+
     LOG_LEVEL: z
       .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
       .default("info"),

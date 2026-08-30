@@ -6,11 +6,8 @@ import {
 } from "./resource";
 import type { Condition, PolicyRule } from "./types";
 
-// Re-export for downstream consumers; the canonical declarations live in
-// resource.ts next to the PolicyBuilder/PolicyRuleBuilder classes.
 export type { ResourceConfig, ResourceDef } from "./resource";
 
-// Type-level marker for principal attributes
 export function principalAttribute<T>(): { __type: T } {
   return {} as { __type: T };
 }
@@ -19,7 +16,6 @@ type ExtractAttributes<T extends Record<string, { __type: unknown }>> = {
   [K in keyof T]: T[K]["__type"];
 };
 
-// Global policy builder (no resource conditions - only principal-level conditions)
 class GlobalPolicyRuleBuilder<TRole extends string> {
   private readonly rule: Partial<PolicyRule>;
 
@@ -70,7 +66,6 @@ class GlobalPolicyBuilder<TRole extends string> {
   }
 }
 
-// Schema type returned by createAuthSchema
 export interface AuthSchema<
   TRole extends string,
   TRelation extends string,
@@ -102,18 +97,6 @@ export interface AuthSchema<
   readonly systemAdminRoles: readonly TRole[];
 }
 
-// Covariant-safe bound for buildRegistry/RegistryInstance constraints.
-// Function parameters use `never` so that ResourceDef<Concrete, Role> satisfies
-// this bound (since (arg: Concrete) => R is assignable to (arg: never) => R).
-// `TAction` defaults to `string` so legacy specs continue to assign; concrete
-// ResourceDef<R, Role, "list" | "view"> still satisfies because the wider
-// `string` upper bound is covariant in this position.
-//
-// Note: the phantom `__resource` marker on `ResourceDef` is intentionally
-// omitted here so concrete ResourceDef<TResource, ...> values remain
-// assignable to AnyResourceDef without a structural conflict on that field.
-// Adapters should recover the resource type via `ResourceTypeFor<TR>` against
-// the concrete `TResources[K]`, which still carries the phantom.
 export type AnyResourceDef<
   TRole extends string = string,
   TAction extends string = string,

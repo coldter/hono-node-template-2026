@@ -14,9 +14,6 @@ import { sessions, users } from "./auth";
 export const PUSH_PLATFORM = ["ios", "android", "web"] as const;
 export type PushPlatform = (typeof PUSH_PLATFORM)[number];
 
-/**
- * Push notification tokens for user devices.
- */
 export const pushTokens = pgTable(
   "push_tokens",
   {
@@ -36,7 +33,6 @@ export const pushTokens = pgTable(
       .notNull()
       .references(() => sessions.id, { onDelete: "cascade" }),
 
-    // Token from FCM/APNs
     token: text("token").notNull(),
     updatedAt: updatedAt(),
 

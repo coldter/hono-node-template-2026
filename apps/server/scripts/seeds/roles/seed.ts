@@ -5,9 +5,6 @@ import chalk from "chalk";
 import { db } from "@/db";
 import { type PermissionKey, SYSTEM_ROLES } from "@/modules/auth/roles";
 
-/**
- * System roles to seed - these are guaranteed to exist
- */
 const systemRoles: Array<{
   slug: string;
   name: string;
@@ -29,10 +26,6 @@ const isRolesSeeded = async (): Promise<boolean> => {
   return existingRoles !== undefined;
 };
 
-/**
- * Uses upsert to ensure roles exist without duplicating them.
- * Does not override permissions for existing roles (they might be customized).
- */
 export const rolesSeed = async () => {
   console.info("Seeding system roles...");
 
@@ -63,9 +56,6 @@ export const rolesSeed = async () => {
   console.info(chalk.greenBright("System roles seeded successfully.\n"));
 };
 
-/**
- * Seed system roles - can be run independently
- */
 export const runRolesSeed = async () => {
   if (await isRolesSeeded()) {
     console.warn("Roles table is not empty - updating system roles only");

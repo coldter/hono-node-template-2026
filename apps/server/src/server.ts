@@ -16,8 +16,6 @@ import { requestLogMiddleware } from "@/middlewares/request-log";
 
 const baseApp = new OpenAPIHono<Env>().basePath((env.BASE_PATH || "") as "");
 
-// First so every downstream middleware, request log, and error log can
-// correlate on the same id.
 baseApp.use(requestId());
 
 if (OTEL_ENABLED) {

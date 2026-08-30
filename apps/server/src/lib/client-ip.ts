@@ -4,8 +4,6 @@ type RateLimitKeyInput = {
   trustProxy: boolean;
 };
 
-// Rightmost X-Forwarded-For entry is the one appended by our own proxy;
-// leftmost entries are client-supplied and attacker-rotatable.
 export function resolveRateLimitKey(input: RateLimitKeyInput): string | null {
   if (input.trustProxy && input.forwardedFor) {
     const parts = input.forwardedFor

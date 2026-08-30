@@ -47,7 +47,6 @@ export class Vault {
   }
 
   registerSchema<T>(schema: VaultSchema<T>): this {
-    // boundary: heterogeneous registry erases T; getSchema<T> reverses it per caller-asserted id
     this.schemas.set(schema.id, schema as VaultSchema<unknown>);
     return this;
   }

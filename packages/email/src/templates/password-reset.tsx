@@ -25,8 +25,8 @@ export function PasswordResetEmail({
         </Text>
         <Text className="text-[16px] text-slate-600 leading-relaxed m-0 mb-8">
           We received a request to reset the password for your account. No
-          worries - it happens to the best of us. This link will be active for the
-          next <strong>{expiresIn}</strong>.
+          worries - it happens to the best of us. This link will be active for
+          the next <strong>{expiresIn}</strong>.
         </Text>
         <Section className="text-center mb-8">
           <Button

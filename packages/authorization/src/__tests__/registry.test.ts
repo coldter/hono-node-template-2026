@@ -149,11 +149,11 @@ describe("buildRegistry", () => {
   it("evaluateCapabilities returns correct map for user", async () => {
     const caps = await registry.evaluateCapabilities(userPrincipal);
     expect(caps["test:list"]).toBe(true);
-    // view and update are conditionally allowed (whereOwner) - should be true in capabilities
+
     expect(caps["test:view"]).toBe(true);
     expect(caps["test:update"]).toBe(true);
     expect(caps["test:create"]).toBe(false);
-    // delete has a deny for self-target, but has an allow for admin. For user role, no allow matches -> false
+
     expect(caps["test:delete"]).toBe(false);
   });
 });
@@ -173,7 +173,6 @@ describe("registry validation", () => {
       policies: (p) => [p.allow("admin").to("read")],
     });
 
-    // Create a second resource with the same name by manually constructing
     const res2 = auth.createResource<{ id: string }>("dupe", {
       actions: ["write"],
       policies: (p) => [p.allow("admin").to("write")],

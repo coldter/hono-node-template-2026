@@ -1,7 +1,5 @@
 // biome-ignore-all lint/performance/noAwaitInLoops: policies evaluate in
-// declaration order with deny-precedence and early exit; parallelizing the
-// loop would change authorization semantics and run conditions that should
-// not run.
+
 import type {
   ConditionContext,
   DenyReason,
@@ -13,16 +11,10 @@ import type {
 export interface EvaluateInput {
   action: string;
   globalPolicies: PolicyRule[];
-  /**
-   * When true, resource conditions (requires_resource) are treated as
-   * automatically passing instead of being skipped. Used by
-   * evaluateCapabilities to report conditionally-allowed actions as true.
-   */
+
   ignoreResourceConditions?: boolean;
   principal: Principal | null | undefined;
-  // Resource parameter is typed `never` (covariant-safe trick used by
-  // AnyResourceDef) so concrete (resource: TResource) => ... signatures
-  // assign without a cast at the registry call site.
+
   resolveOrganization?: (resource: never) => string | null | undefined;
   resolveRelation?: (
     subjectType: string,
@@ -75,27 +67,17 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       }
     }
 
-    // Track the best org-specific deny reason across policy evaluation.
-    // If all policies are skipped due to org failures, return this instead
-    // of a generic NO_MATCHING_POLICY.
     let orgDenyReason: DenyReason | undefined;
 
-    // Resource deny policies are checked before allow policies.
     for (const policy of resourcePolicies) {
       if (policy.effect !== "deny") {
         continue;
       }
 
-      // Skip deny policies with resource conditions if no resource loaded.
-      // For capabilities mode (ignoreResourceConditions), deny policies that
-      // depend on the resource are also skipped -- we cannot know if the deny
-      // would apply without a concrete resource, so we err on the optimistic
-      // side for capabilities.
       if (hasResourceConditions(policy) && resource === undefined) {
         continue;
       }
 
-      // Org scoping check (per-policy, not top-level)
       if (resolveOrganization && resource !== undefined) {
         const orgResult = checkOrgScoping(
           principal,
@@ -104,7 +86,7 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
           policy,
           systemAdminRoles
         );
-        // For deny policies, if org check fails the policy does not apply
+
         if (orgResult !== "pass") {
           orgDenyReason ??= orgResult.skip;
           continue;
@@ -132,8 +114,6 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
         continue;
       }
 
-      // Skip policies with resource conditions if no resource loaded
-      // (unless ignoreResourceConditions is set for capabilities evaluation)
       if (
         hasResourceConditions(policy) &&
         resource === undefined &&
@@ -142,7 +122,6 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
         continue;
       }
 
-      // Org scoping check (per-policy)
       if (resolveOrganization && resource !== undefined) {
         const orgResult = checkOrgScoping(
           principal,
@@ -151,7 +130,7 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
           policy,
           systemAdminRoles
         );
-        // If org check fails, skip this policy
+
         if (orgResult !== "pass") {
           orgDenyReason ??= orgResult.skip;
           continue;
@@ -171,7 +150,6 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       }
     }
 
-    // Default deny -- use org-specific reason when available
     if (orgDenyReason) {
       return { allowed: false, reason: orgDenyReason };
     }
@@ -215,14 +193,11 @@ async function matchPolicy(
     return false;
   }
 
-  // Check all conditions (AND)
   for (const condition of policy.conditions) {
-    // When ignoreResourceConditions is set, treat resource conditions as passing
     if (condition.effect === "requires_resource" && ignoreResourceConditions) {
       continue;
     }
 
-    // A requires_resource condition with no resource means this policy cannot match
     if (condition.effect === "requires_resource" && resource === undefined) {
       return false;
     }
@@ -254,12 +229,6 @@ function checkOrgScoping(
   policy: PolicyRule,
   systemAdminRoles: readonly string[]
 ): OrgCheckResult {
-  // Bypass org scoping for system admins. The policy's role list might be
-  // ["member","admin"]; we must check if ANY of the principal's roles is a
-  // system admin, not just the first one that matches the policy. Using
-  // find() to pick a single matched role would let a genuine system admin
-  // miss the bypass when a non-admin role happens to come first in the
-  // policy's role list.
   if (
     (policy.roles === "*" ||
       policy.roles.some((r) => principal.roles.includes(r))) &&
@@ -268,17 +237,11 @@ function checkOrgScoping(
     return "pass";
   }
 
-  // Principal must have an active org
   const org = principal.organization;
   if (!org) {
     return { skip: "ORG_CONTEXT_MISSING" };
   }
 
-  // Resource must resolve to an org. resolveOrganization is typed
-  // (resource: never) => ... for covariant assignment from concrete
-  // ResourceDef signatures; the actual runtime value is the resource
-  // shape the caller defined.
-  // boundary: covariant function-pointer variance
   const resourceOrgId = (
     resolveOrganization as (r: unknown) => string | null | undefined
   )(resource);

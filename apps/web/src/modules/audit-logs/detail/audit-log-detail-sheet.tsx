@@ -147,7 +147,6 @@ function MetadataSection({ metadata }: { metadata: Record<string, unknown> }) {
   return (
     <div className="space-y-3">
       {otherEntries.map(([key, value]) => {
-        // Skip complex nested objects not in "changes" pattern
         if (
           typeof value === "object" &&
           value !== null &&

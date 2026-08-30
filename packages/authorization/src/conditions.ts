@@ -47,7 +47,7 @@ export function createSelfTargetCondition<
       if (!ctx.resource) {
         return false;
       }
-      // boundary: widen-then-guard
+
       const candidate = ctx.resource as { id?: unknown };
       return (
         typeof candidate.id === "string" && candidate.id === ctx.principal.id

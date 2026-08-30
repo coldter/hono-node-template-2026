@@ -35,7 +35,7 @@ describe("LocalEncryptionProvider", () => {
     const envelope = await provider.encrypt(Buffer.from("secret"));
 
     const combined = Buffer.from(envelope.ct, "base64");
-    // Flip one bit in the final byte, which is always ciphertext for non-empty plaintext.
+
     const lastIndex = combined.length - 1;
     const lastByte = combined[lastIndex];
     if (lastByte === undefined) {

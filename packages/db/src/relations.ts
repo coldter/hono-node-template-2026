@@ -1,10 +1,6 @@
 import { defineRelations } from "drizzle-orm";
 import * as schema from "./schema";
 
-/**
- * Drizzle Relations v2 - centralized relations definition.
- * @see https://orm.drizzle.team/docs/relations-v1-v2
- */
 export const relations = defineRelations(schema, (r) => ({
   accounts: {
     user: r.one.users({

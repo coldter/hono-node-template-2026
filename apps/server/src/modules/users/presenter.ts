@@ -34,8 +34,6 @@ type MyAccountRecord = {
   updatedAt: Date;
 };
 
-// Returns null on status parse failure so the caller decides policy: list
-// endpoints drop the row via the pagination seam; single-row endpoints throw.
 export function toUserSummaryResponse(user: UserSummaryRecord) {
   const parsedStatus = userStatusSchema.safeParse(user.status);
   if (!parsedStatus.success) {

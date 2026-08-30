@@ -44,7 +44,6 @@ describe("typed actions (Change 1)", () => {
     // @ts-expect-error -- "fly" is not a valid action on user
     await registry.can(adminPrincipal, "user", "fly");
 
-    // sanity: a known action compiles
     const decision = await registry.can(adminPrincipal, "user", "list");
     expect(decision.allowed).toBe(true);
   });
@@ -61,16 +60,13 @@ describe("typed actions (Change 1)", () => {
   it("evaluateCapabilities returns a typed CapabilityMap", async () => {
     const caps = await registry.evaluateCapabilities(adminPrincipal);
 
-    // Known keys are typed booleans
     expectTypeOf(caps["user:list"]).toEqualTypeOf<boolean>();
     expectTypeOf(caps["user:view"]).toEqualTypeOf<boolean>();
 
-    // Runtime values for admin
     expect(caps["user:list"]).toBe(true);
     expect(caps["user:view"]).toBe(true);
     expect(caps["user:update"]).toBe(true);
 
-    // Type-level reject: "user:fly" is not a valid capability key.
     // @ts-expect-error -- ensures unknown keys are rejected
     const bogus = caps["user:fly"];
     expect(bogus).toBeUndefined();
@@ -81,7 +77,6 @@ describe("typed actions (Change 1)", () => {
       resolvePrincipal: () => null,
     });
 
-    // sanity: valid action compiles
     const mw = authorize("user", "list");
     expect(mw).toBeDefined();
 
@@ -95,7 +90,6 @@ describe("typed actions (Change 1)", () => {
       resolvePrincipal: () => null,
     });
 
-    // sanity: matching shape compiles
     const mw = authorize("user", "view", {
       loadResource: async () => ({ createdBy: "u1", id: "u1" }),
     });

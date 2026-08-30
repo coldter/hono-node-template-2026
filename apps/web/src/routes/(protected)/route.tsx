@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-// Deep import: the auth barrel would pull framer-motion into this eagerly
-// evaluated route file (beforeLoad is not extracted by autoCodeSplitting).
+
 import { clearSession } from "@/modules/auth/helpers";
 import { AuthenticatedLayout } from "@/modules/layout/authenticated-layout";
 import { sessionQueryOptions } from "@/query/session-query";

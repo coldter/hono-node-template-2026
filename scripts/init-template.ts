@@ -1,19 +1,4 @@
 #!/usr/bin/env bun
-// biome-ignore-all lint/suspicious/noConsole: CLI script - console output is the interface.
-/**
- * Template initialization script.
- *
- * Renames the monorepo from the generic `repo` / `@repo/*` template scope to a
- * user-supplied app name and package scope, then writes brand defaults into the
- * `.env.example` files. Self-deletes when finished so the script only runs
- * once per cloned template.
- *
- * Usage:
- *   bun scripts/init-template.ts
- *   bun scripts/init-template.ts --dry-run
- *
- * Run from the repo root.
- */
 
 import { readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
@@ -158,7 +143,7 @@ async function collectTargetFiles(): Promise<string[]> {
     )
   ).filter((dir): dir is string => dir !== null);
   const nestedFiles = await Promise.all(existingDirs.map(walkWithExtensions));
-  // Always include root package.json.
+
   return [nestedFiles.flat(), join(ROOT, "package.json")].flat();
 }
 

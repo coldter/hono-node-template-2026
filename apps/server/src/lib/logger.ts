@@ -5,9 +5,6 @@ type LogLevel = typeof env.LOG_LEVEL;
 
 const appName = env.APP_NAME;
 
-// Error properties are non-enumerable, so an Error passed as metadata
-// (e.g. logger.error("msg", { error: err })) serializes to {} under
-// format.json(). Replace Error instances with plain objects first.
 const serializeErrorMeta = format((info) => {
   for (const key of Object.keys(info)) {
     const value = info[key];

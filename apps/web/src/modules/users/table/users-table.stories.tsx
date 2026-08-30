@@ -13,8 +13,6 @@ import { UserRoleBadges } from "../components/user-role-badges";
 import { UserStatusBadge } from "../components/user-status-badge";
 import type { User, UserStatus } from "../types";
 
-// Local mock columns mirror `usersColumns` but swap `<Link>` for a plain
-// element so the story renders without a TanStack Router context.
 const mockUsersColumns: ColumnDef<DataTableFeatures, User>[] = [
   {
     accessorKey: "name",

@@ -162,7 +162,6 @@ describe("PolicyBuilder", () => {
     // @ts-expect-error -- whereOwner() is not on the action stage either
     builder.allow("user").whereOwner();
 
-    // sanity: chaining via to() resolves the type stage
     const rule = builder.allow("user").to("update").whereOwner();
     expect(rule.effect).toBe("allow");
   });

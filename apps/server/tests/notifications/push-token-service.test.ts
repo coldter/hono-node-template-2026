@@ -84,7 +84,6 @@ function makeRow(overrides: Partial<PushToken>): PushToken {
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     userId: "usr_owner",
     ...overrides,
-    // boundary: PushToken schema fields vary across drizzle versions; the test
     // only relies on userId/sessionId/platform/token being present.
   } as PushToken;
 }

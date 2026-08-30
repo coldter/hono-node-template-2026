@@ -39,7 +39,6 @@ export function generatePrefixedCuid<P extends string>(
   return `${prefix}_${timestampHex}${randomHex}`;
 }
 
-// boundary: nominal branding - Brand<string, ...> has no runtime, only `as` can apply it
 export const createUserId = (): UserId =>
   generatePrefixedCuid(ID_PREFIXES.user) as UserId;
 

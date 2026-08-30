@@ -13,11 +13,6 @@ export interface RegistryOptions {
   systemAdminRoles: readonly string[];
 }
 
-/**
- * Typed capability map keyed by `${ResourceName}:${ActionName}`. Powers
- * autocomplete on `caps["user:list"]` while still degrading to `boolean`
- * for keys outside the registry's vocabulary at the value-level shape.
- */
 export type CapabilityKey<TResources extends Record<string, AnyResourceDef>> = {
   [K in keyof TResources & string]: `${K}:${ActionsOf<TResources[K]> & string}`;
 }[keyof TResources & string];
@@ -50,15 +45,7 @@ export interface RegistryInstance<
       resource?: unknown;
     }
   ): Promise<PolicyDecision>;
-  /**
-   * Build an OPTIMISTIC capability map keyed by `${resource}:${action}` for
-   * the given principal. Intended for UI gating only -- nav items, page
-   * entry points, broad presentation. Conditional allows (e.g. `whereOwner`,
-   * `withRelation`) resolve to `true` without evaluating against a concrete
-   * resource, and conditional denies that depend on a resource are skipped;
-   * both lean optimistic. NOT an authoritative permission check -- always
-   * use server responses for record-level actions and destructive flows.
-   */
+
   evaluateCapabilities(
     principal: Principal
   ): Promise<CapabilityMap<TResources>>;
@@ -109,8 +96,6 @@ export function buildRegistryInstance<
     },
 
     async evaluateCapabilities(principal) {
-      // Evaluate without resource but with ignoreResourceConditions
-      // so that conditionally-allowed actions (e.g. whereOwner) report true.
       const decisions = await Promise.all(
         Object.entries(resources).flatMap(([name, resourceDef]) =>
           resourceDef.actions.map(async (action) => {
@@ -134,8 +119,6 @@ export function buildRegistryInstance<
         capabilities[`${name}:${action}`] = allowed;
       }
 
-      // boundary: runtime keys are derived from the registry's own action
-      // tuples, so the typed CapabilityMap shape is correct by construction.
       return capabilities as unknown as CapabilityMap<TResources>;
     },
 

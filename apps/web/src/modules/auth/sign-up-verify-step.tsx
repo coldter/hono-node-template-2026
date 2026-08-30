@@ -57,12 +57,9 @@ export function SignUpVerifyStep({
         return;
       }
 
-      // Held credentials let us sign the user in without a second login step.
       const signInResult = await authClient.signIn.email({ email, password });
 
       if (signInResult.error) {
-        // The account already exists and is verified at this point, so
-        // returning to the signup form would just error on resubmit.
         toast.success("Email verified. Please sign in.");
         (onSignInFallback ?? onBack)();
         return;

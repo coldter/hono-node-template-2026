@@ -1,47 +1,24 @@
-/**
- * Vault Service Types
- *
- * @module
- */
-
-/**
- * Encrypted envelope containing ciphertext and metadata.
- * This is the serialized format stored in the database.
- */
 export interface EncryptedEnvelope {
   readonly alg: "aes-256-gcm";
-  /** Base64-encoded ciphertext (includes IV + auth tag + encrypted data) */
+
   readonly ct: string;
   readonly kid?: string;
   readonly ts: number;
   readonly v: 1;
 }
 
-/**
- * Serialized encrypted envelope for database storage.
- */
 export type SerializedEnvelope = string;
 
-/**
- * Schema definition for vault-encrypted data types.
- * Provides type-safe encryption with validation.
- *
- * @template T - The data type being encrypted
- */
 export interface VaultSchema<T> {
   readonly description: string;
   deserialize: (plaintext: string) => T;
   fingerprint?: (data: T) => string;
-  /** Unique schema identifier (e.g., "card-profile", "api-key") */
+
   readonly id: string;
   serialize: (data: T) => string;
   validate?: (data: T) => void;
 }
 
-/**
- * Low-level encryption provider interface.
- * Implement this for different key management solutions.
- */
 export interface EncryptionProvider {
   decrypt: (envelope: EncryptedEnvelope) => Promise<Buffer>;
   encrypt: (plaintext: Buffer) => Promise<EncryptedEnvelope>;
@@ -54,7 +31,7 @@ export interface VaultEncryptResult<T> {
   readonly data: T;
   readonly encrypted: SerializedEnvelope;
   readonly fingerprint?: string;
-  /** SHA-256 hash for integrity verification */
+
   readonly hash: string;
 }
 
@@ -71,20 +48,18 @@ export interface VaultDecryptResult<T> {
 
 export interface LocalProviderConfig {
   readonly keyId?: string;
-  /** 32-byte hex-encoded master key (64 hex chars) */
+
   readonly masterKey: string;
   readonly provider: "local";
 }
 
 export interface AwsKmsProviderConfig {
-  /** KMS key ARN or alias */
   readonly keyArn: string;
   readonly provider: "aws-kms";
   readonly region: string;
 }
 
 export interface GcpKmsProviderConfig {
-  /** Full resource name of the key */
   readonly keyName: string;
   readonly provider: "gcp-kms";
 }
@@ -92,7 +67,7 @@ export interface GcpKmsProviderConfig {
 export interface AzureKeyVaultProviderConfig {
   readonly keyName: string;
   readonly provider: "azure-keyvault";
-  /** Key Vault URL */
+
   readonly vaultUrl: string;
 }
 
@@ -103,7 +78,6 @@ export type ProviderConfig =
   | AzureKeyVaultProviderConfig;
 
 export interface VaultOptions {
-  /** Include fingerprint in result (if schema supports it) */
   includeFingerprint?: boolean;
 }
 

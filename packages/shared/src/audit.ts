@@ -53,7 +53,6 @@ export const AUDIT_EVENTS = {
   },
 } as const;
 
-// Narrow type: union of all event strings from AUDIT_EVENTS
 type AuditEventObject = {
   [K in keyof typeof AUDIT_EVENTS]: {
     [E in keyof (typeof AUDIT_EVENTS)[K]]: (typeof AUDIT_EVENTS)[K][E];
@@ -77,8 +76,6 @@ export interface AuditLogMetadata {
   [key: string]: unknown;
 }
 
-// Events that occur alongside a database write.
-// Must be logged transactionally via auditLogService.create(input, executor).
 export const CRITICAL_EVENTS = [
   "user.created",
   "user.updated",
@@ -95,8 +92,6 @@ export const CRITICAL_EVENTS = [
   "role.unassigned",
 ] as const;
 
-// Observational events with no accompanying business write.
-// Logged asynchronously via auditLogService.enqueue(input).
 export const BUFFERABLE_EVENTS = [
   "auth.login.success",
   "auth.login.failed",
@@ -108,8 +103,5 @@ export const BUFFERABLE_EVENTS = [
 export type CriticalAuditEvent = (typeof CRITICAL_EVENTS)[number];
 export type BufferableAuditEvent = (typeof BUFFERABLE_EVENTS)[number];
 
-// Compile-time exhaustiveness check: ensures every event in AuditEventKey
-// is classified in exactly one of the two arrays. If a new event is added
-// to AUDIT_EVENTS but not classified, this will produce a type error.
 type _AllClassified = CriticalAuditEvent | BufferableAuditEvent;
 type _ExhaustivenessCheck = AuditEventKey extends _AllClassified ? true : never;

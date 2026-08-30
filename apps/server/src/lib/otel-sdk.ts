@@ -18,8 +18,7 @@ export async function initializeOpenTelemetry(): Promise<void> {
       env.OTEL_METRICS_ENDPOINT ||
       env.OTEL_LOGS_ENDPOINT
   );
-  // Development falls back to console exporters, so the SDK is still useful
-  // there without any endpoint configured.
+
   if (!hasAnyEndpoint && env.NODE_ENV !== "development") {
     const { logger } = await import("./logger");
     logger.warn(
@@ -28,8 +27,6 @@ export async function initializeOpenTelemetry(): Promise<void> {
     return;
   }
 
-  // The SDK, auto-instrumentations, and OTLP exporters cost ~550ms and tens of
-  // MB RSS just to import, so load them only when tracing is actually enabled.
   const [
     { getNodeAutoInstrumentations },
     { OTLPLogExporter },
@@ -56,8 +53,6 @@ export async function initializeOpenTelemetry(): Promise<void> {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
   }
 
-  // Each pipeline is built from its own endpoint so one missing endpoint
-  // never disables the others; missing pipelines are warned about below.
   const pipelineWarnings: string[] = [];
 
   const spanProcessor = (() => {
@@ -138,8 +133,6 @@ export async function initializeOpenTelemetry(): Promise<void> {
         "@opentelemetry/instrumentation-fs": { enabled: false },
         "@opentelemetry/instrumentation-pg": { enabled: false },
         "@opentelemetry/instrumentation-winston": {
-          // The explicit winston transport below owns log sending; if the
-          // patch ever applies, automatic sending would duplicate every record.
           disableLogSending: true,
           enabled: true,
         },
@@ -157,16 +150,11 @@ export async function initializeOpenTelemetry(): Promise<void> {
     console.error("Failed to start OpenTelemetry SDK", error);
   }
 
-  // Imported lazily so winston is not loaded before the auto-instrumentation
-  // hooks register (instrumentation-winston can only patch modules loaded
-  // after sdk.start()).
   const { logger } = await import("./logger");
   for (const warning of pipelineWarnings) {
     logger.warn(warning);
   }
 
-  // Endpoint-gated (not processor-gated): the dev console fallback processor
-  // would otherwise re-print every winston line as an OTEL log record dump.
   if (env.OTEL_LOGS_ENDPOINT) {
     const { OpenTelemetryTransportV3 } = await import(
       "@opentelemetry/winston-transport"

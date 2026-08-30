@@ -1,4 +1,3 @@
-// Hono middleware adapter for @repo/authorization
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { RegistryInstance } from "./registry";
@@ -8,8 +7,6 @@ import type { DenyReason, PolicyDecision, Principal } from "./types";
 
 const AUTHORIZED_RESOURCE_KEY = "authorizedResource";
 
-// Map a deny decision (or bare reason) to its DenyReason. Avoids nested
-// ternaries in denyResponse so the lint rule against them is satisfied.
 function denyReasonOf(input: PolicyDecision | DenyReason): DenyReason {
   if (typeof input === "string") {
     return input;
@@ -20,10 +17,6 @@ function denyReasonOf(input: PolicyDecision | DenyReason): DenyReason {
   return "NO_MATCHING_POLICY";
 }
 
-// Build the HTTPException for any deny path in this adapter. UNAUTHENTICATED
-// surfaces as 401; everything else collapses to a uniform FORBIDDEN body so
-// the wire intentionally hides the specific deny reason (server logs may
-// still distinguish via decision.reason).
 function denyResponse(
   decisionOrReason: PolicyDecision | DenyReason
 ): HTTPException {
@@ -43,12 +36,6 @@ function denyResponse(
 export interface CreateAuthorizeOptions<
   TEnv extends Record<string, unknown> = Record<string, unknown>,
 > {
-  /**
-   * Whitelist of labels that may be passed to `unsafeBypassAuthorization`.
-   * Any other label throws at middleware-construction time so unreviewed
-   * bypasses cannot reach a deployment. Empty/undefined means no labels
-   * are allowed and any bypass call throws.
-   */
   allowedBypassLabels?: readonly string[];
   resolveDb?: (c: Context<TEnv>) => unknown;
   resolvePrincipal: (c: Context<TEnv>) => Principal | null | undefined;
@@ -71,11 +58,6 @@ export interface AuthorizeFunction<
     AnyResourceDef
   >,
 > {
-  /**
-   * Mark a route as intentionally not authorized. Construction-time guard
-   * rejects labels not in `allowedBypassLabels`; each invocation logs a
-   * structured `authorization.bypass` warning so production usage is loud.
-   */
   unsafeBypassAuthorization: (label: string) => MiddlewareHandler;
   <K extends keyof TResources & string>(
     resource: K,
@@ -93,20 +75,19 @@ export function createAuthorize<
 ): AuthorizeFunction<TResources> {
   const allowedBypass = new Set(options.allowedBypassLabels ?? []);
 
-  const authorizeImpl = (
-    resource: string,
-    action: string,
-    opts?: AuthorizeOptions
-  ): MiddlewareHandler => {
-    return async (c, next) => {
+  const authorizeImpl =
+    (
+      resource: string,
+      action: string,
+      opts?: AuthorizeOptions
+    ): MiddlewareHandler =>
+    async (c, next) => {
       const principal = options.resolvePrincipal(c as Context<TEnv>);
 
       let loadedResource: unknown;
       if (opts?.loadResource) {
         loadedResource = await opts.loadResource(c);
         if (loadedResource === null || loadedResource === undefined) {
-          // Uniform FORBIDDEN body avoids a resource-existence side channel
-          // (server-side reasoning may still distinguish for logging).
           throw denyResponse("RESOURCE_NOT_FOUND");
         }
       }
@@ -114,7 +95,7 @@ export function createAuthorize<
       const decision = await registry.can(
         principal,
         resource,
-        // boundary: typed action union narrowed at call site
+
         action as never,
         {
           resolveRelation: opts?.resolveRelation,
@@ -132,7 +113,6 @@ export function createAuthorize<
 
       await next();
     };
-  };
 
   const unsafeBypassAuthorization = (label: string): MiddlewareHandler => {
     if (!allowedBypass.has(label)) {
@@ -143,7 +123,6 @@ export function createAuthorize<
       );
     }
     return async (c, next) => {
-      // console.warn (not a logger): package stays dependency-free; consumers wrap stdout.
       console.warn(
         JSON.stringify({
           event: "authorization.bypass",
@@ -156,7 +135,6 @@ export function createAuthorize<
     };
   };
 
-  // boundary: callable signature is stricter than impl
   const authorize = Object.assign(authorizeImpl, {
     unsafeBypassAuthorization,
   }) as unknown as AuthorizeFunction<TResources>;
@@ -172,7 +150,7 @@ export function getAuthorizedResource<T>(c: Context): T {
         "Ensure the route's authorize(...) middleware passes `loadResource`."
     );
   }
-  // boundary: T declared by caller; runtime origin is loadResource
+
   return value as T;
 }
 

@@ -16,8 +16,6 @@ if (OTEL_ENABLED) {
 
 type DBCore = DrizzleClient;
 export type DB = DBCore & {
-  // drizzle types $client as Pool | PoolClient | Client; we always construct
-  // from a PoolConfig, so it is a Pool at runtime.
   $client: Pool;
 };
 
@@ -32,7 +30,6 @@ export const isDbSkipped =
     !env.DATABASE_TEST_URL);
 
 if (isDbSkipped) {
-  // boundary: SKIP_DB path mounts an empty stub; any call into it will explode at runtime, which is intentional
   db = {} as DB;
 } else {
   const connectionString =
@@ -40,7 +37,6 @@ if (isDbSkipped) {
       ? env.DATABASE_TEST_URL
       : env.DATABASE_URL;
 
-  // boundary: drizzle SDK variance - NodePgDatabase does not expose `$client` on its public surface
   db = createNodeDrizzleClient(
     {
       connectionString,
@@ -49,16 +45,12 @@ if (isDbSkipped) {
       idleTimeoutMillis: 30_000,
       max: env.DB_POOL_MAX,
       min: 0,
-      // Defensive server-side timeouts so a stuck query or an abandoned open
-      // transaction cannot hold a pooled connection indefinitely.
+
       statement_timeout: 30_000,
     },
     new DrizzleLogger()
   ) as DB;
 
-  // node-postgres emits 'error' on the pool when an idle client dies (e.g.
-  // Postgres restart); without a listener that is an unhandled 'error' event
-  // and crashes the process.
   db.$client.on("error", (error) => {
     logger.error("Postgres pool idle client error", {
       message: error.message,

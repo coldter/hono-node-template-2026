@@ -1,11 +1,6 @@
 import type { CreateClientConfig } from "@/api.gen/client.gen";
 import { ApiError, clientConfig } from "@/lib/api";
 
-/**
- * Runtime client configuration for the generated API client.
- *
- * @link https://heyapi.dev/openapi-ts/get-started
- */
 export const createClientConfig: CreateClientConfig = (baseConfig) => ({
   ...baseConfig,
   baseUrl: import.meta.env.VITE_SERVER_URL || "http://localhost:3100",

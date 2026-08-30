@@ -57,7 +57,6 @@ export function CreateUserDialog({
     try {
       await createMutation.mutateAsync(values);
     } catch {
-      // Keep dialog open; the mutation onError already surfaces a toast.
       return;
     }
     form.reset();

@@ -67,7 +67,6 @@
 }
 
 @theme {
-  /* Colors - Primary (Deep Blue - Trust & Security) */
   --color-primary-50: oklch(0.97 0.014 254.604);
   --color-primary-100: oklch(0.932 0.032 255.585);
   --color-primary-200: oklch(0.882 0.059 254.128);
@@ -80,7 +79,6 @@
   --color-primary-900: oklch(0.379 0.127 265.522);
   --color-primary-950: oklch(0.424 0.159 253.331);
 
-  /* Colors - Slate (Professional Neutrals) */
   --color-slate-0: oklch(1 0 0);
   --color-slate-50: oklch(0.984 0.003 264.536);
   --color-slate-100: oklch(0.968 0.007 264.536);
@@ -94,7 +92,6 @@
   --color-slate-900: oklch(0.199 0.028 264.531);
   --color-slate-950: oklch(0.106 0.021 264.531);
 
-  /* Colors - Error (Red - Alerts & Declines) */
   --color-error-50: oklch(0.971 0.013 17.38);
   --color-error-100: oklch(0.936 0.032 17.717);
   --color-error-200: oklch(0.896 0.053 15.198);
@@ -106,7 +103,6 @@
   --color-error-800: oklch(0.396 0.156 25.723);
   --color-error-900: oklch(0.357 0.123 25.98);
 
-  /* Colors - Warning (Amber - Pending & Caution) */
   --color-warning-50: oklch(0.987 0.022 95.277);
   --color-warning-100: oklch(0.962 0.059 95.617);
   --color-warning-200: oklch(0.924 0.116 95.746);
@@ -118,7 +114,6 @@
   --color-warning-800: oklch(0.473 0.119 46.208);
   --color-warning-900: oklch(0.414 0.094 45.642);
 
-  /* Colors - Success (Green - Approved & Positive) */
   --color-success-50: oklch(0.982 0.031 149.579);
   --color-success-100: oklch(0.962 0.068 149.579);
   --color-success-200: oklch(0.925 0.117 149.579);
@@ -130,7 +125,6 @@
   --color-success-800: oklch(0.448 0.113 150.069);
   --color-success-900: oklch(0.393 0.091 150.069);
 
-  /* Colors - Info (Cyan - Information) */
   --color-info-50: oklch(0.984 0.019 200.873);
   --color-info-100: oklch(0.956 0.045 203.388);
   --color-info-200: oklch(0.917 0.08 205.041);
@@ -142,7 +136,6 @@
   --color-info-800: oklch(0.45 0.074 197.182);
   --color-info-900: oklch(0.398 0.06 197.182);
 
-  /* Colors - Semantic */
   --color-brand-primary: oklch(0.424 0.159 253.331);
   --color-default-font: oklch(0.199 0.028 264.531);
   --color-subtext-color: oklch(0.554 0.022 264.364);
@@ -150,15 +143,11 @@
   --color-white: oklch(1 0 0);
   --color-default-background: oklch(1 0 0);
 
-  /* Transaction Status Colors */
   --color-transaction-pending: oklch(0.749 0.165 70.08);
   --color-transaction-completed: oklch(0.627 0.178 149.579);
   --color-transaction-failed: oklch(0.538 0.218 25.74);
   --color-transaction-processing: oklch(0.623 0.187 259.815);
 
-  /* Fonts. "Inter Variable" is the self-hosted @fontsource-variable/inter
-     face imported in main.tsx; overriding --font-sans makes preflight apply
-     it app-wide via --default-font-family. */
   --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-inter: "Inter Variable", "Inter", sans-serif;
   --font-caption: "Inter Variable", "Inter", sans-serif;
@@ -170,7 +159,6 @@
   --font-heading-1: "Inter Variable", "Inter", sans-serif;
   --font-monospace-body: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 
-  /* Text sizes */
   --text-caption: 12px;
   --text-caption--font-weight: 400;
   --text-caption--letter-spacing: 0em;
@@ -204,7 +192,6 @@
   --text-monospace-body--letter-spacing: 0em;
   --text-monospace-body--line-height: 20px;
 
-  /* Box shadows */
   --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   --shadow-default: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   --shadow-md:
@@ -214,7 +201,6 @@
   --shadow-overlay:
     0px 12px 32px -4px rgba(0, 0, 0, 0.08), 0px 4px 8px -2px rgba(0, 0, 0, 0.08);
 
-  /* Border radiuses */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-DEFAULT: 8px;
@@ -222,14 +208,12 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
-  /* Spacing */
   --spacing-112: 28rem;
   --spacing-144: 36rem;
   --spacing-192: 48rem;
   --spacing-256: 64rem;
   --spacing-320: 80rem;
 
-  /* Existing shadcn/ui color mappings */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -263,7 +247,6 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Container */
 @utility container {
   padding-right: 16px;
   padding-left: 16px;

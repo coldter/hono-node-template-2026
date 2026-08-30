@@ -3,9 +3,6 @@ import type {
   NotificationPriority,
 } from "@repo/db/schema";
 
-/**
- * Pattern: "domain.event"
- */
 export const NOTIFICATION_TYPES = {
   SECURITY_LOGIN_NEW_DEVICE: "security.login_new_device",
   SECURITY_PASSWORD_CHANGED: "security.password_changed",

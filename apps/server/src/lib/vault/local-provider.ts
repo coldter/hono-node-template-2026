@@ -17,17 +17,6 @@ const SALT_LENGTH = 16;
 const PBKDF2_ITERATIONS = 100_000;
 const MAX_CACHE_SIZE = 100;
 
-/**
- * Local encryption provider using AES-256-GCM with PBKDF2 key derivation.
- *
- * Security features:
- * - AES-256-GCM authenticated encryption (confidentiality + integrity)
- * - PBKDF2 key derivation with 100k iterations (brute-force resistance)
- * - Random 96-bit IV per encryption (nonce reuse protection)
- * - 128-bit authentication tag (tampering detection)
- *
- * For development and testing. In production, use KMS providers.
- */
 export class LocalEncryptionProvider implements EncryptionProvider {
   readonly name = "local";
 
@@ -66,7 +55,6 @@ export class LocalEncryptionProvider implements EncryptionProvider {
     const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
     const authTag = cipher.getAuthTag();
 
-    // Format: salt (16) + iv (12) + authTag (16) + ciphertext
     const combined = Buffer.concat([salt, iv, authTag, encrypted]);
 
     return {

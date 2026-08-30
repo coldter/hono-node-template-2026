@@ -20,14 +20,10 @@ import {
 } from "@/modules/notifications/constants";
 import { notificationService } from "@/modules/notifications/service";
 
-// -- Safety guard --
-
 if (env.NODE_ENV === "production") {
   console.error(chalk.red("push-debug cannot run in production."));
   process.exit(1);
 }
-
-// -- Helpers --
 
 function prettyJson(data: unknown): string {
   const json = JSON.stringify(data, null, 2);
@@ -81,8 +77,6 @@ async function resolveUser(
 
   return user;
 }
-
-// -- Commands --
 
 async function inspectCommand(identifier: string): Promise<void> {
   const user = await resolveUser(identifier);
@@ -591,8 +585,6 @@ async function cleanupCommand(identifier: string): Promise<void> {
   );
 }
 
-// -- Interactive menu --
-
 async function interactiveMenu(): Promise<void> {
   printHeader();
 
@@ -681,8 +673,6 @@ async function interactiveMenu(): Promise<void> {
     console.log("");
   }
 }
-
-// -- CLI routing --
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);

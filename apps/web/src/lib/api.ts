@@ -9,8 +9,6 @@ export interface ApiErrorBody {
   name?: string;
 }
 
-// The body shape is what the server returns as JSON for non-2xx responses;
-// callers may also construct it from an already-parsed response.
 export class ApiError extends Error {
   error: ApiErrorBody["error"];
   status: number;

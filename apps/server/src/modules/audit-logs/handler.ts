@@ -28,8 +28,6 @@ const auditLogsHandler = app.openapi(
       };
     };
 
-    // Rows whose `event` does not match a known AUDIT_EVENT_KEY (legacy/retired
-    // events) are dropped and subtracted from meta.total via the pagination seam.
     const paginated = createPaginatedResponse({
       data: result.data,
       formatter: formatAuditLog,

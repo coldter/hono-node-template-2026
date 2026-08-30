@@ -4,8 +4,6 @@ import type { Env } from "@/lib/context";
 import { OTEL_ENABLED, sanitizeUrl } from "@/lib/otel-config";
 import { getTracer } from "@/lib/otel-utils";
 
-// HTTP spans are owned by @hono/otel; this middleware adds business attributes
-// and exposes the active trace/span ID via the Hono context.
 export const customOtelMiddleware = createMiddleware<Env>(async (c, next) => {
   if (!OTEL_ENABLED) {
     return next();
@@ -38,9 +36,6 @@ export const customOtelMiddleware = createMiddleware<Env>(async (c, next) => {
       try {
         await next();
 
-        // Auth context is populated downstream of this middleware, so the
-        // user is only readable after next(); the span ends in finally and
-        // is still recording here.
         const user = c.get("user");
         if (user) {
           businessSpan.setAttribute("user.id", user.id);

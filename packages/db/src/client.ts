@@ -26,7 +26,6 @@ export function createNodeDrizzleClient(
 }
 
 function _inferType() {
-  // boundary: drizzle type inference
   return createDrizzleClient(null as never);
 }
 

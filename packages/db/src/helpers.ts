@@ -9,7 +9,6 @@ export const updatedAt = () =>
     .$onUpdate(() => new Date())
     .notNull();
 
-// Prefer this over `array[0]!` for guaranteed-non-empty query results.
 export function firstOrThrow<T>(
   rows: readonly T[],
   message = "Expected at least one row"

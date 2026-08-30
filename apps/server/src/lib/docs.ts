@@ -33,8 +33,6 @@ export const docs = async (
     return;
   }
 
-  // Public OpenAPI + Scalar UI leak schema/route info; require explicit opt-in
-  // via ENABLE_DOCS_IN_PRODUCTION. skipScalar=true mounts no HTTP routes and is allowed.
   const isProduction = env.NODE_ENV === "production";
   if (isProduction && !env.ENABLE_DOCS_IN_PRODUCTION && !skipScalar) {
     logger.info(

@@ -20,8 +20,7 @@ export const authClient = createAuthClient({
         activeOrgRole: { type: "string" },
         platform: { type: "string" },
       },
-      // input: false mirrors the server's user-status plugin so server-managed
-      // fields are not demanded in signUp.email's typed body.
+
       user: {
         deactivatedAt: { input: false, type: "date" },
         deactivatedBy: { input: false, type: "string" },

@@ -102,7 +102,6 @@ const sessionUpdateInputSchema = z
   })
   .loose();
 
-// Better Auth endpoint context is typed as `unknown`; defensively walk and narrow.
 const endpointCtxSchema = z
   .object({
     context: z
@@ -226,7 +225,7 @@ const authConfig = {
     database: {
       generateId: (options) => generateIdForModel(options.model),
     },
-    // `secure` is auto-detected from baseURL scheme (https → secure).
+
     defaultCookieAttributes: {
       httpOnly: true,
       sameSite: "lax",
@@ -243,16 +242,11 @@ const authConfig = {
     session: {
       create: {
         before: async (session, context) => {
-          // User status checks (deleted, inactive, locked) live in loginSecurityPlugin;
-          // this hook only handles platform detection and session configuration.
           const userAgent = context?.headers?.get("user-agent") ?? null;
           const ipAddress = resolveClientIp(context?.headers);
           const platform = detectPlatform(userAgent);
           const config = SESSION_CONFIG[platform];
 
-          // Single session per user: revoke any existing rows before inserting.
-          // RETURNING feeds new-device detection, saving a separate SELECT;
-          // the membership lookup is independent, so both run concurrently.
           const [revokedSessions, orgContext] = await Promise.all([
             db
               .delete(schema.sessions)
@@ -335,14 +329,10 @@ const authConfig = {
             return { data: session };
           }
 
-          // Only intervene when Better Auth is refreshing the session expiry;
-          // other updates (updatedAt, ipAddress) must pass through unchanged.
           if (!session.expiresAt) {
             return { data: session };
           }
 
-          // The update payload omits session id/token, so we cannot look up the row.
-          // Re-detect platform from the request UA (same heuristic as the create hook).
           const userAgent = context?.headers?.get("user-agent") ?? null;
           const platform = detectPlatform(userAgent);
 
@@ -379,7 +369,7 @@ const authConfig = {
   emailAndPassword: {
     disableSignUp: !env.ENABLE_SIGNUP,
     enabled: true,
-    // Password reset uses emailOTP plugin, not magic links.
+
     password: {
       hash: async (password: string) => await hashPassword(password),
       verify: async ({ hash, password }: { hash: string; password: string }) =>
@@ -392,7 +382,7 @@ const authConfig = {
     enhancedUserPlugin(),
     loginSecurityPlugin(),
     adminPlugin(),
-    // Email OTP: powers password reset and email verification (no magic links).
+
     emailOTP({
       expiresIn: TWO_FACTOR_CONFIG.emailOtpExpiresIn,
       otpLength: TWO_FACTOR_CONFIG.otpLength,
@@ -422,7 +412,6 @@ const authConfig = {
         const templateType =
           type === "change-email" ? "email-verification" : type;
 
-        // Do not await: prevents timing attacks that could leak email existence.
         sendEmail({
           props: {
             expiresIn: `${Math.floor(TWO_FACTOR_CONFIG.emailOtpExpiresIn / 60)} minutes`,
@@ -442,7 +431,7 @@ const authConfig = {
         });
       },
     }),
-    // Two-factor: email OTP only - no TOTP authenticator support.
+
     twoFactor({
       otpOptions: {
         period: TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes,
@@ -458,7 +447,6 @@ const authConfig = {
             200
           );
 
-          // Do not await: prevents timing attacks that could leak email existence.
           sendEmail({
             props: {
               expiresIn: `${TWO_FACTOR_CONFIG.twoFactorOtpPeriodMinutes} minutes`,
@@ -479,7 +467,7 @@ const authConfig = {
           });
         },
       },
-      // TOTP would force a verify step on enable; we use email OTP so skip it.
+
       skipVerificationOnEnable: true,
       twoFactorTable: "twoFactors",
     }),
@@ -497,9 +485,6 @@ const authConfig = {
     },
   ],
 
-  // Global rate-limit must sit above the per-account lockout so our lockout fires first.
-  // customStorage (not secondaryStorage): secondaryStorage would also move session
-  // storage into Redis and break DB-row-based single-session enforcement.
   rateLimit: {
     enabled: true,
     max: RATE_LIMIT_CONFIG.global.max,
@@ -537,22 +522,16 @@ const authConfig = {
         type: [...platformSchema.options],
       },
     },
-    // Cache the resolved session in a signed, short-TTL cookie so getSession()
-    // (called on every request via authContextMiddleware) reads the cookie
-    // instead of hitting Postgres. maxAge is deliberately short (60s): with
-    // single-session-per-user revocation, a cached cookie can outlive a revoked
-    // session or stale roleSlugs by at most this window.
+
     cookieCache: {
       enabled: true,
       maxAge: 60,
     },
-    // Use mobile defaults so cookie Max-Age matches the 7-day mobile session.
-    // Web sessions get a shorter expiry via the database hooks below.
+
     expiresIn: SESSION_CONFIG.mobile.expiresIn,
     updateAge: SESSION_CONFIG.mobile.updateAge,
   },
-  // Mobile clients must send an explicit Origin header included in CORS_ORIGIN.
-  // detectPlatform() is used for session lifetimes only and never for trust.
+
   trustedOrigins: env.CORS_ORIGIN,
 } satisfies BetterAuthOptions;
 

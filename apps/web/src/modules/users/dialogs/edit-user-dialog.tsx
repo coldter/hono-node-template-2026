@@ -69,7 +69,6 @@ export function EditUserDialog({
         userId: user.id,
       });
     } catch {
-      // Keep dialog open; the mutation onError already surfaces a toast.
       return;
     }
     onOpenChange(false);

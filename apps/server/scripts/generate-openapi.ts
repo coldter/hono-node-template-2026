@@ -6,9 +6,6 @@ process.env.BETTER_AUTH_SECRET ??=
 process.env.VAULT_MASTER_KEY ??=
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
-/**
- * Generate the OpenAPI document and write it to the JSON cache file.
- */
 (async () => {
   try {
     const [{ app }, { docs }] = await Promise.all([

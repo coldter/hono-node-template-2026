@@ -37,8 +37,6 @@ function handleUserNotFound(error: unknown): never {
   throw error;
 }
 
-// 422 (not 500) when status drifts from the response enum: preserves the
-// existing response-code contract; the underlying cause is data-integrity drift.
 function presentOrThrow<T extends { status: string }, R>(
   user: T,
   presenter: (u: T) => R | null
@@ -57,8 +55,6 @@ const usersHandler = app
     const query = c.req.valid("query");
     const result = await userService.find(query);
 
-    // The pagination seam drops rows that fail to parse AND subtracts from meta.total
-    // so a single drifted status value cannot crash the list endpoint.
     const paginated = createPaginatedResponse({
       data: result.data,
       formatter: toUserSummaryResponse,
@@ -72,8 +68,6 @@ const usersHandler = app
   .openapi(usersRoutes.getMyAccount, async (c) => {
     const currentUser = requireCurrentUser(c);
 
-    // Both lookups are keyed on the current user and independent, so run them
-    // concurrently rather than serializing two round-trips.
     const [account, unreadCount] = await Promise.all([
       userService.findAccountSummaryById(currentUser.id),
       notificationService.getUnreadCount(currentUser.id),
