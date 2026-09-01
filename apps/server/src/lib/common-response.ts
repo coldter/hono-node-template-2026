@@ -49,7 +49,8 @@ export const commonErrorResponses = {
         schema: failWithErrorSchema,
       },
     },
-    description: "Method not allowed: HTTP method is not supported for this path.",
+    description:
+      "Method not allowed: HTTP method is not supported for this path.",
   },
   409: {
     content: {
