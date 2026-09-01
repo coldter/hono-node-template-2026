@@ -24,7 +24,6 @@ function toHatchetLogLevel(level: typeof env.LOG_LEVEL): LogLevel {
     case "debug":
     case "silly":
       return "DEBUG";
-
     default:
       return "INFO";
   }
@@ -71,11 +70,22 @@ export function getHatchet(): HatchetClient | null {
 
   if (!hatchetClient) {
     hatchetClient = Hatchet.init({
+      api_url: env.HATCHET_CLIENT_API_URL,
+      host_port: env.HATCHET_CLIENT_HOST_PORT,
       log_level: toHatchetLogLevel(env.WORK_FLOWS_LOG_LEVEL),
       logger: hatchetLogger,
+      namespace: env.HATCHET_CLIENT_NAMESPACE,
+      tls_config: {
+        tls_strategy: env.HATCHET_CLIENT_TLS_STRATEGY,
+      },
       token: env.HATCHET_CLIENT_TOKEN,
     });
-    logger.info("Hatchet client initialized");
+    logger.info("Hatchet client initialized", {
+      apiUrl: env.HATCHET_CLIENT_API_URL ?? "(from token)",
+      hostPort: env.HATCHET_CLIENT_HOST_PORT ?? "(from token)",
+      namespace: env.HATCHET_CLIENT_NAMESPACE ?? "",
+      tlsStrategy: env.HATCHET_CLIENT_TLS_STRATEGY,
+    });
   }
 
   return hatchetClient;

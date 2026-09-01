@@ -141,6 +141,8 @@ services:
       HATCHET_CLIENT_TOKEN: ${HATCHET_CLIENT_TOKEN}
       HATCHET_CLIENT_TLS_STRATEGY: ${HATCHET_CLIENT_TLS_STRATEGY}
       HATCHET_CLIENT_HOST_PORT: ${HATCHET_CLIENT_HOST_PORT}
+      HATCHET_CLIENT_API_URL: ${HATCHET_CLIENT_API_URL:-}
+      HATCHET_CLIENT_NAMESPACE: ${HATCHET_CLIENT_NAMESPACE:-}
       HATCHET_WORKER_SLOTS: ${HATCHET_WORKER_SLOTS}
       HATCHET_THROW_ON_ERROR: ${HATCHET_THROW_ON_ERROR:-false}
       WORK_FLOWS_LOG_LEVEL: ${WORK_FLOWS_LOG_LEVEL:-warn}
@@ -191,7 +193,7 @@ services:
       - hatchet-network
 
   hatchet-migration:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.79.3
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.105.2
     profiles: ["hatchet"]
     restart: "no"
     command: /hatchet/hatchet-migrate
@@ -204,7 +206,7 @@ services:
       - hatchet-network
 
   hatchet-setup:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.79.3
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.105.2
     profiles: ["hatchet"]
     restart: on-failure
     command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet/config --overwrite=false
@@ -230,7 +232,7 @@ services:
       - hatchet-network
 
   hatchet-engine:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.79.3
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.105.2
     profiles: ["hatchet"]
     restart: always
     command: /hatchet/hatchet-engine --config /hatchet/config
@@ -252,7 +254,7 @@ services:
       - hatchet-network
 
   hatchet-dashboard:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.79.3
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.105.2
     profiles: ["hatchet"]
     restart: always
     command: sh -c "sh ./entrypoint.sh --config /hatchet/config"

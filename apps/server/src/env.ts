@@ -35,6 +35,8 @@ export function parseOtlpHeaders(value: string): Record<string, string> {
   return headers;
 }
 
+const EMAIL_FROM_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const envSchema = z
   .object({
     APP_NAME: z.string().default("App"),
@@ -50,7 +52,15 @@ const envSchema = z
     DATABASE_TEST_URL: z.string().optional(),
     DATABASE_URL: z.string().min(1).max(1000),
     DB_POOL_MAX: z.coerce.number().default(10),
-    EMAIL_FROM: z.email().default("noreply@example.com"),
+    EMAIL_FROM: z
+      .string()
+      .default("noreply@example.com")
+      .refine(
+        (val) => EMAIL_FROM_PATTERN.test(val) || val.endsWith("@localhost"),
+        {
+          message: "Invalid email address",
+        }
+      ),
     EMAIL_FROM_NAME: z.string().default("App"),
 
     EMAIL_PROVIDER: z.enum(["nodemailer", "console"]).default("console"),
@@ -69,7 +79,9 @@ const envSchema = z
 
     FCM_PROVIDER: z.enum(["firebase", "console"]).default("console"),
     FIREBASE_SERVICE_ACCOUNT_KEY_BASE64: z.string().optional(),
-    HATCHET_CLIENT_HOST_PORT: z.string().default("localhost:7077"),
+    HATCHET_CLIENT_API_URL: z.string().optional(),
+    HATCHET_CLIENT_HOST_PORT: z.string().optional(),
+    HATCHET_CLIENT_NAMESPACE: z.string().optional(),
     HATCHET_CLIENT_TLS_STRATEGY: z
       .enum(["none", "tls", "mtls"])
       .default("none"),
@@ -115,10 +127,19 @@ const envSchema = z
           return z.NEVER;
         }
       }),
-    OTEL_LOGS_ENDPOINT: z.url().optional(),
-    OTEL_METRICS_ENDPOINT: z.url().optional(),
+    OTEL_LOGS_ENDPOINT: z.preprocess(
+      (val) => (val === "" ? undefined : val),
+      z.url().optional()
+    ),
+    OTEL_METRICS_ENDPOINT: z.preprocess(
+      (val) => (val === "" ? undefined : val),
+      z.url().optional()
+    ),
 
-    OTEL_TRACES_ENDPOINT: z.url().optional(),
+    OTEL_TRACES_ENDPOINT: z.preprocess(
+      (val) => (val === "" ? undefined : val),
+      z.url().optional()
+    ),
     PORT: z.coerce.number().default(3000),
     REDIS_URL: z.string().optional(),
     SERVER_URL: z.string().default("http://localhost:3100"),

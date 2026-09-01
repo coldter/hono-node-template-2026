@@ -7,36 +7,36 @@ import { activateUser, createUser, deactivateUser, deletePushToken, getAuthoriza
 import type { ActivateUserData, ActivateUserError, ActivateUserResponse, CreateUserData, CreateUserError, CreateUserResponse, DeactivateUserData, DeactivateUserError, DeactivateUserResponse, DeletePushTokenData, DeletePushTokenError, DeletePushTokenResponse, GetAuthorizationCapabilitiesData, GetAuthorizationCapabilitiesError, GetAuthorizationCapabilitiesResponse, GetMyAccountData, GetMyAccountError, GetMyAccountResponse, GetNotificationData, GetNotificationError, GetNotificationPreferencesData, GetNotificationPreferencesError, GetNotificationPreferencesResponse, GetNotificationResponse, GetReadinessData, GetReadinessError, GetReadinessResponse, GetStatusData, GetStatusResponse, GetUnreadNotificationCountData, GetUnreadNotificationCountError, GetUnreadNotificationCountResponse, GetUserData, GetUserError, GetUserResponse, ListAuditLogsData, ListAuditLogsError, ListAuditLogsResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListPushTokensData, ListPushTokensError, ListPushTokensResponse, ListRolesData, ListRolesError, ListRolesResponse, ListUsersData, ListUsersError, ListUsersResponse, MarkAllNotificationsAsReadData, MarkAllNotificationsAsReadError, MarkAllNotificationsAsReadResponse, MarkNotificationAsReadData, MarkNotificationAsReadError, MarkNotificationAsReadResponse, RegisterPushTokenData, RegisterPushTokenError, RegisterPushTokenResponse, UnlockUserData, UnlockUserError, UnlockUserResponse, UpdateNotificationPreferencesData, UpdateNotificationPreferencesError, UpdateNotificationPreferencesResponse, UpdateUserData, UpdateUserError, UpdateUserResponse, UpdateUserRolesData, UpdateUserRolesError, UpdateUserRolesResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
-    Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
-        _id: string;
-        _infinite?: boolean;
-        tags?: ReadonlyArray<string>;
-    }
+  Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
+    _id: string;
+    _infinite?: boolean;
+    tags?: ReadonlyArray<string>;
+  }
 ];
 
 const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions, infinite?: boolean, tags?: ReadonlyArray<string>): [
-    QueryKey<TOptions>[0]
+  QueryKey<TOptions>[0]
 ] => {
-    const params: QueryKey<TOptions>[0] = { _id: id, baseUrl: options?.baseUrl || (options?.client ?? client).getConfig().baseUrl } as QueryKey<TOptions>[0];
-    if (infinite) {
-        params._infinite = infinite;
-    }
-    if (tags) {
-        params.tags = tags;
-    }
-    if (options?.body) {
-        params.body = options.body;
-    }
-    if (options?.headers) {
-        params.headers = options.headers;
-    }
-    if (options?.path) {
-        params.path = options.path;
-    }
-    if (options?.query) {
-        params.query = options.query;
-    }
-    return [params];
+  const params: QueryKey<TOptions>[0] = { _id: id, baseUrl: options?.baseUrl || (options?.client ?? client).getConfig().baseUrl } as QueryKey<TOptions>[0];
+  if (infinite) {
+    params._infinite = infinite;
+  }
+  if (tags) {
+    params.tags = tags;
+  }
+  if (options?.body) {
+    params.body = options.body;
+  }
+  if (options?.headers) {
+    params.headers = options.headers;
+  }
+  if (options?.path) {
+    params.path = options.path;
+  }
+  if (options?.query) {
+    params.query = options.query;
+  }
+  return [params];
 };
 
 export const getAuthorizationCapabilitiesQueryKey = (options?: Options<GetAuthorizationCapabilitiesData>) => createQueryKey('getAuthorizationCapabilities', options);
@@ -45,13 +45,13 @@ export const getAuthorizationCapabilitiesQueryKey = (options?: Options<GetAuthor
  * Get current user authorization capabilities
  */
 export const getAuthorizationCapabilitiesOptions = (options?: Options<GetAuthorizationCapabilitiesData>) => queryOptions<GetAuthorizationCapabilitiesResponse, GetAuthorizationCapabilitiesError, GetAuthorizationCapabilitiesResponse, ReturnType<typeof getAuthorizationCapabilitiesQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getAuthorizationCapabilities({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getAuthorizationCapabilitiesQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getAuthorizationCapabilities({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getAuthorizationCapabilitiesQueryKey(options)
 });
 
 export const listAuditLogsQueryKey = (options?: Options<ListAuditLogsData>) => createQueryKey('listAuditLogs', options);
@@ -62,42 +62,42 @@ export const listAuditLogsQueryKey = (options?: Options<ListAuditLogsData>) => c
  * Returns a paginated list of audit logs with optional filters
  */
 export const listAuditLogsOptions = (options?: Options<ListAuditLogsData>) => queryOptions<ListAuditLogsResponse, ListAuditLogsError, ListAuditLogsResponse, ReturnType<typeof listAuditLogsQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await listAuditLogs({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: listAuditLogsQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await listAuditLogs({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: listAuditLogsQueryKey(options)
 });
 
 const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
-    const params = { ...queryKey[0] };
-    if (page.body) {
-        params.body = {
-            ...queryKey[0].body as any,
-            ...page.body as any
-        };
-    }
-    if (page.headers) {
-        params.headers = {
-            ...queryKey[0].headers,
-            ...page.headers
-        };
-    }
-    if (page.path) {
-        params.path = {
-            ...queryKey[0].path as any,
-            ...page.path as any
-        };
-    }
-    if (page.query) {
-        params.query = {
-            ...queryKey[0].query as any,
-            ...page.query as any
-        };
-    }
-    return params as unknown as typeof page;
+  const params = { ...queryKey[0] };
+  if (page.body) {
+    params.body = {
+      ...queryKey[0].body as any,
+      ...page.body as any
+    };
+  }
+  if (page.headers) {
+    params.headers = {
+      ...queryKey[0].headers,
+      ...page.headers
+    };
+  }
+  if (page.path) {
+    params.path = {
+      ...queryKey[0].path as any,
+      ...page.path as any
+    };
+  }
+  if (page.query) {
+    params.query = {
+      ...queryKey[0].query as any,
+      ...page.query as any
+    };
+  }
+  return params as unknown as typeof page;
 };
 
 export const listAuditLogsInfiniteQueryKey = (options?: Options<ListAuditLogsData>): QueryKey<Options<ListAuditLogsData>> => createQueryKey('listAuditLogs', options, true);
@@ -107,26 +107,29 @@ export const listAuditLogsInfiniteQueryKey = (options?: Options<ListAuditLogsDat
  *
  * Returns a paginated list of audit logs with optional filters
  */
-export const listAuditLogsInfiniteOptions = (options?: Options<ListAuditLogsData>) => infiniteQueryOptions<ListAuditLogsResponse, ListAuditLogsError, InfiniteData<ListAuditLogsResponse>, QueryKey<Options<ListAuditLogsData>>, number | Pick<QueryKey<Options<ListAuditLogsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-// @ts-ignore
-{
+export const listAuditLogsInfiniteOptions = (options?: Options<ListAuditLogsData>) => {
+  const opts = infiniteQueryOptions<ListAuditLogsResponse, ListAuditLogsError, InfiniteData<ListAuditLogsResponse>, QueryKey<Options<ListAuditLogsData>>, number | Pick<QueryKey<Options<ListAuditLogsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+  // @ts-ignore
+  {
     queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<QueryKey<Options<ListAuditLogsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-            query: {
-                page: pageParam
-            }
-        };
-        const params = createInfiniteParams(queryKey, page);
-        return await listAuditLogs({
-            ...options,
-            ...params,
-            signal,
-            throwOnError: true
-        });
+      // @ts-ignore
+      const page: Pick<QueryKey<Options<ListAuditLogsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+        query: {
+          page: pageParam
+        }
+      };
+      const params = createInfiniteParams(queryKey, page);
+      return await listAuditLogs({
+        ...options,
+        ...params,
+        signal,
+        throwOnError: true
+      });
     },
     queryKey: listAuditLogsInfiniteQueryKey(options)
-});
+  });
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const listNotificationsQueryKey = (options?: Options<ListNotificationsData>) => createQueryKey('listNotifications', options);
 
@@ -136,13 +139,13 @@ export const listNotificationsQueryKey = (options?: Options<ListNotificationsDat
  * Returns a paginated list of notifications for the authenticated user
  */
 export const listNotificationsOptions = (options?: Options<ListNotificationsData>) => queryOptions<ListNotificationsResponse, ListNotificationsError, ListNotificationsResponse, ReturnType<typeof listNotificationsQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await listNotifications({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: listNotificationsQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await listNotifications({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: listNotificationsQueryKey(options)
 });
 
 export const listNotificationsInfiniteQueryKey = (options?: Options<ListNotificationsData>): QueryKey<Options<ListNotificationsData>> => createQueryKey('listNotifications', options, true);
@@ -152,26 +155,29 @@ export const listNotificationsInfiniteQueryKey = (options?: Options<ListNotifica
  *
  * Returns a paginated list of notifications for the authenticated user
  */
-export const listNotificationsInfiniteOptions = (options?: Options<ListNotificationsData>) => infiniteQueryOptions<ListNotificationsResponse, ListNotificationsError, InfiniteData<ListNotificationsResponse>, QueryKey<Options<ListNotificationsData>>, number | Pick<QueryKey<Options<ListNotificationsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-// @ts-ignore
-{
+export const listNotificationsInfiniteOptions = (options?: Options<ListNotificationsData>) => {
+  const opts = infiniteQueryOptions<ListNotificationsResponse, ListNotificationsError, InfiniteData<ListNotificationsResponse>, QueryKey<Options<ListNotificationsData>>, number | Pick<QueryKey<Options<ListNotificationsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+  // @ts-ignore
+  {
     queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<QueryKey<Options<ListNotificationsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-            query: {
-                page: pageParam
-            }
-        };
-        const params = createInfiniteParams(queryKey, page);
-        return await listNotifications({
-            ...options,
-            ...params,
-            signal,
-            throwOnError: true
-        });
+      // @ts-ignore
+      const page: Pick<QueryKey<Options<ListNotificationsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+        query: {
+          page: pageParam
+        }
+      };
+      const params = createInfiniteParams(queryKey, page);
+      return await listNotifications({
+        ...options,
+        ...params,
+        signal,
+        throwOnError: true
+      });
     },
     queryKey: listNotificationsInfiniteQueryKey(options)
-});
+  });
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const getNotificationPreferencesQueryKey = (options?: Options<GetNotificationPreferencesData>) => createQueryKey('getNotificationPreferences', options);
 
@@ -181,13 +187,13 @@ export const getNotificationPreferencesQueryKey = (options?: Options<GetNotifica
  * Returns notification preferences for the authenticated user
  */
 export const getNotificationPreferencesOptions = (options?: Options<GetNotificationPreferencesData>) => queryOptions<GetNotificationPreferencesResponse, GetNotificationPreferencesError, GetNotificationPreferencesResponse, ReturnType<typeof getNotificationPreferencesQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getNotificationPreferences({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getNotificationPreferencesQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getNotificationPreferences({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getNotificationPreferencesQueryKey(options)
 });
 
 /**
@@ -196,14 +202,14 @@ export const getNotificationPreferencesOptions = (options?: Options<GetNotificat
  * Updates notification preferences for the authenticated user
  */
 export const updateNotificationPreferencesMutation = (options?: Partial<Options<UpdateNotificationPreferencesData>>): UseMutationOptions<UpdateNotificationPreferencesResponse, UpdateNotificationPreferencesError, Options<UpdateNotificationPreferencesData>> => {
-    const mutationOptions: UseMutationOptions<UpdateNotificationPreferencesResponse, UpdateNotificationPreferencesError, Options<UpdateNotificationPreferencesData>> = {
-        mutationFn: async (fnOptions) => await updateNotificationPreferences({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<UpdateNotificationPreferencesResponse, UpdateNotificationPreferencesError, Options<UpdateNotificationPreferencesData>> = {
+    mutationFn: async (fnOptions) => await updateNotificationPreferences({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 export const getNotificationQueryKey = (options: Options<GetNotificationData>) => createQueryKey('getNotification', options);
@@ -214,13 +220,13 @@ export const getNotificationQueryKey = (options: Options<GetNotificationData>) =
  * Returns details of a specific notification
  */
 export const getNotificationOptions = (options: Options<GetNotificationData>) => queryOptions<GetNotificationResponse, GetNotificationError, GetNotificationResponse, ReturnType<typeof getNotificationQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getNotification({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getNotificationQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getNotification({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getNotificationQueryKey(options)
 });
 
 export const getUnreadNotificationCountQueryKey = (options?: Options<GetUnreadNotificationCountData>) => createQueryKey('getUnreadNotificationCount', options);
@@ -231,13 +237,13 @@ export const getUnreadNotificationCountQueryKey = (options?: Options<GetUnreadNo
  * Returns the number of unread notifications for the user
  */
 export const getUnreadNotificationCountOptions = (options?: Options<GetUnreadNotificationCountData>) => queryOptions<GetUnreadNotificationCountResponse, GetUnreadNotificationCountError, GetUnreadNotificationCountResponse, ReturnType<typeof getUnreadNotificationCountQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getUnreadNotificationCount({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getUnreadNotificationCountQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getUnreadNotificationCount({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getUnreadNotificationCountQueryKey(options)
 });
 
 /**
@@ -246,14 +252,14 @@ export const getUnreadNotificationCountOptions = (options?: Options<GetUnreadNot
  * Marks a specific notification as read
  */
 export const markNotificationAsReadMutation = (options?: Partial<Options<MarkNotificationAsReadData>>): UseMutationOptions<MarkNotificationAsReadResponse, MarkNotificationAsReadError, Options<MarkNotificationAsReadData>> => {
-    const mutationOptions: UseMutationOptions<MarkNotificationAsReadResponse, MarkNotificationAsReadError, Options<MarkNotificationAsReadData>> = {
-        mutationFn: async (fnOptions) => await markNotificationAsRead({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<MarkNotificationAsReadResponse, MarkNotificationAsReadError, Options<MarkNotificationAsReadData>> = {
+    mutationFn: async (fnOptions) => await markNotificationAsRead({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 /**
@@ -262,14 +268,14 @@ export const markNotificationAsReadMutation = (options?: Partial<Options<MarkNot
  * Marks all notifications as read for the authenticated user
  */
 export const markAllNotificationsAsReadMutation = (options?: Partial<Options<MarkAllNotificationsAsReadData>>): UseMutationOptions<MarkAllNotificationsAsReadResponse, MarkAllNotificationsAsReadError, Options<MarkAllNotificationsAsReadData>> => {
-    const mutationOptions: UseMutationOptions<MarkAllNotificationsAsReadResponse, MarkAllNotificationsAsReadError, Options<MarkAllNotificationsAsReadData>> = {
-        mutationFn: async (fnOptions) => await markAllNotificationsAsRead({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<MarkAllNotificationsAsReadResponse, MarkAllNotificationsAsReadError, Options<MarkAllNotificationsAsReadData>> = {
+    mutationFn: async (fnOptions) => await markAllNotificationsAsRead({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 export const listPushTokensQueryKey = (options?: Options<ListPushTokensData>) => createQueryKey('listPushTokens', options);
@@ -280,13 +286,13 @@ export const listPushTokensQueryKey = (options?: Options<ListPushTokensData>) =>
  * Returns all registered push tokens for the authenticated user
  */
 export const listPushTokensOptions = (options?: Options<ListPushTokensData>) => queryOptions<ListPushTokensResponse, ListPushTokensError, ListPushTokensResponse, ReturnType<typeof listPushTokensQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await listPushTokens({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: listPushTokensQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await listPushTokens({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: listPushTokensQueryKey(options)
 });
 
 /**
@@ -295,14 +301,14 @@ export const listPushTokensOptions = (options?: Options<ListPushTokensData>) => 
  * Registers a new push token for the authenticated user's device
  */
 export const registerPushTokenMutation = (options?: Partial<Options<RegisterPushTokenData>>): UseMutationOptions<RegisterPushTokenResponse, RegisterPushTokenError, Options<RegisterPushTokenData>> => {
-    const mutationOptions: UseMutationOptions<RegisterPushTokenResponse, RegisterPushTokenError, Options<RegisterPushTokenData>> = {
-        mutationFn: async (fnOptions) => await registerPushToken({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<RegisterPushTokenResponse, RegisterPushTokenError, Options<RegisterPushTokenData>> = {
+    mutationFn: async (fnOptions) => await registerPushToken({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 /**
@@ -311,14 +317,14 @@ export const registerPushTokenMutation = (options?: Partial<Options<RegisterPush
  * Deactivates a push token for the authenticated user
  */
 export const deletePushTokenMutation = (options?: Partial<Options<DeletePushTokenData>>): UseMutationOptions<DeletePushTokenResponse, DeletePushTokenError, Options<DeletePushTokenData>> => {
-    const mutationOptions: UseMutationOptions<DeletePushTokenResponse, DeletePushTokenError, Options<DeletePushTokenData>> = {
-        mutationFn: async (fnOptions) => await deletePushToken({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<DeletePushTokenResponse, DeletePushTokenError, Options<DeletePushTokenData>> = {
+    mutationFn: async (fnOptions) => await deletePushToken({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 export const listRolesQueryKey = (options?: Options<ListRolesData>) => createQueryKey('listRoles', options);
@@ -329,13 +335,13 @@ export const listRolesQueryKey = (options?: Options<ListRolesData>) => createQue
  * Returns a list of all system roles
  */
 export const listRolesOptions = (options?: Options<ListRolesData>) => queryOptions<ListRolesResponse, ListRolesError, ListRolesResponse, ReturnType<typeof listRolesQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await listRoles({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: listRolesQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await listRoles({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: listRolesQueryKey(options)
 });
 
 export const getStatusQueryKey = (options?: Options<GetStatusData>) => createQueryKey('getStatus', options);
@@ -346,13 +352,13 @@ export const getStatusQueryKey = (options?: Options<GetStatusData>) => createQue
  * Returns 200 OK if the server is reachable
  */
 export const getStatusOptions = (options?: Options<GetStatusData>) => queryOptions<GetStatusResponse, DefaultError, GetStatusResponse, ReturnType<typeof getStatusQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getStatus({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getStatusQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getStatus({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getStatusQueryKey(options)
 });
 
 export const getReadinessQueryKey = (options?: Options<GetReadinessData>) => createQueryKey('getReadiness', options);
@@ -363,13 +369,13 @@ export const getReadinessQueryKey = (options?: Options<GetReadinessData>) => cre
  * Probes Postgres (and Redis when configured) with short timeouts; returns 503 when any dependency is unreachable
  */
 export const getReadinessOptions = (options?: Options<GetReadinessData>) => queryOptions<GetReadinessResponse, GetReadinessError, GetReadinessResponse, ReturnType<typeof getReadinessQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getReadiness({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getReadinessQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getReadiness({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getReadinessQueryKey(options)
 });
 
 export const listUsersQueryKey = (options?: Options<ListUsersData>) => createQueryKey('listUsers', options);
@@ -380,13 +386,13 @@ export const listUsersQueryKey = (options?: Options<ListUsersData>) => createQue
  * Returns a paginated list of users with optional filters
  */
 export const listUsersOptions = (options?: Options<ListUsersData>) => queryOptions<ListUsersResponse, ListUsersError, ListUsersResponse, ReturnType<typeof listUsersQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await listUsers({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: listUsersQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await listUsers({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: listUsersQueryKey(options)
 });
 
 export const listUsersInfiniteQueryKey = (options?: Options<ListUsersData>): QueryKey<Options<ListUsersData>> => createQueryKey('listUsers', options, true);
@@ -396,26 +402,29 @@ export const listUsersInfiniteQueryKey = (options?: Options<ListUsersData>): Que
  *
  * Returns a paginated list of users with optional filters
  */
-export const listUsersInfiniteOptions = (options?: Options<ListUsersData>) => infiniteQueryOptions<ListUsersResponse, ListUsersError, InfiniteData<ListUsersResponse>, QueryKey<Options<ListUsersData>>, number | Pick<QueryKey<Options<ListUsersData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-// @ts-ignore
-{
+export const listUsersInfiniteOptions = (options?: Options<ListUsersData>) => {
+  const opts = infiniteQueryOptions<ListUsersResponse, ListUsersError, InfiniteData<ListUsersResponse>, QueryKey<Options<ListUsersData>>, number | Pick<QueryKey<Options<ListUsersData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+  // @ts-ignore
+  {
     queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<QueryKey<Options<ListUsersData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-            query: {
-                page: pageParam
-            }
-        };
-        const params = createInfiniteParams(queryKey, page);
-        return await listUsers({
-            ...options,
-            ...params,
-            signal,
-            throwOnError: true
-        });
+      // @ts-ignore
+      const page: Pick<QueryKey<Options<ListUsersData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+        query: {
+          page: pageParam
+        }
+      };
+      const params = createInfiniteParams(queryKey, page);
+      return await listUsers({
+        ...options,
+        ...params,
+        signal,
+        throwOnError: true
+      });
     },
     queryKey: listUsersInfiniteQueryKey(options)
-});
+  });
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Create user
@@ -423,14 +432,14 @@ export const listUsersInfiniteOptions = (options?: Options<ListUsersData>) => in
  * Creates a new user with the specified details
  */
 export const createUserMutation = (options?: Partial<Options<CreateUserData>>): UseMutationOptions<CreateUserResponse, CreateUserError, Options<CreateUserData>> => {
-    const mutationOptions: UseMutationOptions<CreateUserResponse, CreateUserError, Options<CreateUserData>> = {
-        mutationFn: async (fnOptions) => await createUser({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<CreateUserResponse, CreateUserError, Options<CreateUserData>> = {
+    mutationFn: async (fnOptions) => await createUser({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 export const getMyAccountQueryKey = (options?: Options<GetMyAccountData>) => createQueryKey('getMyAccount', options);
@@ -441,13 +450,13 @@ export const getMyAccountQueryKey = (options?: Options<GetMyAccountData>) => cre
  * Returns user-facing profile info and notification summary
  */
 export const getMyAccountOptions = (options?: Options<GetMyAccountData>) => queryOptions<GetMyAccountResponse, GetMyAccountError, GetMyAccountResponse, ReturnType<typeof getMyAccountQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getMyAccount({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getMyAccountQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getMyAccount({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getMyAccountQueryKey(options)
 });
 
 export const getUserQueryKey = (options: Options<GetUserData>) => createQueryKey('getUser', options);
@@ -458,13 +467,13 @@ export const getUserQueryKey = (options: Options<GetUserData>) => createQueryKey
  * Returns detailed user information
  */
 export const getUserOptions = (options: Options<GetUserData>) => queryOptions<GetUserResponse, GetUserError, GetUserResponse, ReturnType<typeof getUserQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => await getUser({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true
-    }),
-    queryKey: getUserQueryKey(options)
+  queryFn: async ({ queryKey, signal }) => await getUser({
+    ...options,
+    ...queryKey[0],
+    signal,
+    throwOnError: true
+  }),
+  queryKey: getUserQueryKey(options)
 });
 
 /**
@@ -473,14 +482,14 @@ export const getUserOptions = (options: Options<GetUserData>) => queryOptions<Ge
  * Updates user profile information
  */
 export const updateUserMutation = (options?: Partial<Options<UpdateUserData>>): UseMutationOptions<UpdateUserResponse, UpdateUserError, Options<UpdateUserData>> => {
-    const mutationOptions: UseMutationOptions<UpdateUserResponse, UpdateUserError, Options<UpdateUserData>> = {
-        mutationFn: async (fnOptions) => await updateUser({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<UpdateUserResponse, UpdateUserError, Options<UpdateUserData>> = {
+    mutationFn: async (fnOptions) => await updateUser({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 /**
@@ -489,14 +498,14 @@ export const updateUserMutation = (options?: Partial<Options<UpdateUserData>>): 
  * Updates user role assignments
  */
 export const updateUserRolesMutation = (options?: Partial<Options<UpdateUserRolesData>>): UseMutationOptions<UpdateUserRolesResponse, UpdateUserRolesError, Options<UpdateUserRolesData>> => {
-    const mutationOptions: UseMutationOptions<UpdateUserRolesResponse, UpdateUserRolesError, Options<UpdateUserRolesData>> = {
-        mutationFn: async (fnOptions) => await updateUserRoles({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<UpdateUserRolesResponse, UpdateUserRolesError, Options<UpdateUserRolesData>> = {
+    mutationFn: async (fnOptions) => await updateUserRoles({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 /**
@@ -505,14 +514,14 @@ export const updateUserRolesMutation = (options?: Partial<Options<UpdateUserRole
  * Deactivates a user and revokes all sessions
  */
 export const deactivateUserMutation = (options?: Partial<Options<DeactivateUserData>>): UseMutationOptions<DeactivateUserResponse, DeactivateUserError, Options<DeactivateUserData>> => {
-    const mutationOptions: UseMutationOptions<DeactivateUserResponse, DeactivateUserError, Options<DeactivateUserData>> = {
-        mutationFn: async (fnOptions) => await deactivateUser({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<DeactivateUserResponse, DeactivateUserError, Options<DeactivateUserData>> = {
+    mutationFn: async (fnOptions) => await deactivateUser({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 /**
@@ -521,14 +530,14 @@ export const deactivateUserMutation = (options?: Partial<Options<DeactivateUserD
  * Reactivates a deactivated user
  */
 export const activateUserMutation = (options?: Partial<Options<ActivateUserData>>): UseMutationOptions<ActivateUserResponse, ActivateUserError, Options<ActivateUserData>> => {
-    const mutationOptions: UseMutationOptions<ActivateUserResponse, ActivateUserError, Options<ActivateUserData>> = {
-        mutationFn: async (fnOptions) => await activateUser({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<ActivateUserResponse, ActivateUserError, Options<ActivateUserData>> = {
+    mutationFn: async (fnOptions) => await activateUser({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
 
 /**
@@ -537,12 +546,12 @@ export const activateUserMutation = (options?: Partial<Options<ActivateUserData>
  * Unlocks a locked user and resets failed login attempts
  */
 export const unlockUserMutation = (options?: Partial<Options<UnlockUserData>>): UseMutationOptions<UnlockUserResponse, UnlockUserError, Options<UnlockUserData>> => {
-    const mutationOptions: UseMutationOptions<UnlockUserResponse, UnlockUserError, Options<UnlockUserData>> = {
-        mutationFn: async (fnOptions) => await unlockUser({
-            ...options,
-            ...fnOptions,
-            throwOnError: true
-        })
-    };
-    return mutationOptions;
+  const mutationOptions: UseMutationOptions<UnlockUserResponse, UnlockUserError, Options<UnlockUserData>> = {
+    mutationFn: async (fnOptions) => await unlockUser({
+      ...options,
+      ...fnOptions,
+      throwOnError: true
+    })
+  };
+  return mutationOptions;
 };
