@@ -56,6 +56,7 @@ export function handleError(err: Error, c: Context<Env>): Response {
       401: "UNAUTHORIZED",
       403: "FORBIDDEN",
       404: "NOT_FOUND",
+      405: "METHOD_NOT_ALLOWED",
       409: "CONFLICT",
       429: "RATE_LIMITED",
       500: "INTERNAL_SERVER_ERROR",

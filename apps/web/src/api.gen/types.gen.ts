@@ -128,6 +128,16 @@ export type ListAuditLogsErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -314,6 +324,16 @@ export type ListNotificationsErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -523,6 +543,16 @@ export type GetNotificationPreferencesErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -680,6 +710,16 @@ export type UpdateNotificationPreferencesErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -813,6 +853,16 @@ export type GetNotificationErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -988,6 +1038,16 @@ export type GetUnreadNotificationCountErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -1102,6 +1162,16 @@ export type MarkNotificationAsReadErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -1225,6 +1295,16 @@ export type MarkAllNotificationsAsReadErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -1338,6 +1418,16 @@ export type ListPushTokensErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -1508,6 +1598,16 @@ export type RegisterPushTokenErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -1659,6 +1759,16 @@ export type DeletePushTokenErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -1768,6 +1878,16 @@ export type ListRolesErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -1983,6 +2103,16 @@ export type ListUsersErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -2157,6 +2287,16 @@ export type CreateUserErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -2273,6 +2413,16 @@ export type GetMyAccountErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -2403,6 +2553,16 @@ export type GetUserErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -2546,6 +2706,16 @@ export type UpdateUserErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -2672,6 +2842,16 @@ export type UpdateUserRolesErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;
@@ -2812,6 +2992,16 @@ export type DeactivateUserErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -2930,6 +3120,16 @@ export type ActivateUserErrors = {
     };
   };
   /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
    * Conflict: the request conflicts with current state (e.g. unique constraint violation).
    */
   409: {
@@ -3041,6 +3241,16 @@ export type UnlockUserErrors = {
    * Not found: resource does not exist.
    */
   404: {
+    error: {
+      code?: string;
+      details?: string;
+      message?: string;
+    };
+  };
+  /**
+   * Method not allowed: HTTP method is not supported for this path.
+   */
+  405: {
     error: {
       code?: string;
       details?: string;

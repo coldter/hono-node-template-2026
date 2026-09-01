@@ -43,6 +43,14 @@ export const commonErrorResponses = {
     },
     description: "Not found: resource does not exist.",
   },
+  405: {
+    content: {
+      "application/json": {
+        schema: failWithErrorSchema,
+      },
+    },
+    description: "Method not allowed: HTTP method is not supported for this path.",
+  },
   409: {
     content: {
       "application/json": {

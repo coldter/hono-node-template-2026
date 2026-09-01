@@ -1,7 +1,7 @@
 import { httpInstrumentationMiddleware } from "@hono/otel";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
-import { HTTPException } from "hono/http-exception";
+import { methodNotAllowed } from "hono/method-not-allowed";
 import { requestId } from "hono/request-id";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import { env } from "@/env";
@@ -62,11 +62,36 @@ baseApp.use(globalRateLimitMW);
 baseApp.use(authContextMiddleware);
 baseApp.use(auditContextMiddleware);
 
-baseApp.notFound(() => {
-  throw new HTTPException(404, {
-    message: "Not Found",
-  });
-});
+baseApp.use(
+  methodNotAllowed({
+    app: baseApp,
+    onMethodNotAllowed: (c, methods) =>
+      c.json(
+        {
+          error: {
+            code: "METHOD_NOT_ALLOWED",
+            message: "Method Not Allowed",
+          },
+        },
+        405,
+        {
+          Allow: methods.join(", "),
+        }
+      ),
+  })
+);
+
+baseApp.notFound((c) =>
+  c.json(
+    {
+      error: {
+        code: "NOT_FOUND",
+        message: "Not Found",
+      },
+    },
+    404
+  )
+);
 baseApp.onError(handleError);
 
 export default baseApp;
