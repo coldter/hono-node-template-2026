@@ -34,3 +34,4 @@ plans/requirements
 # Generated OpenAPI cache (regenerated via postinstall / predev hooks)
 apps/server/openapi.cache.json
 
+.local-docs
