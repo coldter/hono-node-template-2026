@@ -1,4 +1,6 @@
 import type { Context } from "hono";
+import { env } from "@/env";
+import { resolveClientIpFromParts } from "@/lib/ip";
 
 export type AuditContext = {
   ipAddress?: string;
@@ -6,11 +8,13 @@ export type AuditContext = {
 };
 
 export function extractAuditContext(c: Context): AuditContext {
+  const ipAddress = resolveClientIpFromParts({
+    forwardedFor: c.req.header("x-forwarded-for") ?? null,
+    realIp: c.req.header("x-real-ip") ?? null,
+    trustProxy: env.TRUST_PROXY,
+  });
   return {
-    ipAddress:
-      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-      c.req.header("x-real-ip") ??
-      undefined,
+    ipAddress: ipAddress ?? undefined,
     userAgent: c.req.header("user-agent") ?? undefined,
   };
 }

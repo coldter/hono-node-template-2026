@@ -29,7 +29,7 @@ export function useUserDetailActions({
     Boolean(userId) &&
     capabilities["user:update"] &&
     (hasAdminRole || isOwnProfile);
-  const canManageRoles = canEditProfile && hasAdminRole;
+  const canManageRoles = canEditProfile && hasAdminRole && !isOwnProfile;
   const canDeactivate =
     Boolean(userId) &&
     status === "active" &&

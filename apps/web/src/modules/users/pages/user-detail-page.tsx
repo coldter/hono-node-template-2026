@@ -36,7 +36,7 @@ import { useUserDetailActions } from "./use-user-detail-actions";
 
 export function UserDetailPage() {
   const { userId } = useParams({ strict: false });
-  const { data: user, isLoading, isError } = useUserQuery(userId ?? "");
+  const { data: user, error, isError, isLoading } = useUserQuery(userId ?? "");
   const status = user && isUserStatus(user.status) ? user.status : undefined;
 
   const {
@@ -65,12 +65,21 @@ export function UserDetailPage() {
   }
 
   if (isError || !user) {
+    const isForbidden =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      (error as { status: number }).status === 403;
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold">User not found</h2>
+          <h2 className="text-xl font-semibold">
+            {isForbidden ? "Access denied" : "User not found"}
+          </h2>
           <p className="text-muted-foreground mt-2">
-            The user you are looking for does not exist.
+            {isForbidden
+              ? "You do not have permission to view this user."
+              : "The user you are looking for does not exist."}
           </p>
           <Button asChild className="mt-4" variant="outline">
             <Link to="/users">Back to Users</Link>

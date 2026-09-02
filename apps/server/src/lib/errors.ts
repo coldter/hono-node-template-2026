@@ -86,11 +86,20 @@ export function handleError(err: Error, c: Context<Env>): Response {
       );
     }
     if (err.cause?.code === PostgresError.UNIQUE_VIOLATION) {
-      const message = err.cause?.detail || "Duplicate value exists";
+      const message =
+        env.NODE_ENV === "production"
+          ? "Duplicate value exists"
+          : err.cause?.detail || "Duplicate value exists";
       return c.json(errorResponse("UNIQUE_VIOLATION", message), {
         status: 409,
       });
     }
+  }
+
+  if (err?.name === "UserNotFoundError") {
+    return c.json(errorResponse("NOT_FOUND", "User not found"), {
+      status: 404,
+    });
   }
 
   logger.error("unhandled exception", {
@@ -105,7 +114,9 @@ export function handleError(err: Error, c: Context<Env>): Response {
   return c.json(
     errorResponse(
       "INTERNAL_SERVER_ERROR",
-      err.message ?? "something unexpected happened"
+      env.NODE_ENV === "production"
+        ? "internal server error"
+        : (err.message ?? "something unexpected happened")
     ),
     { status: 500 }
   );

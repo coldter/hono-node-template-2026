@@ -25,6 +25,7 @@ describe("shared authorization contract", () => {
     expect(capabilities["user:view"]).toBe(true);
     expect(capabilities["user:create"]).toBe(true);
     expect(capabilities["user:update"]).toBe(true);
+    expect(capabilities["user:assign-roles"]).toBe(true);
     expect(capabilities["user:delete"]).toBe(true);
     expect(capabilities["user:deactivate"]).toBe(true);
     expect(capabilities["user:activate"]).toBe(true);
@@ -35,7 +36,7 @@ describe("shared authorization contract", () => {
     expect(capabilities["notification:get-unread-count"]).toBe(true);
   });
 
-  it("user capabilities preserve the current route and UI behavior", async () => {
+  it("user capabilities stay limited to owned resources", async () => {
     const principal = buildAuthorizationPrincipal({
       email: "user@example.com",
       emailVerified: true,
@@ -48,7 +49,8 @@ describe("shared authorization contract", () => {
       toBaseAuthorizationPrincipal(principal)
     );
 
-    expect(capabilities["user:list"]).toBe(true);
+    expect(capabilities["user:list"]).toBe(false);
+    expect(capabilities["user:assign-roles"]).toBe(false);
     expect(capabilities["user:view"]).toBe(true);
     expect(capabilities["user:update"]).toBe(true);
     expect(capabilities["user:create"]).toBe(false);

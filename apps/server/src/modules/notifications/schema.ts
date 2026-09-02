@@ -151,7 +151,9 @@ export const pushTokenSummarySchema = z.object({
   platform: z.enum(PUSH_PLATFORM_VALUES).openapi({
     description: "Device platform",
   }),
-  sessionId: z.string().openapi({ description: "Associated session ID" }),
+  sessionId: z.string().nullable().openapi({
+    description: "Associated session ID",
+  }),
 });
 
 export const listPushTokensResponseSchema = z.object({

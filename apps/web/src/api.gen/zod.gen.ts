@@ -286,7 +286,7 @@ export const zListPushTokensResponse = z.object({
       'android',
       'web'
     ]),
-    sessionId: z.string()
+    sessionId: z.string().nullable()
   }))
 });
 
@@ -317,7 +317,7 @@ export const zRegisterPushTokenResponse = z.object({
       'android',
       'web'
     ]),
-    sessionId: z.string()
+    sessionId: z.string().nullable()
   })
 });
 
@@ -501,7 +501,6 @@ export const zGetUserResponse = z.object({
 });
 
 export const zUpdateUserBody = z.object({
-  email: z.email().optional(),
   name: z.string().min(1).max(100).optional()
 });
 

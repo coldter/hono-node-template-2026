@@ -6,12 +6,10 @@ export const LOCKOUT_CONFIG = {
 export const RATE_LIMIT_CONFIG = {
   global: {
     max: 1000,
-
     window: 60,
   },
   signIn: {
     max: 100,
-
     window: 60,
   },
 } as const;

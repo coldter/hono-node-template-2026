@@ -16,22 +16,31 @@ import { userStatusSchema } from "./user-status";
 
 type HookCtxWithBody = { body?: unknown };
 
-function extractEmailFromHookBody(
-  ctx: HookCtxWithBody
-): { email: UserEmail; rawEmail: string } | null {
+function extractEmailFromHookBody(ctx: HookCtxWithBody): UserEmail | null {
   const body = ctx.body as { email?: string } | undefined;
   if (!body?.email || typeof body.email !== "string") {
     return null;
   }
-  return { email: body.email as UserEmail, rawEmail: body.email };
+  return body.email.trim().toLowerCase();
 }
 
 export const AUTH_ERROR_CODES = {
   ACCOUNT_DELETED: "ACCOUNT_DELETED",
   ACCOUNT_INACTIVE: "ACCOUNT_INACTIVE",
   ACCOUNT_LOCKED: "ACCOUNT_LOCKED",
+  ACCOUNT_UNAVAILABLE: "ACCOUNT_UNAVAILABLE",
   INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
 } as const;
+
+const BETTER_AUTH_CREDENTIALS_FAILURE_CODE = "INVALID_EMAIL_OR_PASSWORD";
+
+export function isCredentialFailure(returned: unknown): boolean {
+  if (!(returned instanceof APIError) || returned.status !== "UNAUTHORIZED") {
+    return false;
+  }
+  const body = returned.body as { code?: string } | undefined;
+  return body?.code === BETTER_AUTH_CREDENTIALS_FAILURE_CODE;
+}
 
 export const loginSecurityPlugin = () =>
   ({
@@ -39,69 +48,73 @@ export const loginSecurityPlugin = () =>
       after: [
         {
           handler: createAuthMiddleware(async (ctx) => {
-            const extracted = extractEmailFromHookBody(ctx);
-            if (!extracted) {
+            const email = extractEmailFromHookBody(ctx);
+            if (!email) {
               return;
             }
 
             const { returned } = ctx.context;
-            const isFailure = returned instanceof APIError;
 
-            if (isFailure) {
-              const user = await db.query.users.findFirst({
-                where: { email: { eq: extracted.email } },
-              });
-
-              if (!user) {
+            if (!isCredentialFailure(returned)) {
+              if (returned instanceof APIError) {
                 return;
               }
-
-              const newFailedAttempts = (user.failedLoginAttempts ?? 0) + 1;
-              const shouldLock =
-                newFailedAttempts >= LOCKOUT_CONFIG.maxFailedAttempts;
 
               await db
                 .update(schema.users)
                 .set({
-                  failedLoginAttempts: newFailedAttempts,
-                  ...(shouldLock && {
-                    lockedUntil: calculateLockoutExpiry(),
-                    status: "locked",
-                  }),
+                  failedLoginAttempts: 0,
+                  lockedUntil: null,
                 })
-                .where(eq(schema.users.id, user.id));
-
-              if (shouldLock) {
-                throw new APIError("TOO_MANY_REQUESTS", {
-                  code: AUTH_ERROR_CODES.ACCOUNT_LOCKED,
-                  message: `Account locked after ${LOCKOUT_CONFIG.maxFailedAttempts} failed attempts. Try again in ${LOCKOUT_CONFIG.lockoutDurationMinutes} minutes.`,
-                });
-              }
-
-              const remainingAttempts =
-                LOCKOUT_CONFIG.maxFailedAttempts - newFailedAttempts;
-              throw new APIError("UNAUTHORIZED", {
-                code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
-                message: `Invalid credentials. ${remainingAttempts} attempt(s) remaining.`,
-                remainingAttempts,
-              });
+                .where(
+                  and(
+                    eq(schema.users.email, email),
+                    or(
+                      gt(schema.users.failedLoginAttempts, 0),
+                      isNotNull(schema.users.lockedUntil)
+                    )
+                  )
+                );
+              return;
             }
+
+            const user = await db.query.users.findFirst({
+              where: { email: { eq: email } },
+            });
+
+            if (!user) {
+              return;
+            }
+
+            const newFailedAttempts = (user.failedLoginAttempts ?? 0) + 1;
+            const shouldLock =
+              newFailedAttempts >= LOCKOUT_CONFIG.maxFailedAttempts;
 
             await db
               .update(schema.users)
               .set({
-                failedLoginAttempts: 0,
-                lockedUntil: null,
+                failedLoginAttempts: newFailedAttempts,
+                ...(shouldLock && {
+                  lockedUntil: calculateLockoutExpiry(),
+                  status: "locked",
+                }),
               })
-              .where(
-                and(
-                  eq(schema.users.email, extracted.rawEmail),
-                  or(
-                    gt(schema.users.failedLoginAttempts, 0),
-                    isNotNull(schema.users.lockedUntil)
-                  )
-                )
-              );
+              .where(eq(schema.users.id, user.id));
+
+            if (shouldLock) {
+              throw new APIError("TOO_MANY_REQUESTS", {
+                code: AUTH_ERROR_CODES.ACCOUNT_LOCKED,
+                message: `Account locked after ${LOCKOUT_CONFIG.maxFailedAttempts} failed attempts. Try again in ${LOCKOUT_CONFIG.lockoutDurationMinutes} minutes.`,
+              });
+            }
+
+            const remainingAttempts =
+              LOCKOUT_CONFIG.maxFailedAttempts - newFailedAttempts;
+            throw new APIError("UNAUTHORIZED", {
+              code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+              message: `Invalid credentials. ${remainingAttempts} attempt(s) remaining.`,
+              remainingAttempts,
+            });
           }),
           matcher: (context) => context.path === "/sign-in/email",
         },
@@ -109,14 +122,14 @@ export const loginSecurityPlugin = () =>
       before: [
         {
           handler: createAuthMiddleware(async (ctx) => {
-            const extracted = extractEmailFromHookBody(ctx);
-            if (!extracted) {
+            const email = extractEmailFromHookBody(ctx);
+            if (!email) {
               return;
             }
 
             const existingUser = await db.query.users.findFirst({
               columns: { id: true },
-              where: { email: { eq: extracted.email } },
+              where: { email: { eq: email } },
             });
 
             if (existingUser) {
@@ -130,13 +143,13 @@ export const loginSecurityPlugin = () =>
         },
         {
           handler: createAuthMiddleware(async (ctx) => {
-            const extracted = extractEmailFromHookBody(ctx);
-            if (!extracted) {
+            const email = extractEmailFromHookBody(ctx);
+            if (!email) {
               return;
             }
 
             const user = await db.query.users.findFirst({
-              where: { email: { eq: extracted.email } },
+              where: { email: { eq: email } },
             });
 
             if (!user) {
@@ -144,7 +157,15 @@ export const loginSecurityPlugin = () =>
             }
 
             const statusResult = userStatusSchema.safeParse(user.status);
-            const status = statusResult.success ? statusResult.data : "active";
+
+            if (!statusResult.success) {
+              throw new APIError("FORBIDDEN", {
+                code: AUTH_ERROR_CODES.ACCOUNT_UNAVAILABLE,
+                message: "This account is unavailable. Please contact support.",
+              });
+            }
+
+            const status = statusResult.data;
 
             if (status === "deleted") {
               throw new APIError("FORBIDDEN", {

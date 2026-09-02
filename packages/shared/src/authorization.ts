@@ -76,20 +76,13 @@ export function buildAuthorizationPrincipal(
 ): AuthorizationPrincipal {
   const allSlugs = user.roleSlugs ?? [];
   const roles = allSlugs.filter(isAuthorizationRole);
-  const droppedRoles = allSlugs.filter((role) => !isAuthorizationRole(role));
 
-  if (droppedRoles.length > 0) {
-    console.warn(
-      `[auth] Dropped unknown roles for user ${user.id}: ${droppedRoles.join(", ")}`
-    );
-  }
-
-  const requestedStatus = user.status ?? "active";
+  const requestedStatus = user.status;
   const status = VALID_STATUSES.has(
     requestedStatus as AuthorizationAttributes["status"]
   )
     ? (requestedStatus as AuthorizationAttributes["status"])
-    : "active";
+    : "deleted";
 
   return {
     attributes: {
@@ -123,7 +116,7 @@ export function toBaseAuthorizationPrincipal(
   };
 }
 
-interface UserAuthorizationResource {
+export interface UserAuthorizationResource {
   id: string;
 }
 
@@ -134,6 +127,7 @@ export const usersAuthorization =
       "view",
       "create",
       "update",
+      "assign-roles",
       "delete",
       "deactivate",
       "activate",
@@ -141,8 +135,8 @@ export const usersAuthorization =
     ],
     policies: (p) => [
       p.allow("admin").to("*"),
-      p.allow("user").to("list"),
       p.allow("user").to("view", "update").whereOwner(),
+      p.deny("*").to("assign-roles").whereTargetIsSelf(),
       p.deny("*").to("delete").whereTargetIsSelf(),
       p.deny("*").to("deactivate").whereTargetIsSelf(),
     ],

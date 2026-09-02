@@ -1,69 +1,128 @@
-import { AuthorizationError } from "@repo/authorization";
+import {
+  authorization,
+  buildAuthorizationPrincipal,
+  toBaseAuthorizationPrincipal,
+} from "@repo/shared/authorization";
 import { describe, expect, it } from "vitest";
-import { assertCanManageUserStatus } from "@/modules/auth/plugins/admin";
 
-describe("assertCanManageUserStatus", () => {
-  it("allows admin users to manage another user", async () => {
+const admin = toBaseAuthorizationPrincipal(
+  buildAuthorizationPrincipal({
+    email: "admin@example.com",
+    emailVerified: true,
+    id: "usr_admin",
+    roleSlugs: ["admin"],
+    status: "active",
+  })
+);
+
+const user = toBaseAuthorizationPrincipal(
+  buildAuthorizationPrincipal({
+    email: "user@example.com",
+    emailVerified: true,
+    id: "usr_user",
+    roleSlugs: ["user"],
+    status: "active",
+  })
+);
+
+function principalWithStatus(status: string) {
+  return toBaseAuthorizationPrincipal(
+    buildAuthorizationPrincipal({
+      email: "status@example.com",
+      emailVerified: true,
+      id: "usr_status",
+      roleSlugs: ["admin"],
+      status,
+    })
+  );
+}
+
+describe("user management policies", () => {
+  it("allows admin to activate, deactivate and unlock users", async () => {
     await expect(
-      assertCanManageUserStatus(
-        {
-          email: "admin@example.com",
-          emailVerified: true,
-          id: "usr_admin",
-          roleSlugs: ["admin"],
-          status: "active",
-        },
-        "deactivate",
-        "usr_target"
-      )
-    ).resolves.toBeUndefined();
+      authorization.can(admin, "user", "activate")
+    ).resolves.toMatchObject({ allowed: true });
+    await expect(
+      authorization.can(admin, "user", "deactivate")
+    ).resolves.toMatchObject({ allowed: true });
+    await expect(
+      authorization.can(admin, "user", "unlock")
+    ).resolves.toMatchObject({ allowed: true });
   });
 
-  it("denies non-admin users", async () => {
+  it("allows admin to assign roles", async () => {
     await expect(
-      assertCanManageUserStatus(
-        {
-          email: "user@example.com",
-          emailVerified: true,
-          id: "usr_user",
-          roleSlugs: ["user"],
-          status: "active",
-        },
-        "deactivate",
-        "usr_target"
-      )
-    ).rejects.toBeInstanceOf(AuthorizationError);
+      authorization.can(admin, "user", "assign-roles")
+    ).resolves.toMatchObject({ allowed: true });
   });
 
-  it("denies self-deactivation", async () => {
+  it("denies plain users on admin-only user actions", async () => {
     await expect(
-      assertCanManageUserStatus(
-        {
-          email: "admin@example.com",
-          emailVerified: true,
-          id: "usr_admin",
-          roleSlugs: ["admin"],
-          status: "active",
-        },
-        "deactivate",
-        "usr_admin"
-      )
-    ).rejects.toMatchObject({ reason: "EXPLICIT_DENY" });
+      authorization.can(user, "user", "assign-roles")
+    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
+    await expect(
+      authorization.can(user, "user", "activate")
+    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
+    await expect(
+      authorization.can(user, "user", "deactivate")
+    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
+    await expect(
+      authorization.can(user, "user", "unlock")
+    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  it("denies inactive admins through the global policy", async () => {
+  it("denies plain users from listing users", async () => {
     await expect(
-      assertCanManageUserStatus(
-        {
-          email: "admin@example.com",
-          emailVerified: true,
-          id: "usr_admin",
-          roleSlugs: ["admin"],
-          status: "inactive",
-        },
-        "unlock",
-        "usr_target"
-      )
-    ).rejects.toMatchObject({ reason: "GLOBAL_DENY" });
+      authorization.can(user, "user", "list")
+    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
+  });
+
+  it("allows plain users to update only their own record", async () => {
+    await expect(
+      authorization.can(user, "user", "update", {
+        resource: { id: "usr_user" },
+      })
+    ).resolves.toMatchObject({ allowed: true });
+
+    await expect(
+      authorization.can(user, "user", "update", {
+        resource: { id: "usr_other" },
+      })
+    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
+  });
+
+  it("explicitly denies self-deactivation and self-deletion even for admins", async () => {
+    await expect(
+      authorization.can(admin, "user", "deactivate", {
+        resource: { id: "usr_admin" },
+      })
+    ).resolves.toMatchObject({ allowed: false, reason: "EXPLICIT_DENY" });
+
+    await expect(
+      authorization.can(admin, "user", "delete", {
+        resource: { id: "usr_admin" },
+      })
+    ).resolves.toMatchObject({ allowed: false, reason: "EXPLICIT_DENY" });
+  });
+
+  it("globally denies inactive principals", async () => {
+    await expect(
+      authorization.can(principalWithStatus("inactive"), "user", "unlock")
+    ).resolves.toMatchObject({ allowed: false, reason: "GLOBAL_DENY" });
+  });
+
+  it("fails closed on unknown user statuses", async () => {
+    const corrupt = buildAuthorizationPrincipal({
+      email: "corrupt@example.com",
+      emailVerified: true,
+      id: "usr_corrupt",
+      roleSlugs: ["admin"],
+      status: "corrupt",
+    });
+
+    expect(corrupt.attributes.status).toBe("deleted");
+    await expect(
+      authorization.can(toBaseAuthorizationPrincipal(corrupt), "user", "list")
+    ).resolves.toMatchObject({ allowed: false, reason: "GLOBAL_DENY" });
   });
 });

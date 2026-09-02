@@ -9,7 +9,7 @@ import { EVENTS, pushEvent } from "@/lib/events";
 import { notificationService } from "@/modules/notifications";
 import { defaultHook } from "@/utils/default-hook";
 import { createPaginatedResponse } from "@/utils/pagination";
-import { UserNotFoundError } from "./errors";
+import { requireAuthorizedUserId } from "./auth-loader";
 import {
   toMyAccountResponse,
   toUserDetailResponse,
@@ -30,20 +30,13 @@ function requireCurrentUser(
   return currentUser;
 }
 
-function handleUserNotFound(error: unknown): never {
-  if (error instanceof UserNotFoundError) {
-    throw new HTTPException(404, { message: "User not found" });
-  }
-  throw error;
-}
-
 function presentOrThrow<T extends { status: string }, R>(
   user: T,
   presenter: (u: T) => R | null
 ): R {
   const presented = presenter(user);
   if (presented === null) {
-    throw new HTTPException(422, {
+    throw new HTTPException(500, {
       message: `User status "${user.status}" is not a recognised value`,
     });
   }
@@ -89,8 +82,8 @@ const usersHandler = app
   })
 
   .openapi(usersRoutes.getUser, async (c) => {
-    const { userId } = c.req.valid("param");
-    const user = await userService.findById(userId);
+    const userId = requireAuthorizedUserId(c);
+    const user = await userService.findDetailById(userId);
 
     if (!user) {
       throw new HTTPException(404, { message: "User not found" });
@@ -130,29 +123,19 @@ const usersHandler = app
     const body = c.req.valid("json");
     const currentUser = requireCurrentUser(c);
 
-    try {
-      const user = await userService.update(
-        userId,
-        body,
-        currentUser.id,
-        c.var.auditContext
-      );
-      return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 200);
-    } catch (error) {
-      handleUserNotFound(error);
-    }
+    const user = await userService.update(
+      userId,
+      body,
+      currentUser.id,
+      c.var.auditContext
+    );
+    return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 200);
   })
 
   .openapi(usersRoutes.updateUserRoles, async (c) => {
     const { userId } = c.req.valid("param");
     const body = c.req.valid("json");
     const currentUser = requireCurrentUser(c);
-
-    if (userId === currentUser.id) {
-      throw new HTTPException(400, {
-        message: "Cannot modify your own roles",
-      });
-    }
 
     const invalidRoles = body.roleSlugs.filter((r) => !isValidRole(r));
     if (invalidRoles.length > 0) {
@@ -161,17 +144,13 @@ const usersHandler = app
       });
     }
 
-    try {
-      const user = await userService.updateRoles(
-        userId,
-        body,
-        currentUser.id,
-        c.var.auditContext
-      );
-      return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 200);
-    } catch (error) {
-      handleUserNotFound(error);
-    }
+    const user = await userService.updateRoles(
+      userId,
+      body,
+      currentUser.id,
+      c.var.auditContext
+    );
+    return c.json({ user: presentOrThrow(user, toUserSummaryResponse) }, 200);
   })
 
   .openapi(usersRoutes.deactivateUser, async (c) => {
@@ -179,20 +158,12 @@ const usersHandler = app
     const body = c.req.valid("json");
     const currentUser = requireCurrentUser(c);
 
-    if (userId === currentUser.id) {
-      throw new HTTPException(400, { message: "Cannot deactivate yourself" });
-    }
-
-    try {
-      await userService.deactivate(
-        userId,
-        body.reason ?? null,
-        currentUser.id,
-        c.var.auditContext
-      );
-    } catch (error) {
-      handleUserNotFound(error);
-    }
+    await userService.deactivate(
+      userId,
+      body.reason ?? null,
+      currentUser.id,
+      c.var.auditContext
+    );
 
     return c.json({ success: true }, 200);
   })
@@ -201,11 +172,7 @@ const usersHandler = app
     const { userId } = c.req.valid("param");
     const currentUser = requireCurrentUser(c);
 
-    try {
-      await userService.activate(userId, currentUser.id, c.var.auditContext);
-    } catch (error) {
-      handleUserNotFound(error);
-    }
+    await userService.activate(userId, currentUser.id, c.var.auditContext);
 
     return c.json({ success: true }, 200);
   })
@@ -214,11 +181,7 @@ const usersHandler = app
     const { userId } = c.req.valid("param");
     const currentUser = requireCurrentUser(c);
 
-    try {
-      await userService.unlock(userId, currentUser.id, c.var.auditContext);
-    } catch (error) {
-      handleUserNotFound(error);
-    }
+    await userService.unlock(userId, currentUser.id, c.var.auditContext);
 
     return c.json({ success: true }, 200);
   });

@@ -11,7 +11,12 @@ export type DenyReason =
 
 export type PolicyDecision =
   | { allowed: true; matchedPolicy: string }
-  | { allowed: false; reason: DenyReason; matchedPolicy?: string };
+  | {
+      allowed: false;
+      cause?: unknown;
+      matchedPolicy?: string;
+      reason: DenyReason;
+    };
 
 export interface Principal<
   TRoles extends string = string,

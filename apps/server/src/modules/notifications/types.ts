@@ -88,7 +88,7 @@ export interface PushTokenSummary {
   isActive: boolean;
   lastUsedAt: string | null;
   platform: PushPlatform;
-  sessionId: string;
+  sessionId: string | null;
 }
 
 export type PreferencesRecord = NotificationPreference;

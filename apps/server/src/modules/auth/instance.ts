@@ -18,9 +18,9 @@ import { z } from "zod";
 import { db } from "@/db";
 import { env } from "@/env";
 import { generateIdForModel } from "@/lib/ids";
+import { resolveClientIpFromHeaders } from "@/lib/ip";
 import { logger } from "@/lib/logger";
 import { getRedis, isRedisEnabled } from "@/lib/redis";
-import { adminPlugin } from "@/modules/auth/plugins/admin";
 import { loginSecurityPlugin } from "@/modules/auth/plugins/login-security";
 import {
   enhancedUserPlugin,
@@ -127,15 +127,7 @@ function getSessionUserId(ctx: unknown): string | undefined {
 }
 
 function resolveClientIp(headers: Headers | undefined): string | null {
-  const forwarded = headers?.get("x-forwarded-for");
-  if (forwarded) {
-    const firstIp = forwarded.split(",")[0]?.trim();
-    if (firstIp) {
-      return firstIp;
-    }
-  }
-
-  return headers?.get("x-real-ip") ?? null;
+  return resolveClientIpFromHeaders(headers, env.TRUST_PROXY);
 }
 
 async function resolveInitialOrganizationContext(userId: string): Promise<{
@@ -230,6 +222,7 @@ const authConfig = {
       httpOnly: true,
       sameSite: "lax",
     },
+    disableOriginCheck: false,
   },
   appName: env.APP_NAME,
   baseURL: env.BETTER_AUTH_URL,
@@ -247,21 +240,47 @@ const authConfig = {
           const platform = detectPlatform(userAgent);
           const config = SESSION_CONFIG[platform];
 
-          const [revokedSessions, orgContext] = await Promise.all([
-            db
+          const orgContextPromise = resolveInitialOrganizationContext(
+            session.userId
+          );
+
+          let previousSession:
+            | {
+                createdAt: Date;
+                ipAddress: string | null;
+                userAgent: string | null;
+              }
+            | undefined;
+
+          if (env.AUTH_SINGLE_SESSION) {
+            const revokedSessions = await db
               .delete(schema.sessions)
               .where(eq(schema.sessions.userId, session.userId))
               .returning({
                 createdAt: schema.sessions.createdAt,
                 ipAddress: schema.sessions.ipAddress,
                 userAgent: schema.sessions.userAgent,
-              }),
-            resolveInitialOrganizationContext(session.userId),
-          ]);
+              });
 
-          const [previousSession] = revokedSessions.sort(
-            (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-          );
+            [previousSession] = revokedSessions.sort(
+              (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+            );
+          } else {
+            const [latest] = await db
+              .select({
+                createdAt: schema.sessions.createdAt,
+                ipAddress: schema.sessions.ipAddress,
+                userAgent: schema.sessions.userAgent,
+              })
+              .from(schema.sessions)
+              .where(eq(schema.sessions.userId, session.userId))
+              .orderBy(desc(schema.sessions.createdAt))
+              .limit(1);
+
+            previousSession = latest ?? undefined;
+          }
+
+          const orgContext = await orgContextPromise;
 
           if (previousSession) {
             const isNewDevice =
@@ -333,10 +352,13 @@ const authConfig = {
             return { data: session };
           }
 
-          const userAgent = context?.headers?.get("user-agent") ?? null;
-          const platform = detectPlatform(userAgent);
+          const persistedPlatform =
+            typeof (session as { platform?: unknown }).platform === "string" &&
+            (session as { platform: string }).platform === "mobile"
+              ? ("mobile" as const)
+              : ("web" as const);
 
-          if (platform === "web") {
+          if (persistedPlatform === "web") {
             return {
               data: {
                 ...session,
@@ -356,12 +378,45 @@ const authConfig = {
         before: async (user) => ({
           data: {
             ...user,
+            email:
+              typeof user.email === "string"
+                ? user.email.trim().toLowerCase()
+                : user.email,
             failedLoginAttempts: 0,
             roleSlugs: [SYSTEM_ROLES.USER.slug],
             status: "active",
             twoFactorEnabled: false,
           },
         }),
+      },
+      update: {
+        after: async (user, context) => {
+          try {
+            const { auditLogService } = await import(
+              "@/modules/audit-logs/service"
+            );
+            const { AUDIT_EVENTS, TARGET_TYPES } = await import(
+              "@/modules/audit-logs/constants"
+            );
+            const userId =
+              typeof user?.id === "string" ? (user.id as string) : null;
+            if (!userId) {
+              return;
+            }
+            const actorId = getSessionUserId(context) ?? userId;
+            await auditLogService.create({
+              actorId,
+              actorType: "user",
+              event: AUDIT_EVENTS.USER.UPDATED.event,
+              targetId: userId,
+              targetType: TARGET_TYPES.USER,
+            });
+          } catch (error) {
+            logger.warn("Failed to audit profile update", {
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        },
       },
     },
   },
@@ -381,7 +436,6 @@ const authConfig = {
   plugins: [
     enhancedUserPlugin(),
     loginSecurityPlugin(),
-    adminPlugin(),
 
     emailOTP({
       expiresIn: TWO_FACTOR_CONFIG.emailOtpExpiresIn,
@@ -486,6 +540,12 @@ const authConfig = {
   ],
 
   rateLimit: {
+    customRules: {
+      "/sign-in/email": {
+        max: RATE_LIMIT_CONFIG.signIn.max,
+        window: RATE_LIMIT_CONFIG.signIn.window,
+      },
+    },
     enabled: true,
     max: RATE_LIMIT_CONFIG.global.max,
     window: RATE_LIMIT_CONFIG.global.window,
@@ -497,12 +557,6 @@ const authConfig = {
           ),
         }
       : { storage: "memory" as const }),
-    customRules: {
-      "/sign-in/email": {
-        max: RATE_LIMIT_CONFIG.signIn.max,
-        window: RATE_LIMIT_CONFIG.signIn.window,
-      },
-    },
   },
   secret: env.BETTER_AUTH_SECRET,
 
@@ -513,18 +567,20 @@ const authConfig = {
         type: "string",
       },
       activeOrgRole: {
+        input: false,
         required: false,
         type: "string",
       },
       platform: {
         defaultValue: "web",
+        input: false,
         required: false,
         type: [...platformSchema.options],
       },
     },
 
     cookieCache: {
-      enabled: true,
+      enabled: false,
       maxAge: 60,
     },
 

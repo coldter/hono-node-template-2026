@@ -3,7 +3,7 @@ import { ApiError, clientConfig } from "@/lib/api";
 
 export const createClientConfig: CreateClientConfig = (baseConfig) => ({
   ...baseConfig,
-  baseUrl: import.meta.env.VITE_SERVER_URL || "http://localhost:3100",
+  baseUrl: import.meta.env.VITE_SERVER_URL || "http://localhost:3000",
   fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
     const response = await clientConfig.fetch(input, init);
 

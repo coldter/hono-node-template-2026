@@ -76,7 +76,10 @@ export const getUserResponseSchema = z.object({
 });
 
 export const createUserBodySchema = z.object({
-  email: z.string().email().openapi({ description: "User email address" }),
+  email: z
+    .email()
+    .transform((value) => value.trim().toLowerCase())
+    .openapi({ description: "User email address" }),
   name: z.string().min(1).max(100).openapi({ description: "User full name" }),
   password: z
     .string()
@@ -93,10 +96,14 @@ export const createUserResponseSchema = z.object({
   user: userSchema,
 });
 
-export const updateUserBodySchema = z.object({
-  email: z.email().optional(),
-  name: z.string().min(1).max(100).optional(),
-});
+export const updateUserBodySchema = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field must be provided",
+  });
 
 export const updateUserResponseSchema = z.object({
   user: userSchema,

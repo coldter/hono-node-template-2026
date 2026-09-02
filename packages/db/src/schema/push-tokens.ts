@@ -29,9 +29,10 @@ export const pushTokens = pgTable(
 
     platform: text("platform", { enum: PUSH_PLATFORM }).notNull(),
 
-    sessionId: varchar("session_id", { length: 255 })
-      .notNull()
-      .references(() => sessions.id, { onDelete: "cascade" }),
+    sessionId: varchar("session_id", { length: 255 }).references(
+      () => sessions.id,
+      { onDelete: "set null" }
+    ),
 
     token: text("token").notNull(),
     updatedAt: updatedAt(),

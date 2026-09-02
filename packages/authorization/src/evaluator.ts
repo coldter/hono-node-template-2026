@@ -154,8 +154,8 @@ export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
       return { allowed: false, reason: orgDenyReason };
     }
     return { allowed: false, reason: "NO_MATCHING_POLICY" };
-  } catch {
-    return { allowed: false, reason: "EVALUATION_ERROR" };
+  } catch (cause) {
+    return { allowed: false, cause, reason: "EVALUATION_ERROR" };
   }
 }
 

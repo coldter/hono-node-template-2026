@@ -17,8 +17,9 @@ export const authClient = createAuthClient({
     twoFactorClient(),
     inferAdditionalFields({
       session: {
-        activeOrgRole: { type: "string" },
-        platform: { type: "string" },
+        activeOrganizationId: { input: false, type: "string" },
+        activeOrgRole: { input: false, type: "string" },
+        platform: { input: false, type: "string" },
       },
 
       user: {
@@ -27,7 +28,7 @@ export const authClient = createAuthClient({
         deactivatedReason: { input: false, type: "string" },
         failedLoginAttempts: { input: false, type: "number" },
         lockedUntil: { input: false, type: "date" },
-        permissions: { input: false, type: "string[]" },
+        onboardingCompletedAt: { input: false, type: "date" },
         roleSlugs: { input: false, type: "string[]" },
         status: { input: false, type: "string" },
         twoFactorEnabled: { input: false, type: "boolean" },

@@ -41,6 +41,10 @@ const envSchema = z
   .object({
     APP_NAME: z.string().default("App"),
     APP_URL: z.url().default("http://localhost:3001"),
+    AUTH_SINGLE_SESSION: z
+      .string()
+      .default("false")
+      .transform((val) => val === "true" || val === "1"),
     BASE_PATH: z.string().default(""),
     BETTER_AUTH_SECRET: z.string(),
     BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
@@ -142,7 +146,7 @@ const envSchema = z
     ),
     PORT: z.coerce.number().default(3000),
     REDIS_URL: z.string().optional(),
-    SERVER_URL: z.string().default("http://localhost:3100"),
+    SERVER_URL: z.string().default("http://localhost:3000"),
     SKIP_DB: z
       .string()
       .transform((val) => val === "true" || val === "1")
@@ -158,7 +162,7 @@ const envSchema = z
     SUPPORT_EMAIL: z.email().default("support@example.com"),
     TRUST_PROXY: z
       .string()
-      .default("false")
+      .default("true")
       .transform((val) => val === "true" || val === "1"),
     VAULT_MASTER_KEY: z.string().length(64).optional(),
 

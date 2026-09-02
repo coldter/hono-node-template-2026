@@ -1525,7 +1525,7 @@ export type ListPushTokensResponses = {
       /**
        * Associated session ID
        */
-      sessionId: string;
+      sessionId: string | null;
     }>;
   };
 };
@@ -1698,7 +1698,7 @@ export type RegisterPushTokenResponses = {
       /**
        * Associated session ID
        */
-      sessionId: string;
+      sessionId: string | null;
     };
   };
 };
@@ -2651,7 +2651,6 @@ export type GetUserResponse = GetUserResponses[keyof GetUserResponses];
 
 export type UpdateUserData = {
   body?: {
-    email?: string;
     name?: string;
   };
   path: {

@@ -1,7 +1,7 @@
 import { authorize } from "@/auth/middleware";
 import { commonErrorResponses } from "@/lib/common-response";
 import { createRouteConfig } from "@/lib/route-config";
-
+import { loadUserResource } from "./auth-loader";
 import {
   createUserBodySchema,
   createUserResponseSchema,
@@ -16,12 +16,11 @@ import {
   updateUserRolesBodySchema,
   userParamsSchema,
 } from "./schema";
-import { userService } from "./service";
 
 const usersRoutes = {
   activateUser: createRouteConfig({
     description: "Reactivates a deactivated user",
-    guard: [authorize("user", "activate")],
+    guard: [authorize("user", "activate", { loadResource: loadUserResource })],
     method: "post",
     operationId: "activateUser",
     path: "/{userId}/activate",
@@ -62,15 +61,7 @@ const usersRoutes = {
   deactivateUser: createRouteConfig({
     description: "Deactivates a user and revokes all sessions",
     guard: [
-      authorize("user", "deactivate", {
-        loadResource: async (c) => {
-          const userId = c.req.param("userId");
-          if (!userId) {
-            return null;
-          }
-          return userService.findById(userId);
-        },
-      }),
+      authorize("user", "deactivate", { loadResource: loadUserResource }),
     ],
     method: "post",
     operationId: "deactivateUser",
@@ -94,17 +85,7 @@ const usersRoutes = {
 
   getMyAccount: createRouteConfig({
     description: "Returns user-facing profile info and notification summary",
-    guard: [
-      authorize("user", "view", {
-        loadResource: async (c) => {
-          const user = c.get("user");
-          if (!user) {
-            return null;
-          }
-          return userService.findById(user.id);
-        },
-      }),
-    ],
+    guard: [authorize("user", "view")],
     method: "get",
     operationId: "getMyAccount",
     path: "/me",
@@ -121,17 +102,7 @@ const usersRoutes = {
 
   getUser: createRouteConfig({
     description: "Returns detailed user information",
-    guard: [
-      authorize("user", "view", {
-        loadResource: async (c) => {
-          const userId = c.req.param("userId");
-          if (!userId) {
-            return null;
-          }
-          return userService.findById(userId);
-        },
-      }),
-    ],
+    guard: [authorize("user", "view", { loadResource: loadUserResource })],
     method: "get",
     operationId: "getUser",
     path: "/{userId}",
@@ -166,7 +137,7 @@ const usersRoutes = {
 
   unlockUser: createRouteConfig({
     description: "Unlocks a locked user and resets failed login attempts",
-    guard: [authorize("user", "unlock")],
+    guard: [authorize("user", "unlock", { loadResource: loadUserResource })],
     method: "post",
     operationId: "unlockUser",
     path: "/{userId}/unlock",
@@ -184,17 +155,7 @@ const usersRoutes = {
 
   updateUser: createRouteConfig({
     description: "Updates user profile information",
-    guard: [
-      authorize("user", "update", {
-        loadResource: async (c) => {
-          const userId = c.req.param("userId");
-          if (!userId) {
-            return null;
-          }
-          return userService.findById(userId);
-        },
-      }),
-    ],
+    guard: [authorize("user", "update", { loadResource: loadUserResource })],
     method: "patch",
     operationId: "updateUser",
     path: "/{userId}",
@@ -217,7 +178,9 @@ const usersRoutes = {
 
   updateUserRoles: createRouteConfig({
     description: "Updates user role assignments",
-    guard: [authorize("user", "update")],
+    guard: [
+      authorize("user", "assign-roles", { loadResource: loadUserResource }),
+    ],
     method: "patch",
     operationId: "updateUserRoles",
     path: "/{userId}/roles",

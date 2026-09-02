@@ -125,6 +125,9 @@ export function useUpdateUserRolesMutation() {
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
+      queryClient.invalidateQueries({
+        queryKey: ["authorization", "capabilities"],
+      });
       toast.success("Roles updated successfully");
     },
   });
@@ -149,6 +152,9 @@ export function useDeactivateUserMutation() {
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
+      queryClient.invalidateQueries({
+        queryKey: ["authorization", "capabilities"],
+      });
       toast.success("User deactivated");
     },
   });
@@ -167,6 +173,9 @@ export function useActivateUserMutation() {
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
+      queryClient.invalidateQueries({
+        queryKey: ["authorization", "capabilities"],
+      });
       toast.success("User activated");
     },
   });
@@ -185,6 +194,9 @@ export function useUnlockUserMutation() {
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: usersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
+      queryClient.invalidateQueries({
+        queryKey: ["authorization", "capabilities"],
+      });
       toast.success("User unlocked");
     },
   });

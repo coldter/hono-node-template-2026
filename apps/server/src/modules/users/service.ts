@@ -9,6 +9,7 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 
 import { db, type Executor } from "@/db";
 import type { AuditContext } from "@/lib/audit-context";
@@ -41,12 +42,19 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
-    }
+    let previousStatus = USER_STATUS.ACTIVE as string;
 
     await executor.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ status: users.status })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new UserNotFoundError(id);
+      }
+      previousStatus = existing.status;
       const updatedUsers = await tx
         .update(users)
         .set({
@@ -76,7 +84,7 @@ export const userService = {
       );
     });
 
-    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
+    await onUserStatusChange(id, USER_STATUS.ACTIVE, previousStatus, null);
   },
 
   async create(
@@ -86,13 +94,14 @@ export const userService = {
     executor: Executor = db
   ): Promise<UserRecord> {
     const hashedPassword = await hashPassword(input.password);
+    const email = input.email.trim().toLowerCase();
 
     return executor.transaction(async (tx) => {
       const user = firstOrThrow(
         await tx
           .insert(users)
           .values({
-            email: input.email,
+            email,
             emailVerified: false,
             failedLoginAttempts: 0,
             name: input.name,
@@ -117,7 +126,7 @@ export const userService = {
           event: AUDIT_EVENTS.USER.CREATED.event,
           ipAddress: auditContext.ipAddress,
           metadata: {
-            email: input.email,
+            email,
             name: input.name,
             roleSlugs: input.roleSlugs,
           },
@@ -139,12 +148,19 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
-    }
+    let previousStatus = USER_STATUS.ACTIVE as string;
 
     await executor.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ status: users.status })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new UserNotFoundError(id);
+      }
+      previousStatus = existing.status;
       const updatedUsers = await tx
         .update(users)
         .set({
@@ -177,12 +193,7 @@ export const userService = {
       );
     });
 
-    await onUserStatusChange(
-      id,
-      USER_STATUS.INACTIVE,
-      existingUser.status,
-      reason
-    );
+    await onUserStatusChange(id, USER_STATUS.INACTIVE, previousStatus, reason);
   },
   async find(query: ListUsersQuery) {
     const { search, status, role } = query;
@@ -265,9 +276,42 @@ export const userService = {
     return user ?? null;
   },
 
+  async findAuthSubjectById(id: string) {
+    const [row] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    return row ?? null;
+  },
+
   async findById(id: string): Promise<UserRecord | null> {
     const [user] = await db
       .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    return user ?? null;
+  },
+
+  async findDetailById(id: string) {
+    const [user] = await db
+      .select({
+        createdAt: users.createdAt,
+        deactivatedAt: users.deactivatedAt,
+        deactivatedBy: users.deactivatedBy,
+        deactivatedReason: users.deactivatedReason,
+        email: users.email,
+        emailVerified: users.emailVerified,
+        failedLoginAttempts: users.failedLoginAttempts,
+        id: users.id,
+        image: users.image,
+        lockedUntil: users.lockedUntil,
+        name: users.name,
+        roleSlugs: users.roleSlugs,
+        status: users.status,
+        updatedAt: users.updatedAt,
+      })
       .from(users)
       .where(eq(users.id, id))
       .limit(1);
@@ -280,12 +324,19 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
-    }
+    let previousStatus = USER_STATUS.ACTIVE as string;
 
     await executor.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ status: users.status })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new UserNotFoundError(id);
+      }
+      previousStatus = existing.status;
       const updatedUsers = await tx
         .update(users)
         .set({
@@ -314,7 +365,7 @@ export const userService = {
       );
     });
 
-    await onUserStatusChange(id, USER_STATUS.ACTIVE, existingUser.status, null);
+    await onUserStatusChange(id, USER_STATUS.ACTIVE, previousStatus, null);
   },
 
   async update(
@@ -324,29 +375,46 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<UserRecord> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
-    }
-
     return executor.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new UserNotFoundError(id);
+      }
+
       const updatedUser = firstOrThrow(
         await tx
           .update(users)
           .set({
-            ...(input.name && { name: input.name }),
-            ...(input.email && { email: input.email }),
+            ...(input.name !== undefined && { name: input.name }),
           })
           .where(eq(users.id, id))
-          .returning(),
+          .returning({
+            createdAt: users.createdAt,
+            deactivatedAt: users.deactivatedAt,
+            deactivatedBy: users.deactivatedBy,
+            deactivatedReason: users.deactivatedReason,
+            email: users.email,
+            emailVerified: users.emailVerified,
+            failedLoginAttempts: users.failedLoginAttempts,
+            id: users.id,
+            image: users.image,
+            lockedUntil: users.lockedUntil,
+            name: users.name,
+            roleSlugs: users.roleSlugs,
+            status: users.status,
+            updatedAt: users.updatedAt,
+          }),
         "Failed to update user"
       );
 
-      const metadata = createChangeMetadata(
-        { email: existingUser.email, name: existingUser.name },
-        input,
-        ["name", "email"]
-      );
+      const metadata = createChangeMetadata({ name: existing.name }, input, [
+        "name",
+      ]);
 
       if (metadata.changedFields && metadata.changedFields.length > 0) {
         await auditLogService.create(
@@ -375,18 +443,42 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<UserRecord> {
-    const existingUser = await this.findById(id);
-    if (!existingUser) {
-      throw new UserNotFoundError(id);
+    if (id === actorId) {
+      throw new HTTPException(403, { message: "Forbidden" });
     }
 
     return executor.transaction(async (tx) => {
+      const [existing] = await tx
+        .select({ roleSlugs: users.roleSlugs })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new UserNotFoundError(id);
+      }
+
       const updatedUser = firstOrThrow(
         await tx
           .update(users)
           .set({ roleSlugs: input.roleSlugs })
           .where(eq(users.id, id))
-          .returning(),
+          .returning({
+            createdAt: users.createdAt,
+            deactivatedAt: users.deactivatedAt,
+            deactivatedBy: users.deactivatedBy,
+            deactivatedReason: users.deactivatedReason,
+            email: users.email,
+            emailVerified: users.emailVerified,
+            failedLoginAttempts: users.failedLoginAttempts,
+            id: users.id,
+            image: users.image,
+            lockedUntil: users.lockedUntil,
+            name: users.name,
+            roleSlugs: users.roleSlugs,
+            status: users.status,
+            updatedAt: users.updatedAt,
+          }),
         "Failed to update user roles"
       );
 
@@ -394,7 +486,7 @@ export const userService = {
         changedFields: ["roleSlugs"],
         changes: {
           roleSlugs: {
-            from: existingUser.roleSlugs,
+            from: existing.roleSlugs,
             to: input.roleSlugs,
           },
         },

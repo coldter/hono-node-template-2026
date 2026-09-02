@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -9,36 +11,45 @@ import {
 } from "drizzle-orm/pg-core";
 import { generatePrefixedCuid, ID_PREFIXES } from "../ids";
 
-export const users = pgTable("users", {
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
-  deactivatedBy: varchar("deactivated_by", { length: 255 }),
-  deactivatedReason: text("deactivated_reason"),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").default(false).notNull(),
+export const users = pgTable(
+  "users",
+  {
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+    deactivatedBy: varchar("deactivated_by", { length: 255 }),
+    deactivatedReason: text("deactivated_reason"),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
 
-  failedLoginAttempts: integer("failed_login_attempts").default(0).notNull(),
-  id: varchar("id", { length: 255 })
-    .primaryKey()
-    .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.user)),
-  image: text("image"),
-  lockedUntil: timestamp("locked_until", { withTimezone: true }),
-  name: text("name").notNull(),
-  onboardingCompletedAt: timestamp("onboarding_completed_at", {
-    withTimezone: true,
-  }),
+    failedLoginAttempts: integer("failed_login_attempts").default(0).notNull(),
+    id: varchar("id", { length: 255 })
+      .primaryKey()
+      .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.user)),
+    image: text("image"),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    name: text("name").notNull(),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", {
+      withTimezone: true,
+    }),
 
-  roleSlugs: text("role_slugs").array().default([]).notNull(),
+    roleSlugs: text("role_slugs").array().default([]).notNull(),
 
-  status: text("status").default("active").notNull(),
-  twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+    status: text("status").default("active").notNull(),
+    twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "users_status_check",
+      sql`${table.status} IN ('active', 'inactive', 'locked', 'deleted')`
+    ),
+  ]
+);
 
 export const sessions = pgTable(
   "sessions",

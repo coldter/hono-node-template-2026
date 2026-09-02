@@ -17,13 +17,43 @@ function denyReasonOf(input: PolicyDecision | DenyReason): DenyReason {
   return "NO_MATCHING_POLICY";
 }
 
+function denyStatus(reason: DenyReason): 401 | 403 | 404 {
+  if (reason === "UNAUTHENTICATED") {
+    return 401;
+  }
+  if (reason === "RESOURCE_NOT_FOUND") {
+    return 404;
+  }
+  return 403;
+}
+
+function denyMessage(status: 401 | 403 | 404): string {
+  if (status === 401) {
+    return "Unauthorized";
+  }
+  if (status === 404) {
+    return "Not Found";
+  }
+  return "Forbidden";
+}
+
+function denyCode(status: 401 | 403 | 404): string {
+  if (status === 401) {
+    return "UNAUTHORIZED";
+  }
+  if (status === 404) {
+    return "NOT_FOUND";
+  }
+  return "FORBIDDEN";
+}
+
 function denyResponse(
   decisionOrReason: PolicyDecision | DenyReason
 ): HTTPException {
   const reason = denyReasonOf(decisionOrReason);
-  const status = reason === "UNAUTHENTICATED" ? 401 : 403;
-  const message = status === 401 ? "Unauthorized" : "Forbidden";
-  const code = status === 401 ? "UNAUTHORIZED" : "FORBIDDEN";
+  const status = denyStatus(reason);
+  const message = denyMessage(status);
+  const code = denyCode(status);
   return new HTTPException(status, {
     message,
     res: new Response(JSON.stringify({ error: { code, message } }), {
@@ -88,7 +118,21 @@ export function createAuthorize<
       if (opts?.loadResource) {
         loadedResource = await opts.loadResource(c);
         if (loadedResource === null || loadedResource === undefined) {
-          throw denyResponse("RESOURCE_NOT_FOUND");
+          const globalDecision = await registry.can(
+            principal,
+            resource,
+
+            action as never,
+            {
+              resolveRelation: opts?.resolveRelation,
+            }
+          );
+
+          if (globalDecision.allowed) {
+            throw denyResponse("RESOURCE_NOT_FOUND");
+          }
+
+          throw denyResponse("NO_MATCHING_POLICY");
         }
       }
 
@@ -104,6 +148,19 @@ export function createAuthorize<
       );
 
       if (!decision.allowed) {
+        if (decision.reason === "EVALUATION_ERROR") {
+          console.error(
+            JSON.stringify({
+              action,
+              cause:
+                decision.cause instanceof Error
+                  ? decision.cause.message
+                  : String(decision.cause ?? "unknown"),
+              event: "authorization.evaluation_error",
+              path: c.req.path,
+            })
+          );
+        }
         throw denyResponse(decision);
       }
 

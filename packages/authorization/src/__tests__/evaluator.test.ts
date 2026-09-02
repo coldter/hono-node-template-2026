@@ -340,7 +340,10 @@ describe("evaluate", () => {
       principal: activePrincipal,
       resourcePolicies: [allowRule(["user"], ["read"], [throwingCondition()])],
     });
-    expect(result).toEqual({ allowed: false, reason: "EVALUATION_ERROR" });
+    expect(result).toMatchObject({
+      allowed: false,
+      reason: "EVALUATION_ERROR",
+    });
   });
 
   describe("org scoping", () => {

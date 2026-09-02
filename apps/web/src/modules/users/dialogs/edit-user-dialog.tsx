@@ -26,7 +26,6 @@ import { useUpdateUserMutation } from "../query";
 import type { User, UserDetail } from "../types";
 
 const editUserSchema = z.object({
-  email: z.string().email("Invalid email address"),
   name: z.string().min(1, "Name is required").max(100),
 });
 
@@ -47,7 +46,6 @@ export function EditUserDialog({
 
   const form = useForm<EditUserFormValues>({
     defaultValues: {
-      email: user.email,
       name: user.name,
     },
     resolver: zodResolver(editUserSchema),
@@ -56,7 +54,6 @@ export function EditUserDialog({
   useEffect(() => {
     if (open) {
       form.reset({
-        email: user.email,
         name: user.name,
       });
     }
@@ -92,20 +89,6 @@ export function EditUserDialog({
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
