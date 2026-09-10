@@ -1,21 +1,21 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@/__tests__/test-utils";
+import type { ReactElement } from "react";
+import { describe, expect, it } from "vitest";
+import { createTestQueryClient, render, screen } from "@/__tests__/test-utils";
 import { Authorized } from "@/components/authorized";
+import { capabilitiesQueryOptions } from "@/hooks/use-authorization";
 
-vi.mock("@/hooks/use-authorization", () => ({
-  useAuthorization: () => ({
-    capabilities: {
-      "user:create": true,
-      "user:delete": false,
-    },
-    isLoading: false,
-    refetch: vi.fn(),
-  }),
-}));
+function renderAuthorized(ui: ReactElement) {
+  const queryClient = createTestQueryClient();
+  queryClient.setQueryData(capabilitiesQueryOptions.queryKey, {
+    "user:create": true,
+    "user:delete": false,
+  });
+  return render(ui, { queryClient });
+}
 
 describe("Authorized", () => {
   it("renders children when capability is granted", () => {
-    render(
+    renderAuthorized(
       <Authorized capability="user:create">
         <div>Allowed content</div>
       </Authorized>
@@ -25,7 +25,7 @@ describe("Authorized", () => {
   });
 
   it("renders fallback when capability is missing", () => {
-    render(
+    renderAuthorized(
       <Authorized capability="user:delete" fallback={<div>Denied</div>}>
         <div>Should not render</div>
       </Authorized>

@@ -42,7 +42,7 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
-    let previousStatus = USER_STATUS.ACTIVE as string;
+    let previousStatus: string = USER_STATUS.ACTIVE;
 
     await executor.transaction(async (tx) => {
       const [existing] = await tx
@@ -148,7 +148,7 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
-    let previousStatus = USER_STATUS.ACTIVE as string;
+    let previousStatus: string = USER_STATUS.ACTIVE;
 
     await executor.transaction(async (tx) => {
       const [existing] = await tx
@@ -324,7 +324,7 @@ export const userService = {
     auditContext: AuditContext,
     executor: Executor = db
   ): Promise<void> {
-    let previousStatus = USER_STATUS.ACTIVE as string;
+    let previousStatus: string = USER_STATUS.ACTIVE;
 
     await executor.transaction(async (tx) => {
       const [existing] = await tx

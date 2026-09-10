@@ -1,19 +1,9 @@
 import path from "node:path";
 import { accounts, sessions, users, verifications } from "@repo/db/schema";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import type { Context, Next } from "hono";
 import { vi } from "vitest";
 import { db } from "@/db";
 import { logger } from "@/lib/logger";
-
-vi.mock("@/middlewares/rate-limit", () => ({
-  globalRateLimitMW: async (_: Context, next: Next) => {
-    await next();
-  },
-  rateLimiter: vi.fn().mockReturnValue(async (_: Context, next: Next) => {
-    await next();
-  }),
-}));
 
 export function mockFetchRequest() {
   vi.stubGlobal(

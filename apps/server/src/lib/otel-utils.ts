@@ -5,6 +5,8 @@ import {
   SpanStatusCode,
   trace,
 } from "@opentelemetry/api";
+import type { Context } from "hono";
+import type { Env } from "@/lib/context";
 import {
   OTEL_ENABLED,
   redactSensitiveFields,
@@ -29,9 +31,7 @@ export async function withSpan<T>(
 
   const safeOptions: SpanOptions = { ...options };
   if (options?.attributes) {
-    safeOptions.attributes = redactSensitiveFields(
-      options.attributes
-    ) as Attributes;
+    safeOptions.attributes = redactSensitiveFields(options.attributes);
   }
 
   return tracer.startActiveSpan(name, safeOptions, async (span) => {
@@ -56,7 +56,7 @@ export async function withSpan<T>(
   });
 }
 
-export function setSpanAttributes(attributes: Record<string, unknown>): void {
+export function setSpanAttributes(attributes: Attributes): void {
   if (!OTEL_ENABLED) {
     return;
   }
@@ -66,14 +66,11 @@ export function setSpanAttributes(attributes: Record<string, unknown>): void {
     return;
   }
 
-  const sanitized = redactSensitiveFields(attributes) as Attributes;
+  const sanitized = redactSensitiveFields(attributes);
   span.setAttributes(sanitized);
 }
 
-export function addSpanEvent(
-  name: string,
-  attributes?: Record<string, unknown>
-): void {
+export function addSpanEvent(name: string, attributes?: Attributes): void {
   if (!OTEL_ENABLED) {
     return;
   }
@@ -83,9 +80,7 @@ export function addSpanEvent(
     return;
   }
 
-  const sanitized = attributes
-    ? (redactSensitiveFields(attributes) as Attributes)
-    : undefined;
+  const sanitized = attributes ? redactSensitiveFields(attributes) : undefined;
   span.addEvent(name, sanitized);
 }
 
@@ -117,9 +112,7 @@ export function startSpan(name: string, options?: SpanOptions): Span {
 
   const safeOptions: SpanOptions = { ...options };
   if (options?.attributes) {
-    safeOptions.attributes = redactSensitiveFields(
-      options.attributes
-    ) as Attributes;
+    safeOptions.attributes = redactSensitiveFields(options.attributes);
   }
 
   return tracer.startSpan(name, safeOptions);
@@ -151,9 +144,6 @@ export function getSpanId(): string | undefined {
   return span.spanContext().spanId;
 }
 
-export function getTraceIdFromContext(c: {
-  get: (key: string) => unknown;
-}): string | null {
-  const otelContext = c.get("otel") as { traceId?: string } | undefined;
-  return otelContext?.traceId || null;
+export function getTraceIdFromContext(c: Context<Env>): string | null {
+  return c.get("otel")?.traceId ?? null;
 }

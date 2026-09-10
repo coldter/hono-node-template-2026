@@ -32,11 +32,12 @@ export interface AuthSchema<
 export type AnyResourceDef<
   TRole extends string = string,
   TAction extends string = string,
+  TResource = unknown,
 > = {
   readonly actions: readonly TAction[];
   readonly name: string;
   readonly policies: PolicyRule<never, TRole>[];
-  readonly resolveOrganization?: (resource: never) => string | null | undefined;
+  resolveOrganization?(resource: TResource): string | null | undefined;
 };
 
 export type { RegistryInstance } from "./registry";
@@ -68,7 +69,7 @@ export function createAuthSchema<
       ),
   });
 
-  const orgRoles = (config.organizationRoles ?? []) as readonly OrgRole[];
+  const orgRoles: readonly OrgRole[] = config.organizationRoles ?? [];
 
   function createResource<TResource>() {
     return <const TActions extends readonly string[]>(

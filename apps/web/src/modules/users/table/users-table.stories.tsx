@@ -11,7 +11,7 @@ import { DataTableToolbar } from "@/modules/data-table/toolbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
 import { UserRoleBadges } from "../components/user-role-badges";
 import { UserStatusBadge } from "../components/user-status-badge";
-import type { User, UserStatus } from "../types";
+import { isUserStatus, type User } from "../types";
 
 const mockUsersColumns: ColumnDef<DataTableFeatures, User>[] = [
   {
@@ -52,9 +52,10 @@ const mockUsersColumns: ColumnDef<DataTableFeatures, User>[] = [
   },
   {
     accessorKey: "status",
-    cell: ({ row }) => (
-      <UserStatusBadge status={row.original.status as UserStatus} />
-    ),
+    cell: ({ row }) =>
+      isUserStatus(row.original.status) ? (
+        <UserStatusBadge status={row.original.status} />
+      ) : null,
     enableSorting: true,
     filterFn: (row, id, value: string[]) => value.includes(row.getValue(id)),
     header: ({ column }) => (

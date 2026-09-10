@@ -68,7 +68,7 @@ describe("createAuthorize", () => {
       if (!principalHeader) {
         return null;
       }
-      return JSON.parse(principalHeader) as Principal;
+      return JSON.parse(principalHeader);
     },
   });
 
@@ -248,13 +248,7 @@ describe("createAuthorize", () => {
       error: { code: "INTERNAL_ERROR", message: "Internal Server Error" },
     });
 
-    const payloads = spy.mock.calls.map(
-      (call) =>
-        JSON.parse(String(call[0])) as {
-          cause?: { message?: string };
-          event?: string;
-        }
-    );
+    const payloads = spy.mock.calls.map((call) => JSON.parse(String(call[0])));
     const evaluationLog = payloads.find(
       (payload) => payload.event === "authorization.evaluation_error"
     );
@@ -297,14 +291,7 @@ describe("createAuthorize", () => {
       error: { code: "INTERNAL_ERROR", message: "Internal Server Error" },
     });
 
-    const payloads = spy.mock.calls.map(
-      (call) =>
-        JSON.parse(String(call[0])) as {
-          cause?: { message?: string };
-          event?: string;
-          path?: string;
-        }
-    );
+    const payloads = spy.mock.calls.map((call) => JSON.parse(String(call[0])));
     const evaluationLog = payloads.find(
       (payload) => payload.event === "authorization.evaluation_error"
     );

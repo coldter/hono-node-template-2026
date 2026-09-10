@@ -69,7 +69,7 @@ export interface PaginatedResponse<T> {
 
 export const PAGINATION_DEFAULTS = {
   MAX_PER_PAGE: 100,
-  ORDER: "desc" as SortOrder,
+  ORDER: "desc",
   PAGE: 1,
   PER_PAGE: 20,
 } as const;

@@ -11,9 +11,9 @@ export const SYSTEM_ROLES = {
   },
 } as const;
 
-export const SYSTEM_ROLE_SLUG_VALUES = Object.values(SYSTEM_ROLES).map(
-  (r) => r.slug
-) as [
-  (typeof SYSTEM_ROLES)[keyof typeof SYSTEM_ROLES]["slug"],
-  ...(typeof SYSTEM_ROLES)[keyof typeof SYSTEM_ROLES]["slug"][],
-];
+export type SystemRoleSlug =
+  (typeof SYSTEM_ROLES)[keyof typeof SYSTEM_ROLES]["slug"];
+
+export const SYSTEM_ROLE_SLUG_VALUES: readonly SystemRoleSlug[] = Object.values(
+  SYSTEM_ROLES
+).map((role) => role.slug);

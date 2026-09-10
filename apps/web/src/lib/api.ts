@@ -1,3 +1,4 @@
+import * as z from "zod/mini";
 import { clientConfig } from "@/lib/utils";
 
 export interface ApiErrorBody {
@@ -8,6 +9,15 @@ export interface ApiErrorBody {
   };
   name?: string;
 }
+
+const apiErrorBodySchema = z.object({
+  error: z.object({
+    code: z.catch(z.optional(z.string()), undefined),
+    details: z.optional(z.unknown()),
+    message: z.catch(z.optional(z.string()), undefined),
+  }),
+  name: z.catch(z.optional(z.string()), undefined),
+});
 
 export class ApiError extends Error {
   error: ApiErrorBody["error"];
@@ -23,20 +33,17 @@ export class ApiError extends Error {
     this.status = status ?? 500;
   }
 
-  static fromResponse(res: Response, body: unknown, cause?: unknown): ApiError {
-    const parsed = isApiErrorBody(body)
-      ? body
+  static fromResponse<TBody>(
+    res: Response,
+    body: TBody,
+    cause?: unknown
+  ): ApiError {
+    const parsed = apiErrorBodySchema.safeParse(body);
+    const errorBody: ApiErrorBody = parsed.success
+      ? parsed.data
       : { error: { message: res.statusText || "Request failed" } };
-    return new ApiError(parsed, res.status, cause);
+    return new ApiError(errorBody, res.status, cause);
   }
-}
-
-function isApiErrorBody(value: unknown): value is ApiErrorBody {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-  const candidate = value as { error?: unknown };
-  return typeof candidate.error === "object" && candidate.error !== null;
 }
 
 export { clientConfig };

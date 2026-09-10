@@ -10,6 +10,8 @@ const firebaseServiceAccountSchema = z
   })
   .passthrough();
 
+const firebaseErrorSchema = z.object({ code: z.string() });
+
 interface PushMessage {
   data: Record<string, string>;
   token: string;
@@ -103,10 +105,8 @@ class FirebasePushProvider implements PushProvider {
       const messageId = await messaging.send(fcmMessage);
       return { messageId, success: true };
     } catch (error) {
-      const errorCode =
-        error instanceof Error && "code" in error
-          ? (error as { code: string }).code
-          : undefined;
+      const parsedError = firebaseErrorSchema.safeParse(error);
+      const errorCode = parsedError.success ? parsedError.data.code : undefined;
 
       const isInvalidToken =
         errorCode === "messaging/registration-token-not-registered" ||

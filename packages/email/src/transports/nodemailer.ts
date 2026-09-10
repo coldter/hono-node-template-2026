@@ -1,14 +1,15 @@
 import { resolve4 } from "node:dns/promises";
 import { isIP } from "node:net";
 import type { ConnectionOptions } from "node:tls";
-import nodemailer, { type Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
+import { z } from "zod";
 import type {
   EmailTransport,
   SendEmailOptions,
   SendEmailResult,
 } from "./types";
 
-interface NodemailerConfig {
+export interface NodemailerConfig {
   auth: {
     pass: string;
     user: string;
@@ -19,11 +20,31 @@ interface NodemailerConfig {
   tls?: ConnectionOptions;
 }
 
-interface SocketError extends Error {
-  address?: string;
-  code?: string;
-  command?: string;
-  reason?: string;
+export interface NodemailerOptions {
+  auth: NodemailerConfig["auth"];
+  host: string;
+  port: number;
+  requireTLS: boolean;
+  secure?: boolean;
+  tls: ConnectionOptions;
+}
+
+const socketErrorSchema = z.object({
+  address: z.string().optional().catch(undefined),
+  code: z.string().optional().catch(undefined),
+  command: z.string().optional().catch(undefined),
+  reason: z.string().optional().catch(undefined),
+});
+
+type SocketError = z.infer<typeof socketErrorSchema> & { message: string };
+
+function parseSocketError(error: Error): SocketError {
+  const parsed = socketErrorSchema.safeParse(error);
+  if (!parsed.success) {
+    return { message: error.message };
+  }
+
+  return { ...parsed.data, message: error.message };
 }
 
 function buildMailOptions(options: SendEmailOptions) {
@@ -41,7 +62,16 @@ function buildMailOptions(options: SendEmailOptions) {
   };
 }
 
-type MailOptions = ReturnType<typeof buildMailOptions>;
+export type MailOptions = ReturnType<typeof buildMailOptions>;
+
+export interface MailTransporter {
+  close: () => void;
+  sendMail: (options: MailOptions) => Promise<{ messageId?: string }>;
+}
+
+export type CreateNodemailerTransporter = (
+  options: NodemailerOptions
+) => MailTransporter;
 
 function normalizeErrorText(value: string | undefined): string {
   return value?.toLowerCase().replaceAll("_", " ") ?? "";
@@ -64,20 +94,26 @@ function isWrongTlsVersionError(error: SocketError): boolean {
 function isIpv6RouteError(error: SocketError): boolean {
   return (
     error.code === "ENETUNREACH" &&
-    typeof error.address === "string" &&
+    error.address !== undefined &&
     isIP(error.address) === 6
   );
 }
 
-function createTransporter(config: NodemailerConfig): Transporter {
-  return nodemailer.createTransport({
+function buildNodemailerOptions(config: NodemailerConfig): NodemailerOptions {
+  return {
     ...config,
     requireTLS: process.env.NODE_ENV === "production" && config.secure !== true,
     tls: { minVersion: "TLSv1.2", ...config.tls },
-  });
+  };
 }
 
-function closeTransporter(transporter: Transporter, label: string): void {
+function createNodemailerTransporter(
+  options: NodemailerOptions
+): MailTransporter {
+  return nodemailer.createTransport(options);
+}
+
+function closeTransporter(transporter: MailTransporter, label: string): void {
   try {
     transporter.close();
   } catch (error) {
@@ -87,11 +123,16 @@ function closeTransporter(transporter: Transporter, label: string): void {
 
 export class NodemailerTransport implements EmailTransport {
   private config: NodemailerConfig;
-  private transporter: Transporter;
+  private readonly createTransporter: CreateNodemailerTransporter;
+  private transporter: MailTransporter;
 
-  constructor(config: NodemailerConfig) {
+  constructor(
+    config: NodemailerConfig,
+    createTransporter: CreateNodemailerTransporter = createNodemailerTransporter
+  ) {
     this.config = config;
-    this.transporter = createTransporter(config);
+    this.createTransporter = createTransporter;
+    this.transporter = createTransporter(buildNodemailerOptions(config));
   }
 
   close(): void {
@@ -111,7 +152,7 @@ export class NodemailerTransport implements EmailTransport {
     } catch (error) {
       const normalizedError =
         error instanceof Error ? error : new Error(String(error));
-      const socketError = normalizedError as SocketError;
+      const socketError = parseSocketError(normalizedError);
 
       if (isWrongTlsVersionError(socketError) && this.config.secure !== true) {
         const upgraded = await this.sendWithSecureUpgrade(mailOptions);
@@ -145,7 +186,9 @@ export class NodemailerTransport implements EmailTransport {
     mailOptions: MailOptions
   ): Promise<SendEmailResult | undefined> {
     const upgradedConfig: NodemailerConfig = { ...this.config, secure: true };
-    const upgradedTransporter = createTransporter(upgradedConfig);
+    const upgradedTransporter = this.createTransporter(
+      buildNodemailerOptions(upgradedConfig)
+    );
 
     try {
       const info = await upgradedTransporter.sendMail(mailOptions);
@@ -177,11 +220,13 @@ export class NodemailerTransport implements EmailTransport {
         return;
       }
 
-      const ipv4Transporter = createTransporter({
-        ...this.config,
-        host: ipv4Host,
-        tls: { ...this.config.tls, servername: this.config.host },
-      });
+      const ipv4Transporter = this.createTransporter(
+        buildNodemailerOptions({
+          ...this.config,
+          host: ipv4Host,
+          tls: { ...this.config.tls, servername: this.config.host },
+        })
+      );
 
       try {
         const info = await ipv4Transporter.sendMail(mailOptions);

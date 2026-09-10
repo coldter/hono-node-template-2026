@@ -47,6 +47,7 @@ describe("PolicyBuilder", () => {
 
   it("withOrgRole() with an unknown org role throws", () => {
     expect(() => {
+      // SAFETY: "ghost" is deliberately outside the builder's org-role union; the test asserts runtime schema validation rejects it.
       builder
         .allow("user")
         .to("manage")

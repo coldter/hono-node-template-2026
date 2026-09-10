@@ -30,6 +30,7 @@ export const isDbSkipped =
     !env.DATABASE_TEST_URL);
 
 if (isDbSkipped) {
+  // SAFETY: when the database is skipped, queries are disabled and this value is only passed around, never called.
   db = {} as DB;
 } else {
   const connectionString =
@@ -37,6 +38,7 @@ if (isDbSkipped) {
       ? env.DATABASE_TEST_URL
       : env.DATABASE_URL;
 
+  // SAFETY: a PoolConfig connection means drizzle creates and owns the pg Pool exposed as $client, never a checked-out client.
   db = createNodeDrizzleClient(
     {
       connectionString,

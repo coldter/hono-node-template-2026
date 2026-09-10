@@ -1,6 +1,8 @@
 import type { PushToken } from "@repo/db/schema";
 import { HTTPException } from "hono/http-exception";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import type { Executor } from "@/db";
+import { notificationPushTokenService } from "@/modules/notifications/push-token-service";
 
 const DIFFERENT_USER_MESSAGE = /different user/i;
 
@@ -32,7 +34,7 @@ function nextInsert(): PushToken[] {
   return next;
 }
 
-vi.mock("@/db", () => {
+function createExecutor(): Executor {
   const selectChain = {
     from: () => selectChain,
     limit: () => Promise.resolve(nextSelect()),
@@ -56,19 +58,18 @@ vi.mock("@/db", () => {
     where: () => deleteChain,
   };
 
-  return {
-    db: {
-      delete: () => deleteChain,
-      insert: () => insertChain,
-      select: () => selectChain,
-      update: () => updateChain,
-    },
+  const chains = {
+    delete: () => deleteChain,
+    insert: () => insertChain,
+    select: () => selectChain,
+    update: () => updateChain,
   };
-});
 
-const { notificationPushTokenService } = await import(
-  "@/modules/notifications/push-token-service"
-);
+  // SAFETY: registerPushToken reaches only select().from().where().limit(), update().set().where().returning() and insert().values().returning(); each terminal call resolves rows queued by the test.
+  return new Proxy({} as Executor, {
+    get: (_target, property) => chains[property as keyof typeof chains],
+  });
+}
 
 function makeRow(overrides: Partial<PushToken>): PushToken {
   return {
@@ -84,8 +85,7 @@ function makeRow(overrides: Partial<PushToken>): PushToken {
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     userId: "usr_owner",
     ...overrides,
-    // only relies on userId/sessionId/platform/token being present.
-  } as PushToken;
+  };
 }
 
 beforeEach(() => {
@@ -100,22 +100,16 @@ describe("notificationPushTokenService.registerPushToken", () => {
       makeRow({ id: "tok_conflict", token: "shared-tok", userId: "usr_other" }),
     ]);
 
-    let caught: unknown;
-    try {
-      await notificationPushTokenService.registerPushToken(
-        "usr_caller",
-        "sess_new",
-        { platform: "ios", token: "shared-tok" }
-      );
-    } catch (err) {
-      caught = err;
-    }
+    const registration = notificationPushTokenService.registerPushToken(
+      "usr_caller",
+      "sess_new",
+      { platform: "ios", token: "shared-tok" },
+      createExecutor()
+    );
 
-    expect(caught).toBeInstanceOf(HTTPException);
-    if (caught instanceof HTTPException) {
-      expect(caught.status).toBe(409);
-      expect(caught.message).toMatch(DIFFERENT_USER_MESSAGE);
-    }
+    await expect(registration).rejects.toBeInstanceOf(HTTPException);
+    await expect(registration).rejects.toThrowError(DIFFERENT_USER_MESSAGE);
+    await expect(registration).rejects.toMatchObject({ status: 409 });
   });
 
   it("should update sessionId/platform without error when token already belongs to the same user", async () => {
@@ -138,7 +132,8 @@ describe("notificationPushTokenService.registerPushToken", () => {
     const result = await notificationPushTokenService.registerPushToken(
       "usr_caller",
       "sess_new",
-      { platform: "android", token: "same-tok" }
+      { platform: "android", token: "same-tok" },
+      createExecutor()
     );
 
     expect(result.id).toBe("tok_existing");
@@ -160,7 +155,8 @@ describe("notificationPushTokenService.registerPushToken", () => {
     const result = await notificationPushTokenService.registerPushToken(
       "usr_caller",
       "sess_new",
-      { platform: "ios", token: "brand-new-tok" }
+      { platform: "ios", token: "brand-new-tok" },
+      createExecutor()
     );
 
     expect(result.id).toBe("tok_new");

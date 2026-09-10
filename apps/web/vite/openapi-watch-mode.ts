@@ -2,7 +2,9 @@ import { exec } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs, { readFileSync } from "node:fs";
 import { URL } from "node:url";
+import type { UserConfig } from "@hey-api/openapi-ts";
 import type { Plugin, ViteDevServer } from "vite";
+import * as z from "zod/mini";
 import { openApiConfig } from "../openapi-ts.config";
 
 const isValidUrl = (str: string) => {
@@ -21,32 +23,32 @@ const fileExists = (path: string) => {
   }
 };
 
-const getConfigInputPath = (input: unknown) => {
-  if (typeof input === "string") {
-    if (!fileExists(input)) {
-      throw new Error("Invalid path in openapi Config");
-    }
-    if (isValidUrl(input)) {
-      throw new Error("Input path is a URL in openapi Config");
-    }
-    return input;
+const stringPathSchema = z.string();
+const objectPathSchema = z.object({ path: z.string() });
+
+const validateConfigPath = (path: string): string => {
+  if (!fileExists(path)) {
+    throw new Error("Invalid path in openapi Config");
+  }
+  if (isValidUrl(path)) {
+    throw new Error("Input path is a URL in openapi Config");
+  }
+  return path;
+};
+
+const getConfigInputPath = (
+  config: UserConfig["input"] | UserConfig["output"]
+): string => {
+  const objectPath = objectPathSchema.safeParse(config);
+  if (objectPath.success) {
+    return validateConfigPath(objectPath.data.path);
   }
 
-  if (typeof input === "object" && input !== null && "path" in input) {
-    const { path } = input;
-    if (typeof path !== "string") {
-      throw new Error("Path missing path in openapi Config");
-    }
-    if (!fileExists(path)) {
-      throw new Error("Invalid path in openapi Config");
-    }
-    if (isValidUrl(path)) {
-      throw new Error("Input path is a URL in openapi Config");
-    }
-    return path;
+  const stringPath = stringPathSchema.safeParse(config);
+  if (!stringPath.success) {
+    throw new Error("Path missing path in openapi Config");
   }
-
-  throw new Error("Path missing path in openapi Config");
+  return validateConfigPath(stringPath.data);
 };
 
 export const watchBackendOpenApi = (): Plugin => {

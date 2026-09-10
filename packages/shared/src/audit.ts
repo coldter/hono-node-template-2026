@@ -65,13 +65,18 @@ export type AuditEventKey = AuditEventObject extends { event: infer E }
     : string
   : string;
 
+export type AuditLogMetadataScalar = string | number | boolean | null;
+
+export type AuditLogMetadataValue =
+  | AuditLogMetadataScalar
+  | AuditLogMetadataScalar[];
+
 export interface FieldChange<T = unknown> {
   from: T;
   to: T;
 }
 
-export interface AuditLogMetadata {
+export type AuditLogMetadata = {
   changedFields?: string[];
   changes?: Record<string, FieldChange>;
-  [key: string]: unknown;
-}
+} & Record<string, AuditLogMetadataValue | Record<string, FieldChange>>;

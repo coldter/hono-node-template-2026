@@ -14,6 +14,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/modules/ui/tooltip";
 import { EventIcon } from "../event-icon";
 import {
+  type AuditLogMetadata,
+  type AuditLogMetadataValue,
+  decodeAuditLogMetadata,
+  formatMetadataValue,
   getActorTypeLabel,
   getEventBadgeStyle,
   getEventDescription,
@@ -77,81 +81,77 @@ function DetailRow({
   );
 }
 
-function MetadataValue({ data }: { data: unknown }) {
-  if (data === null || data === undefined) {
+function MetadataValue({ data }: { data: AuditLogMetadataValue }) {
+  if (data.kind === "null") {
     return <span className="text-muted-foreground italic">None</span>;
   }
 
   if (
-    typeof data === "string" ||
-    typeof data === "number" ||
-    typeof data === "boolean"
+    data.kind === "string" ||
+    data.kind === "number" ||
+    data.kind === "boolean"
   ) {
-    return <span className="font-mono text-xs">{String(data)}</span>;
+    return <span className="font-mono text-xs">{String(data.value)}</span>;
   }
 
-  if (Array.isArray(data)) {
-    if (data.length === 0) {
+  if (data.kind === "array") {
+    if (data.items.length === 0) {
       return <span className="text-muted-foreground italic">Empty</span>;
     }
     return (
       <div className="flex flex-wrap justify-end gap-1">
-        {data.map((item, idx) => (
+        {data.items.map((item, idx) => (
           <Badge
             className="font-mono text-[10px]"
-            key={`${String(item)}-${idx}`}
+            key={`${formatMetadataValue(item)}-${idx}`}
             variant="secondary"
           >
-            {String(item)}
+            {formatMetadataValue(item)}
           </Badge>
         ))}
       </div>
     );
   }
 
-  if (typeof data === "object") {
-    const obj = data as Record<string, unknown>;
+  const { from, to } = data.fields;
 
-    if ("from" in obj && "to" in obj) {
-      return (
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground text-[10px]">from</span>
-            <MetadataValue data={obj.from} />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-              to
-            </span>
-            <MetadataValue data={obj.to} />
-          </div>
-        </div>
-      );
-    }
-
+  if (from === undefined || to === undefined) {
     return null;
   }
 
-  return null;
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground text-[10px]">from</span>
+        <MetadataValue data={from} />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+          to
+        </span>
+        <MetadataValue data={to} />
+      </div>
+    </div>
+  );
 }
 
-function MetadataSection({ metadata }: { metadata: Record<string, unknown> }) {
+function MetadataSection({ metadata }: { metadata: AuditLogMetadata }) {
   const entries = Object.entries(metadata);
 
-  const changes = metadata.changes as Record<string, unknown> | undefined;
-  const changedFields = metadata.changedFields as string[] | undefined;
+  const { changes, changedFields } = metadata;
   const otherEntries = entries.filter(
     ([key]) => key !== "changes" && key !== "changedFields"
   );
 
+  const changeEntries =
+    changes?.kind === "object" ? Object.entries(changes.fields) : [];
+  const changedFieldCount =
+    changedFields?.kind === "array" ? changedFields.items.length : null;
+
   return (
     <div className="space-y-3">
       {otherEntries.map(([key, value]) => {
-        if (
-          typeof value === "object" &&
-          value !== null &&
-          !Array.isArray(value)
-        ) {
+        if (value.kind === "object") {
           return null;
         }
         return (
@@ -161,19 +161,19 @@ function MetadataSection({ metadata }: { metadata: Record<string, unknown> }) {
         );
       })}
 
-      {changes && (
+      {changes?.kind === "object" && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 pt-1">
             <span className="text-sm font-medium">Changes</span>
-            {changedFields && (
+            {changedFieldCount !== null && (
               <span className="text-muted-foreground text-xs">
-                ({changedFields.length} field
-                {changedFields.length === 1 ? "" : "s"})
+                ({changedFieldCount} field
+                {changedFieldCount === 1 ? "" : "s"})
               </span>
             )}
           </div>
           <div className="bg-muted/50 space-y-0 divide-y rounded-lg border p-0">
-            {Object.entries(changes).map(([field, change]) => (
+            {changeEntries.map(([field, change]) => (
               <div
                 className="flex items-start justify-between gap-4 px-3 py-2.5"
                 key={field}
@@ -197,7 +197,7 @@ function formatFieldName(name: string): string {
     .trim();
 }
 
-function parseUserAgent(ua: string): { browser: string; os: string } {
+function parseUserAgent(ua: string) {
   let browser = "Unknown";
   let os = "Unknown";
 
@@ -242,6 +242,7 @@ export function AuditLogDetailSheet({
   const style = getEventBadgeStyle(log.event);
   const dateObj = new Date(log.createdAt);
   const uaInfo = log.userAgent ? parseUserAgent(log.userAgent) : null;
+  const metadata = decodeAuditLogMetadata(log.metadata);
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
@@ -261,7 +262,7 @@ export function AuditLogDetailSheet({
                 {getEventDisplayName(log.event)}
               </SheetTitle>
               <SheetDescription className="text-xs leading-relaxed">
-                {getEventDescription(log.event, log.actorType, log.metadata)}
+                {getEventDescription(log.event, log.actorType, metadata)}
               </SheetDescription>
             </div>
           </div>
@@ -383,14 +384,12 @@ export function AuditLogDetailSheet({
               )}
             </div>
 
-            {log.metadata && Object.keys(log.metadata).length > 0 && (
+            {metadata && Object.keys(metadata).length > 0 && (
               <div className="py-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Metadata
                 </h3>
-                <MetadataSection
-                  metadata={log.metadata as Record<string, unknown>}
-                />
+                <MetadataSection metadata={metadata} />
               </div>
             )}
 

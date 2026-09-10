@@ -17,19 +17,31 @@ export function createTestQueryClient() {
   });
 }
 
-function AllProviders({ children }: { children: React.ReactNode }) {
-  const queryClient = createTestQueryClient();
+type TestProviderProps = {
+  children: React.ReactNode;
+  queryClient?: QueryClient;
+};
 
+function AllProviders({ children, queryClient }: TestProviderProps) {
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient ?? createTestQueryClient()}>
+      {children}
+    </QueryClientProvider>
   );
 }
 
-function customRender(
-  ui: React.ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
-) {
-  return render(ui, { wrapper: AllProviders, ...options });
+type TestRenderOptions = Omit<RenderOptions, "wrapper"> & {
+  queryClient?: QueryClient;
+};
+
+function customRender(ui: React.ReactElement, options?: TestRenderOptions) {
+  const { queryClient, ...renderOptions } = options ?? {};
+  return render(ui, {
+    wrapper: ({ children }: TestProviderProps) => (
+      <AllProviders queryClient={queryClient}>{children}</AllProviders>
+    ),
+    ...renderOptions,
+  });
 }
 
 export * from "@testing-library/react";

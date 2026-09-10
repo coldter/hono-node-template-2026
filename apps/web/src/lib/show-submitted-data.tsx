@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 
-export function showSubmittedData(
-  data: unknown,
+export function showSubmittedData<T>(
+  data: T,
   title = "You submitted the following values:"
 ) {
   toast.message(title, {

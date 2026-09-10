@@ -46,4 +46,4 @@ export type NotificationsSortColumn =
 
 export const NOTIFICATIONS_SORT_COLUMN_VALUES = Object.values(
   NOTIFICATIONS_SORT_COLUMNS
-) as [string, ...string[]];
+);

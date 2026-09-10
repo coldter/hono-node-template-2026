@@ -1,34 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import type React from "react";
 import { afterEach, vi } from "vitest";
 
 afterEach(() => {
   cleanup();
-});
-
-vi.mock("@tanstack/react-router", async () => {
-  const actual = await vi.importActual("@tanstack/react-router");
-  return {
-    ...actual,
-    Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
-      <a href={to}>{children}</a>
-    ),
-    useNavigate: () => vi.fn(),
-    useParams: () => ({}),
-    useRouter: () => ({
-      invalidate: vi.fn(),
-      navigate: vi.fn(),
-    }),
-    useRouterState: () => ({
-      location: {
-        hash: "",
-        pathname: "/",
-        search: "",
-      },
-    }),
-    useSearch: () => ({}),
-  };
 });
 
 const localStorageMock = {

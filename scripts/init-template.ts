@@ -222,6 +222,10 @@ async function updateReadme(answers: Answers): Promise<void> {
   );
 }
 
+interface PackageJson {
+  scripts?: Record<string, string>;
+}
+
 async function removeSelf(): Promise<void> {
   const self = fileURLToPath(import.meta.url);
   const pkgPath = join(ROOT, "package.json");
@@ -231,7 +235,7 @@ async function removeSelf(): Promise<void> {
     return;
   }
   const pkgRaw = await readFile(pkgPath, "utf8");
-  const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> };
+  const pkg: PackageJson = JSON.parse(pkgRaw);
   if (pkg.scripts && "template:init" in pkg.scripts) {
     const { "template:init": _removed, ...rest } = pkg.scripts;
     pkg.scripts = rest;

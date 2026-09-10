@@ -13,8 +13,7 @@ export interface SendEmailParams<T> {
   to: string | string[];
 }
 
-let cachedTransport: EmailTransport | undefined;
-let cachedTransportKey: string | undefined;
+export type CreateEmailTransport = (config: EmailConfig) => EmailTransport;
 
 function transportKey(config: EmailConfig): string {
   if (config.provider === "console") {
@@ -30,44 +29,53 @@ function transportKey(config: EmailConfig): string {
   return "fallback";
 }
 
-function getTransport(config: EmailConfig): EmailTransport {
-  const key = transportKey(config);
-  if (cachedTransport && cachedTransportKey === key) {
-    return cachedTransport;
+export function createEmailSender(
+  createEmailTransport: CreateEmailTransport = createTransport
+) {
+  let cachedTransport: EmailTransport | undefined;
+  let cachedTransportKey: string | undefined;
+
+  function getTransport(config: EmailConfig): EmailTransport {
+    const key = transportKey(config);
+    if (cachedTransport && cachedTransportKey === key) {
+      return cachedTransport;
+    }
+
+    const transport = createEmailTransport(config);
+    cachedTransport?.close();
+    cachedTransport = transport;
+    cachedTransportKey = key;
+
+    return transport;
   }
 
-  const transport = createTransport(config);
-  cachedTransport?.close();
-  cachedTransport = transport;
-  cachedTransportKey = key;
+  return async function sendEmail<T>(
+    params: SendEmailParams<T>
+  ): Promise<{ messageId?: string }> {
+    const config = getEmailConfig();
+    const transport = getTransport(config);
+    const reactElement = params.template(params.props);
+    const html = await render(reactElement);
+    const text = await render(reactElement, { plainText: true });
 
-  return transport;
+    const result = await transport.send({
+      ...params.options,
+      from: {
+        address: config.from.default,
+        name: config.from.name,
+      },
+      html,
+      subject: params.subject,
+      text,
+      to: params.to,
+    });
+
+    if (!result.success) {
+      throw result.error ?? new Error("Email delivery failed");
+    }
+
+    return { messageId: result.messageId };
+  };
 }
 
-export async function sendEmail<T>(
-  params: SendEmailParams<T>
-): Promise<{ messageId?: string }> {
-  const config = getEmailConfig();
-  const transport = getTransport(config);
-  const reactElement = params.template(params.props);
-  const html = await render(reactElement);
-  const text = await render(reactElement, { plainText: true });
-
-  const result = await transport.send({
-    ...params.options,
-    from: {
-      address: config.from.default,
-      name: config.from.name,
-    },
-    html,
-    subject: params.subject,
-    text,
-    to: params.to,
-  });
-
-  if (!result.success) {
-    throw result.error ?? new Error("Email delivery failed");
-  }
-
-  return { messageId: result.messageId };
-}
+export const sendEmail = createEmailSender();

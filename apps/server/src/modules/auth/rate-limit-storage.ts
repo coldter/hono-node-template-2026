@@ -1,13 +1,17 @@
+import { z } from "zod";
+
 type RateLimitRedisClient = {
   get: (key: string) => Promise<string | null>;
   setEx: (key: string, seconds: number, value: string) => Promise<string>;
 };
 
-type RateLimitEntry = {
-  key: string;
-  count: number;
-  lastRequest: number;
-};
+const rateLimitEntrySchema = z.object({
+  count: z.number(),
+  key: z.string(),
+  lastRequest: z.number(),
+});
+
+type RateLimitEntry = z.infer<typeof rateLimitEntrySchema>;
 
 const KEY_PREFIX = "ba-rate-limit:";
 
@@ -30,7 +34,8 @@ export function createRedisRateLimitStorage(
       return;
     }
 
-    return JSON.parse(raw) as RateLimitEntry;
+    const parsed = rateLimitEntrySchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : undefined;
   };
 
   const set = async (key: string, value: RateLimitEntry): Promise<void> => {
@@ -51,7 +56,8 @@ export function createRedisRateLimitStorage(
     let data: RateLimitEntry | undefined;
     if (raw) {
       try {
-        data = JSON.parse(raw) as RateLimitEntry;
+        const parsed = rateLimitEntrySchema.safeParse(JSON.parse(raw));
+        data = parsed.success ? parsed.data : undefined;
       } catch {
         data = undefined;
       }

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { env } from "@/env";
 import packageJson from "../../package.json";
 
@@ -75,6 +76,53 @@ const SENSITIVE_QUERY_PARAMS = [
 
 const BLOCK_ALL_COOKIES = true as const;
 
+const REDACTED = "[REDACTED]";
+
+const SENSITIVE_BODY_FIELD_SET = new Set<string>(SENSITIVE_BODY_FIELDS);
+
+export type RedactableValue =
+  | boolean
+  | null
+  | number
+  | string
+  | undefined
+  | RedactableValue[]
+  | RedactableRecord;
+
+export type RedactableRecord = { [key: string]: RedactableValue };
+
+const numberSchema = z.union([
+  z.number(),
+  z.nan(),
+  z.literal(Number.POSITIVE_INFINITY),
+  z.literal(Number.NEGATIVE_INFINITY),
+]);
+
+const redactableValueSchema: z.ZodType<RedactableValue> = z.lazy(() =>
+  z.union([
+    z.boolean(),
+    z.null(),
+    numberSchema,
+    z.string(),
+    z.undefined(),
+    z.array(redactableValueSchema),
+    z.record(z.string(), redactableValueSchema),
+  ])
+);
+
+const redactableRecordSchema: z.ZodType<RedactableRecord> = z.record(
+  z.string(),
+  redactableValueSchema
+);
+
+const scalarRedactableSchema = z.union([
+  z.boolean(),
+  z.null(),
+  numberSchema,
+  z.string(),
+  z.undefined(),
+]);
+
 export function isHeaderSafe(headerName: string): boolean {
   for (const pattern of SENSITIVE_HEADER_PATTERNS) {
     if (pattern.test(headerName)) {
@@ -91,29 +139,30 @@ export function isHeaderSafe(headerName: string): boolean {
   return false;
 }
 
-export function redactSensitiveFields<T extends Record<string, unknown>>(
-  obj: T
+export function redactSensitiveFields<T extends RedactableRecord>(
+  record: T
 ): T {
-  const result = { ...obj };
+  const entries = Object.entries(record).map(([key, value]) => [
+    key,
+    SENSITIVE_BODY_FIELD_SET.has(key) ? REDACTED : redactValue(value),
+  ]);
 
-  for (const field of SENSITIVE_BODY_FIELDS) {
-    if (field in result) {
-      (result as Record<string, unknown>)[field] = "[REDACTED]";
-    }
+  // SAFETY: every key is rebuilt from the input record, with values replaced only by the redaction marker or by a parsed value of the same domain.
+  return Object.fromEntries(entries) as T;
+}
+
+function redactValue(value: RedactableValue): RedactableValue {
+  if (Array.isArray(value)) {
+    return value.map(redactValue);
   }
 
-  for (const key in result) {
-    if (Object.hasOwn(result, key)) {
-      const value = result[key];
-      if (typeof value === "object" && value !== null) {
-        (result as Record<string, unknown>)[key] = redactSensitiveFields(
-          value as Record<string, unknown>
-        );
-      }
-    }
+  const nested = redactableRecordSchema.safeParse(value);
+  if (nested.success) {
+    return redactSensitiveFields(nested.data);
   }
 
-  return result;
+  const scalar = scalarRedactableSchema.safeParse(value);
+  return scalar.success ? scalar.data : REDACTED;
 }
 
 export function sanitizeUrl(url: string): string {

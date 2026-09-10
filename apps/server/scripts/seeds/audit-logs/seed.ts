@@ -8,6 +8,7 @@ import { ACTOR_TYPES, AUDIT_EVENTS } from "@/modules/audit-logs/constants";
 import type {
   ActorType,
   AuditEventKey,
+  AuditLogMetadata,
   TargetType,
 } from "@/modules/audit-logs/types";
 
@@ -15,11 +16,11 @@ const SEED_COUNT = 200;
 
 faker.seed(42);
 
-const ALL_EVENTS = Object.values(AUDIT_EVENTS)
+const ALL_EVENTS: AuditEventKey[] = Object.values(AUDIT_EVENTS)
   .flatMap((group) => Object.values(group))
-  .map((e) => e.event) as AuditEventKey[];
+  .map((e) => e.event);
 
-const ACTOR_TYPE_LIST = Object.values(ACTOR_TYPES) as ActorType[];
+const ACTOR_TYPE_LIST: ActorType[] = Object.values(ACTOR_TYPES);
 
 const getTargetTypeForEvent = (event: AuditEventKey): TargetType | null => {
   if (event.startsWith("user.")) {
@@ -37,9 +38,7 @@ const getTargetTypeForEvent = (event: AuditEventKey): TargetType | null => {
   return null;
 };
 
-const generateMetadata = (
-  event: AuditEventKey
-): Record<string, unknown> | null => {
+const generateMetadata = (event: AuditEventKey): AuditLogMetadata | null => {
   if (event === "user.updated") {
     return {
       changedFields: ["name", "email"],

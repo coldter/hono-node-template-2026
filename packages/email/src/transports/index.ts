@@ -1,21 +1,34 @@
 import type { EmailConfig } from "../lib/config";
 import { ConsoleTransport } from "./console";
-import { NodemailerTransport } from "./nodemailer";
+import {
+  type CreateNodemailerTransporter,
+  NodemailerTransport,
+} from "./nodemailer";
 import type { EmailTransport } from "./types";
 
+export type {
+  CreateNodemailerTransporter,
+  MailOptions,
+  MailTransporter,
+  NodemailerConfig,
+  NodemailerOptions,
+} from "./nodemailer";
 export type {
   EmailTransport,
   SendEmailOptions,
   SendEmailResult,
 } from "./types";
 
-export function createTransport(config: EmailConfig): EmailTransport {
+export function createTransport(
+  config: EmailConfig,
+  createTransporter?: CreateNodemailerTransporter
+): EmailTransport {
   const hasSmtpConfig = Boolean(config.smtp?.host && config.smtp?.auth.user);
   const usesNodemailer =
     config.provider === undefined || config.provider === "nodemailer";
 
   if (hasSmtpConfig && usesNodemailer && config.smtp) {
-    return new NodemailerTransport(config.smtp);
+    return new NodemailerTransport(config.smtp, createTransporter);
   }
 
   if (process.env.NODE_ENV === "production") {

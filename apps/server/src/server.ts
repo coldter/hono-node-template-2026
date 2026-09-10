@@ -14,7 +14,7 @@ import { customOtelMiddleware } from "@/middlewares/otel";
 import { globalRateLimitMW } from "@/middlewares/rate-limit";
 import { requestLogMiddleware } from "@/middlewares/request-log";
 
-const baseApp = new OpenAPIHono<Env>().basePath((env.BASE_PATH || "") as "");
+const baseApp = new OpenAPIHono<Env>().basePath(env.BASE_PATH || "");
 
 baseApp.use(requestId());
 

@@ -26,4 +26,10 @@ describe("generateIdForModel", () => {
     expect(generateIdForModel("organization")).toMatch(ENT_ID);
     expect(generateIdForModel("")).toMatch(ENT_ID);
   });
+
+  it("ignores inherited prototype members when resolving prefixes", () => {
+    expect(generateIdForModel("toString")).toMatch(ENT_ID);
+    expect(generateIdForModel("constructor")).toMatch(ENT_ID);
+    expect(generateIdForModel("__proto__")).toMatch(ENT_ID);
+  });
 });

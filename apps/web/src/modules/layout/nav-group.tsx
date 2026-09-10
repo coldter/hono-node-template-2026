@@ -46,27 +46,25 @@ function useFilteredItems(items: NavItem[]): NavItem[] {
     };
 
     const filterItems = (itemList: NavItem[]): NavItem[] =>
-      itemList
-        .map((item) => {
-          if (!hasAccess(item.permission)) {
-            return null;
+      itemList.flatMap((item): NavItem[] => {
+        if (!hasAccess(item.permission)) {
+          return [];
+        }
+
+        if (item.items) {
+          const filteredChildren = item.items.filter((child) =>
+            hasAccess(child.permission)
+          );
+
+          if (filteredChildren.length === 0) {
+            return [];
           }
 
-          if (item.items) {
-            const filteredChildren = item.items.filter((child) =>
-              hasAccess(child.permission)
-            );
+          return [{ ...item, items: filteredChildren }];
+        }
 
-            if (filteredChildren.length === 0) {
-              return null;
-            }
-
-            return { ...item, items: filteredChildren };
-          }
-
-          return item;
-        })
-        .filter((item): item is NavItem => item !== null);
+        return [item];
+      });
 
     return filterItems(items);
   }, [items, capabilities]);

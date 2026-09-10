@@ -65,12 +65,7 @@ export function buildRegistryInstance<
         ? resources[resourceName]
         : undefined;
 
-      if (
-        !(
-          resourceDef &&
-          (resourceDef.actions as readonly string[]).includes(action)
-        )
-      ) {
+      if (!resourceDef?.actions.includes(action)) {
         return { allowed: false, reason: "NO_MATCHING_POLICY" };
       }
 
@@ -104,12 +99,8 @@ export function buildRegistryInstance<
       }
 
       const settled = await Promise.all(tasks);
-      const capabilities: Record<string, boolean> = {};
-      for (const [key, allowed] of settled) {
-        capabilities[key] = allowed;
-      }
-
-      return capabilities as unknown as CapabilityMap<TResources>;
+      // SAFETY: every task key is built as `${resourceName}:${action}` for a resource/action pair, which is exactly the CapabilityKey<TResources> shape.
+      return Object.fromEntries(settled) as CapabilityMap<TResources>;
     },
 
     resources,

@@ -1,6 +1,26 @@
-type ErrorContext = Record<string, unknown>;
+import * as z from "zod/mini";
 
-export function reportError(error: unknown, context?: ErrorContext): void {
+type ErrorContext = {
+  source: "router-error-boundary" | "unhandledrejection" | "window.error";
+};
+
+export const reportableErrorSchema = z.catch(
+  z.union([z.instanceof(Error), z.string()]),
+  (ctx) => {
+    try {
+      return String(ctx.value);
+    } catch {
+      return "Unknown error";
+    }
+  }
+);
+
+export type ReportableError = z.infer<typeof reportableErrorSchema>;
+
+export function reportError(
+  error: ReportableError,
+  context?: ErrorContext
+): void {
   console.error("[report-error]", error, context ?? {});
 }
 

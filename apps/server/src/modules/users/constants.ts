@@ -13,7 +13,4 @@ export const USERS_SORT_COLUMNS = {
   updatedAt: "updatedAt",
 } as const;
 
-export const USERS_SORT_COLUMN_VALUES = Object.values(USERS_SORT_COLUMNS) as [
-  (typeof USERS_SORT_COLUMNS)[keyof typeof USERS_SORT_COLUMNS],
-  ...(typeof USERS_SORT_COLUMNS)[keyof typeof USERS_SORT_COLUMNS][],
-];
+export const USERS_SORT_COLUMN_VALUES = Object.values(USERS_SORT_COLUMNS);

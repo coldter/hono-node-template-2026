@@ -14,14 +14,14 @@ export const ID_PREFIXES = {
 
 type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
 
-const MODEL_PREFIXES: Record<string, IdPrefix> = {
+const MODEL_PREFIXES = {
   account: ID_PREFIXES.account,
   jwks: ID_PREFIXES.jwk,
   session: ID_PREFIXES.session,
   twoFactor: ID_PREFIXES.twoFactor,
   user: ID_PREFIXES.user,
   verification: ID_PREFIXES.verification,
-};
+} satisfies Record<string, IdPrefix>;
 
 export function generatePrefixedCuid<P extends string>(
   prefix: P
@@ -39,5 +39,9 @@ export function generatePrefixedCuid<P extends string>(
   return `${prefix}_${timestampHex}${randomHex}`;
 }
 
+function isIdModel(model: string): model is keyof typeof MODEL_PREFIXES {
+  return Object.hasOwn(MODEL_PREFIXES, model);
+}
+
 export const generateIdForModel = (model: string) =>
-  generatePrefixedCuid(MODEL_PREFIXES[model] ?? "ent");
+  generatePrefixedCuid(isIdModel(model) ? MODEL_PREFIXES[model] : "ent");

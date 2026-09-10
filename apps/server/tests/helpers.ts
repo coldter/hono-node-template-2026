@@ -1,7 +1,7 @@
 export async function parseResponse<T>(response: {
-  json: () => Promise<unknown>;
+  json: () => Promise<T>;
 }): Promise<T> {
-  return response.json() as Promise<T>;
+  return response.json();
 }
 
 export type ErrorResponse = {

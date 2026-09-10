@@ -20,7 +20,7 @@ interface AlertStoreState {
 }
 
 const initialState = {
-  downAlert: null as DownAlertType,
+  downAlert: null,
 };
 
 export const useAlertStore = create<AlertStoreState>()(

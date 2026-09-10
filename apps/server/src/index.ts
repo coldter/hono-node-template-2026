@@ -105,8 +105,8 @@ async function shutdown(signal: string): Promise<void> {
 }
 
 function onShutdownSignal(signal: string): void {
-  shutdown(signal).catch((error: unknown) => {
-    logger.error("Shutdown failed", { error });
+  shutdown(signal).catch((cause: unknown) => {
+    logger.error("Shutdown failed", { error: cause });
     process.exit(1);
   });
 }

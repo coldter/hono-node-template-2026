@@ -117,6 +117,7 @@ const Spinner = ({
       );
 
     case "pulse":
+      // SAFETY: The pulse variant renders an HTML div while SpinnerProps carries SVG attributes; React forwards the shared DOM, ARIA, and event-handler attributes this spread passes, and callers use no SVG-only attributes on this variant.
       return (
         <div
           className={cn(

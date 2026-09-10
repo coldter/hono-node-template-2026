@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface EncryptedEnvelope {
   readonly alg: "aes-256-gcm";
 
@@ -7,16 +9,24 @@ export interface EncryptedEnvelope {
   readonly v: 1;
 }
 
+const encryptedEnvelopeSchema = z.object({
+  alg: z.literal("aes-256-gcm"),
+  ct: z.string(),
+  kid: z.string().optional(),
+  ts: z.number(),
+  v: z.literal(1),
+}) satisfies z.ZodType<EncryptedEnvelope>;
+
 export type SerializedEnvelope = string;
 
 export interface VaultSchema<T> {
   readonly description: string;
-  deserialize: (plaintext: string) => T;
-  fingerprint?: (data: T) => string;
+  deserialize(plaintext: string): T;
+  fingerprint?(data: T): string;
 
   readonly id: string;
-  serialize: (data: T) => string;
-  validate?: (data: T) => void;
+  serialize(data: T): string;
+  validate?(data: T): void;
 }
 
 export interface EncryptionProvider {
@@ -106,15 +116,5 @@ export function isAzureKeyVaultConfig(
 }
 
 export function isValidEnvelope(value: unknown): value is EncryptedEnvelope {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const envelope = value as Record<string, unknown>;
-  return (
-    envelope.v === 1 &&
-    envelope.alg === "aes-256-gcm" &&
-    typeof envelope.ct === "string" &&
-    typeof envelope.ts === "number"
-  );
+  return encryptedEnvelopeSchema.safeParse(value).success;
 }

@@ -4,6 +4,7 @@ import { useTheme } from "@/context/theme-provider";
 export function Toaster({ ...props }: ToasterProps) {
   const { theme = "system" } = useTheme();
 
+  // SAFETY: React's CSSProperties has no index signature for CSS custom properties, so the cast supplies only the `--*` variables Sonner reads at runtime.
   return (
     <Sonner
       className="toaster group [&_div[data-content]]:w-full"
@@ -14,7 +15,7 @@ export function Toaster({ ...props }: ToasterProps) {
           "--normal-text": "var(--popover-foreground)",
         } as React.CSSProperties
       }
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       {...props}
     />
   );

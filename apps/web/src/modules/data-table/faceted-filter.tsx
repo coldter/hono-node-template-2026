@@ -1,6 +1,7 @@
 import { CheckIcon, PlusCircledIcon } from "@radix-ui/react-icons";
 import type { Column, RowData } from "@tanstack/react-table";
 import type * as React from "react";
+import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/modules/ui/badge";
 import { Button } from "@/modules/ui/button";
@@ -16,6 +17,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/modules/ui/popover";
 import { Separator } from "@/modules/ui/separator";
 import type { DataTableFeatures } from "./features";
+
+const filterValuesSchema = z.array(z.string());
 
 type DataTableFacetedFilterProps<TData extends RowData, TValue> = {
   column?: Column<DataTableFeatures, TData, TValue>;
@@ -33,7 +36,12 @@ export function DataTableFacetedFilter<TData extends RowData, TValue>({
   options,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const facets = column?.getFacetedUniqueValues();
-  const selectedValues = new Set(column?.getFilterValue() as string[]);
+  const parsedFilterValues = filterValuesSchema.safeParse(
+    column?.getFilterValue()
+  );
+  const selectedValues = new Set(
+    parsedFilterValues.success ? parsedFilterValues.data : []
+  );
 
   return (
     <Popover>

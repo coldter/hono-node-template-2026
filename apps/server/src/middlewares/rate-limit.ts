@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import type { Store } from "hono-rate-limiter";
+import type { HonoConfigProps, Store } from "hono-rate-limiter";
 import { rateLimiter } from "hono-rate-limiter";
 import { ms } from "itty-time";
 import type { RedisReply } from "rate-limit-redis";
@@ -19,24 +19,36 @@ import {
 const REJECTION_LOG_SAMPLE_RATE = 50;
 let rejectionCount = 0;
 
-export const globalRateLimitMW = rateLimiter<Env>({
-  limit: 1000,
-  windowMs: ms("1 minutes"),
-  ...(isRedisEnabled()
-    ? {
-        store: new RedisStore({
-          prefix: "global-rl:",
-          sendCommand: async (...args: string[]) => {
-            const client = await getRedis();
+interface RedisRateLimitStore {
+  decrement(key: string): Promise<void>;
+  get(
+    key: string
+  ): Promise<{ totalHits: number; resetTime?: Date } | undefined>;
+  increment(key: string): Promise<{ totalHits: number; resetTime?: Date }>;
+  init(options: { windowMs: number }): Promise<void>;
+  resetKey(key: string): Promise<void>;
+}
 
-            return client.sendCommand<RedisReply>(args);
-          },
-          // contract hono-rate-limiter consumes; only the init() options
-          // parameter types differ, and init only reads windowMs, which
-          // hono-rate-limiter's config provides.
-        }) as unknown as Store<Env>,
-      }
-    : {}),
+function createRedisRateLimitStore(): Store<Env> {
+  const store: RedisRateLimitStore = new RedisStore({
+    prefix: "global-rl:",
+    sendCommand: async (...args: string[]) => {
+      const client = await getRedis();
+
+      return client.sendCommand<RedisReply>(args);
+    },
+  });
+
+  return {
+    decrement: (key) => store.decrement(key),
+    get: (key) => store.get(key),
+    increment: (key) => store.increment(key),
+    init: (options) => store.init(options),
+    resetKey: (key) => store.resetKey(key),
+  };
+}
+
+const baseRateLimitOptions = {
   handler: (c) => {
     recordRateLimitRejection("limit_exceeded");
     rejectionCount += 1;
@@ -76,6 +88,14 @@ export const globalRateLimitMW = rateLimiter<Env>({
       message: "Too many requests, please try again later.",
     });
   },
+  limit: 1000,
 
   skip: (c) => isHealthCheckPath(c.req.path),
-});
+  windowMs: ms("1 minutes"),
+} satisfies HonoConfigProps<Env>;
+
+export const globalRateLimitMW = rateLimiter<Env>(
+  isRedisEnabled()
+    ? { ...baseRateLimitOptions, store: createRedisRateLimitStore() }
+    : baseRateLimitOptions
+);

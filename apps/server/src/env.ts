@@ -1,28 +1,26 @@
 import "dotenv/config";
 import { z } from "zod";
 
+const otlpHeadersSchema = z.record(z.string(), z.string());
+
 export function parseOtlpHeaders(value: string): Record<string, string> {
   const trimmed = value.trim();
   if (trimmed.startsWith("{")) {
-    const parsed: unknown = JSON.parse(trimmed);
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      Array.isArray(parsed)
-    ) {
-      throw new Error("JSON form must be an object of string values");
+    const parsed = otlpHeadersSchema.safeParse(JSON.parse(trimmed));
+    if (!parsed.success) {
+      const headerKey = parsed.error.issues.find(
+        (issue) => issue.path.length > 0
+      )?.path[0];
+      throw new Error(
+        headerKey === undefined
+          ? "JSON form must be an object of string values"
+          : `header "${String(headerKey)}" must be a string`
+      );
     }
-    const headers: Record<string, string> = {};
-    for (const [key, headerValue] of Object.entries(parsed)) {
-      if (typeof headerValue !== "string") {
-        throw new Error(`header "${key}" must be a string`);
-      }
-      headers[key] = headerValue;
-    }
-    return headers;
+    return parsed.data;
   }
 
-  const headers: Record<string, string> = {};
+  const entries: [string, string][] = [];
   for (const pair of trimmed.split(",")) {
     const separatorIndex = pair.indexOf("=");
     const key = separatorIndex > 0 ? pair.slice(0, separatorIndex).trim() : "";
@@ -30,9 +28,9 @@ export function parseOtlpHeaders(value: string): Record<string, string> {
     if (!(key && headerValue)) {
       throw new Error(`malformed header pair "${pair.trim()}"`);
     }
-    headers[key] = headerValue;
+    entries.push([key, headerValue]);
   }
-  return headers;
+  return Object.fromEntries(entries);
 }
 
 const EMAIL_FROM_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -214,6 +212,7 @@ if (!parsedEnv.success) {
   }
 }
 
-export const env = parsedEnv.success
+// SAFETY: environment values are copied from the live process.env when validation is skipped; the copy is a deliberate value snapshot typed as Env.
+export const env: Env = parsedEnv.success
   ? parsedEnv.data
-  : (process.env as unknown as Env);
+  : Object.assign({} as Env, process.env);

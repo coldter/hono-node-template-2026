@@ -13,6 +13,7 @@ import {
   User as UserIcon,
   UserX,
 } from "lucide-react";
+import { ApiError } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/modules/ui/avatar";
 import { Badge } from "@/modules/ui/badge";
 import { Button } from "@/modules/ui/button";
@@ -65,11 +66,7 @@ export function UserDetailPage() {
   }
 
   if (isError || !user) {
-    const isForbidden =
-      typeof error === "object" &&
-      error !== null &&
-      "status" in error &&
-      (error as { status: number }).status === 403;
+    const isForbidden = error instanceof ApiError && error.status === 403;
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <div className="text-center">

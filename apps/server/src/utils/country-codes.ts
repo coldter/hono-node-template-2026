@@ -1,4 +1,4 @@
-const ALPHA2_TO_NUMERIC: Record<string, string> = {
+const ALPHA2_TO_NUMERIC = {
   AE: "0784",
   AR: "0032",
   AT: "0040",
@@ -49,8 +49,15 @@ const ALPHA2_TO_NUMERIC: Record<string, string> = {
   US: "0840",
   VN: "0704",
   ZA: "0710",
-};
+} satisfies Record<string, string>;
+
+type Alpha2Code = keyof typeof ALPHA2_TO_NUMERIC;
+
+function isAlpha2Code(value: string): value is Alpha2Code {
+  return value in ALPHA2_TO_NUMERIC;
+}
 
 export function alpha2ToNumeric(alpha2: string): string {
-  return ALPHA2_TO_NUMERIC[alpha2.toUpperCase()] ?? alpha2;
+  const code = alpha2.toUpperCase();
+  return isAlpha2Code(code) ? ALPHA2_TO_NUMERIC[code] : alpha2;
 }

@@ -7,13 +7,14 @@ import auditLogsRoutes from "./routes";
 import { auditEventKeySchema } from "./schema";
 import { auditLogService } from "./service";
 
-const app = new OpenAPIHono<Env>({ defaultHook });
+export function createAuditLogsHandler(
+  service: Pick<typeof auditLogService, "find">
+) {
+  const app = new OpenAPIHono<Env>({ defaultHook });
 
-const auditLogsHandler = app.openapi(
-  auditLogsRoutes.listAuditLogs,
-  async (c) => {
+  return app.openapi(auditLogsRoutes.listAuditLogs, async (c) => {
     const query = c.req.valid("query");
-    const result = await auditLogService.find(query);
+    const result = await service.find(query);
 
     type AuditLogRow = (typeof result.data)[number];
     const formatAuditLog = (log: AuditLogRow) => {
@@ -36,7 +37,9 @@ const auditLogsHandler = app.openapi(
     });
 
     return c.json(paginated, 200);
-  }
-);
+  });
+}
+
+const auditLogsHandler = createAuditLogsHandler(auditLogService);
 
 export default auditLogsHandler;

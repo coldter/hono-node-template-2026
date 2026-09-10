@@ -9,6 +9,7 @@ import { Badge } from "@/modules/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/modules/ui/tooltip";
 import { EventIcon } from "../event-icon";
 import {
+  decodeAuditLogMetadata,
   getActorTypeLabel,
   getEventBadgeStyle,
   getEventDescription,
@@ -18,11 +19,11 @@ import {
 
 export type AuditLog = ListAuditLogsResponse["data"][number];
 
-const actorTypeIcons: Record<string, typeof User> = {
+const actorTypeIcons = {
   api: Globe,
   system: Bot,
   user: User,
-};
+} satisfies Record<AuditLog["actorType"], typeof User>;
 
 export const auditLogsColumns: ColumnDef<DataTableFeatures, AuditLog>[] = [
   {
@@ -54,7 +55,7 @@ export const auditLogsColumns: ColumnDef<DataTableFeatures, AuditLog>[] = [
               {getEventDescription(
                 event,
                 row.original.actorType,
-                row.original.metadata
+                decodeAuditLogMetadata(row.original.metadata)
               )}
             </span>
           </div>

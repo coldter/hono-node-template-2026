@@ -18,9 +18,20 @@ export type PolicyDecision =
       reason: DenyReason;
     };
 
+export type PrincipalAttributeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+export interface PrincipalAttributes {
+  readonly [attribute: string]: PrincipalAttributeValue;
+}
+
 export interface Principal<
   TRoles extends string = string,
-  TAttributes extends Record<string, unknown> = Record<string, unknown>,
+  TAttributes extends Record<string, unknown> = PrincipalAttributes,
   TOrgRoles extends string = string,
 > {
   attributes: TAttributes;
@@ -33,11 +44,15 @@ export interface Principal<
 
 export type ConditionEffect = "requires_resource" | "principal_only";
 
+export interface OrgRoleConditionParams {
+  readonly orgRoles: readonly string[];
+}
+
 export interface Condition<TResource = unknown> {
   effect: ConditionEffect;
   evaluate(ctx: ConditionContext<TResource>): boolean | Promise<boolean>;
   label: string;
-  params?: Record<string, unknown>;
+  params?: OrgRoleConditionParams;
   type: string;
 }
 

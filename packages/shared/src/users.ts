@@ -7,14 +7,20 @@ export const USER_STATUS = {
   LOCKED: "locked",
 } as const;
 
-export const USER_STATUS_VALUES = Object.values(USER_STATUS) as [
-  (typeof USER_STATUS)[keyof typeof USER_STATUS],
-  ...(typeof USER_STATUS)[keyof typeof USER_STATUS][],
-];
+export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
+
+export const USER_STATUS_VALUES: readonly UserStatus[] =
+  Object.values(USER_STATUS);
+
+const USER_STATUS_SET: ReadonlySet<string> = new Set<string>(
+  USER_STATUS_VALUES
+);
+
+export function isUserStatus(value: string): value is UserStatus {
+  return USER_STATUS_SET.has(value);
+}
 
 export const userStatusSchema = z.enum(USER_STATUS_VALUES);
-
-export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const USER_STATUS_CONFIG = {
   [USER_STATUS.ACTIVE]: {

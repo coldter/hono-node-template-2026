@@ -68,8 +68,7 @@ export class PolicyRuleBuilder<
 
   get label(): string {
     const roleLabel = this.roles === "*" ? "*" : this.roles.join(",");
-    const actionLabel =
-      this.actions === "*" ? "*" : (this.actions as string[]).join(",");
+    const actionLabel = this.actions === "*" ? "*" : this.actions.join(",");
     const condLabels = this.conditions.map((c) => c.label).join("+");
     return `${this.effect}:${roleLabel}:${actionLabel}${condLabels ? `:${condLabels}` : ""}`;
   }
@@ -89,7 +88,9 @@ export class PolicyRuleBuilder<
       );
     }
     this.actions =
-      actions.length === 1 && actions[0] === "*" ? "*" : (actions as TAction[]);
+      actions.length === 1 && actions[0] === "*"
+        ? "*"
+        : actions.filter((action): action is TAction => action !== "*");
     return this;
   }
 

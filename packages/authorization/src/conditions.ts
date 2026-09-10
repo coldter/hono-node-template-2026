@@ -37,9 +37,11 @@ export function createSelfTargetCondition<
         return false;
       }
 
+      // SAFETY: resources evaluated by whereTargetIsSelf expose an `id` at runtime; the coercion identity rejects non-string ids and malformed values fail closed.
       const candidate = ctx.resource as { id?: unknown };
+      const candidateId = candidate.id;
       return (
-        typeof candidate.id === "string" && candidate.id === ctx.principal.id
+        candidateId === String(candidateId) && candidateId === ctx.principal.id
       );
     },
     label: "whereTargetIsSelf",

@@ -31,6 +31,15 @@ export const NOTIFICATION_PRIORITY = [
 ] as const;
 export type NotificationPriority = (typeof NOTIFICATION_PRIORITY)[number];
 
+export type NotificationPropsScalar = string | number | boolean | null;
+
+export type NotificationPropsRecord = Record<string, NotificationPropsScalar>;
+
+export type NotificationProps = Record<
+  string,
+  NotificationPropsScalar | NotificationPropsScalar[] | NotificationPropsRecord
+>;
+
 export const notifications = pgTable(
   "notifications",
   {
@@ -48,7 +57,7 @@ export const notifications = pgTable(
       .notNull()
       .default("medium"),
 
-    props: jsonb("props").$type<Record<string, unknown>>(),
+    props: jsonb("props").$type<NotificationProps>(),
 
     providerMessageId: varchar("provider_message_id", { length: 255 }),
     readAt: timestamp("read_at", { withTimezone: true }),

@@ -47,7 +47,7 @@ export class Vault {
   }
 
   registerSchema<T>(schema: VaultSchema<T>): this {
-    this.schemas.set(schema.id, schema as VaultSchema<unknown>);
+    this.schemas.set(schema.id, schema);
     return this;
   }
 
@@ -128,7 +128,7 @@ export class Vault {
   }
 
   async encryptRaw(data: string | Buffer): Promise<SerializedEnvelope> {
-    const buffer = typeof data === "string" ? Buffer.from(data, "utf8") : data;
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, "utf8");
     const envelope = await this.provider.encrypt(buffer);
     return JSON.stringify(envelope);
   }
@@ -147,6 +147,7 @@ export class Vault {
   }
 
   getSchema<T>(schemaId: string): VaultSchema<T> | undefined {
+    // SAFETY: registerSchema stores each schema under its own id, so the caller's declared data type is the registered one for this id.
     return this.schemas.get(schemaId) as VaultSchema<T> | undefined;
   }
 

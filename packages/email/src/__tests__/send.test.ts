@@ -1,14 +1,7 @@
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-
-const nodemailerMock = vi.hoisted(() => ({
-  createTransport: vi.fn(),
-}));
-
-vi.mock("nodemailer", () => ({
-  createTransport: nodemailerMock.createTransport,
-  default: { createTransport: nodemailerMock.createTransport },
-}));
+import { createEmailSender } from "../lib/send";
+import { createTransport } from "../transports";
 
 interface DummyProps {
   name: string;
@@ -65,10 +58,12 @@ function setSmtpEnv(overrides: Record<string, string> = {}): void {
   }
 }
 
-async function sendDummy() {
-  const { sendEmail } = await import("../lib/send");
+const createTransporter = vi.fn();
 
-  return sendEmail<DummyProps>({
+let sender: ReturnType<typeof createEmailSender>;
+
+async function sendDummy() {
+  return sender<DummyProps>({
     props: { name: "Ada" },
     subject: "Hello",
     template: DummyTemplate,
@@ -91,9 +86,11 @@ const SMTP_PORT_PATTERN = /SMTP_PORT/;
 const SMTP_SECURE_PATTERN = /SMTP_SECURE/;
 
 beforeEach(() => {
-  vi.resetModules();
   restoreEnv();
-  nodemailerMock.createTransport.mockReset();
+  createTransporter.mockReset();
+  sender = createEmailSender((config) =>
+    createTransport(config, createTransporter)
+  );
   vi.spyOn(console, "log").mockImplementation(() => undefined);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 });
@@ -110,7 +107,7 @@ describe("sendEmail", () => {
     const result = await sendDummy();
 
     expect(result.messageId).toMatch(CONSOLE_MESSAGE_ID_PATTERN);
-    expect(nodemailerMock.createTransport).not.toHaveBeenCalled();
+    expect(createTransporter).not.toHaveBeenCalled();
   });
 
   test("returns the messageId from a successful SMTP send", async () => {
@@ -118,13 +115,13 @@ describe("sendEmail", () => {
     const transporter = createFakeTransporter(async () => ({
       messageId: "smtp-message-id",
     }));
-    nodemailerMock.createTransport.mockReturnValue(transporter);
+    createTransporter.mockReturnValue(transporter);
 
     const result = await sendDummy();
 
     expect(result).toEqual({ messageId: "smtp-message-id" });
-    expect(nodemailerMock.createTransport).toHaveBeenCalledTimes(1);
-    expect(nodemailerMock.createTransport.mock.calls[0]?.[0]).toMatchObject({
+    expect(createTransporter).toHaveBeenCalledTimes(1);
+    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
       requireTLS: false,
       tls: { minVersion: "TLSv1.2" },
     });
@@ -133,7 +130,7 @@ describe("sendEmail", () => {
 
   test("throws when the transport fails to deliver", async () => {
     setSmtpEnv();
-    nodemailerMock.createTransport.mockReturnValue(
+    createTransporter.mockReturnValue(
       createFakeTransporter(async () => {
         throw new Error("SMTP delivery failed");
       })
@@ -159,14 +156,14 @@ describe("sendEmail", () => {
   test("requires TLS with a TLS 1.2 minimum in production", async () => {
     process.env.NODE_ENV = "production";
     setSmtpEnv();
-    nodemailerMock.createTransport.mockReturnValue(
+    createTransporter.mockReturnValue(
       createFakeTransporter(async () => ({ messageId: "prod-message-id" }))
     );
 
     const result = await sendDummy();
 
     expect(result).toEqual({ messageId: "prod-message-id" });
-    expect(nodemailerMock.createTransport.mock.calls[0]?.[0]).toMatchObject({
+    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
       requireTLS: true,
       tls: { minVersion: "TLSv1.2" },
     });
@@ -187,7 +184,7 @@ describe("sendEmail", () => {
 
   test("does not downgrade to secure=false when secure=true hits a TLS error", async () => {
     setSmtpEnv({ SMTP_SECURE: "true" });
-    nodemailerMock.createTransport.mockReturnValue(
+    createTransporter.mockReturnValue(
       createFakeTransporter(async () => {
         throw tlsMismatchError();
       })
@@ -195,8 +192,8 @@ describe("sendEmail", () => {
 
     await expect(sendDummy()).rejects.toThrow("wrong version number");
 
-    expect(nodemailerMock.createTransport).toHaveBeenCalledTimes(1);
-    expect(nodemailerMock.createTransport.mock.calls[0]?.[0]).toMatchObject({
+    expect(createTransporter).toHaveBeenCalledTimes(1);
+    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
       secure: true,
     });
   });
@@ -209,15 +206,15 @@ describe("sendEmail", () => {
     const upgradedTransporter = createFakeTransporter(async () => ({
       messageId: "upgraded-message-id",
     }));
-    nodemailerMock.createTransport
+    createTransporter
       .mockReturnValueOnce(failingTransporter)
       .mockReturnValueOnce(upgradedTransporter);
 
     const result = await sendDummy();
 
     expect(result).toEqual({ messageId: "upgraded-message-id" });
-    expect(nodemailerMock.createTransport).toHaveBeenCalledTimes(2);
-    expect(nodemailerMock.createTransport.mock.calls[1]?.[0]).toMatchObject({
+    expect(createTransporter).toHaveBeenCalledTimes(2);
+    expect(createTransporter.mock.calls[1]?.[0]).toMatchObject({
       secure: true,
     });
     expect(failingTransporter.close).toHaveBeenCalledTimes(1);
@@ -225,7 +222,7 @@ describe("sendEmail", () => {
     const secondResult = await sendDummy();
 
     expect(secondResult).toEqual({ messageId: "upgraded-message-id" });
-    expect(nodemailerMock.createTransport).toHaveBeenCalledTimes(2);
+    expect(createTransporter).toHaveBeenCalledTimes(2);
   });
 
   test("upgrades secure=false when the runtime reports WRONG_VERSION_NUMBER", async () => {
@@ -245,15 +242,15 @@ describe("sendEmail", () => {
     const upgradedTransporter = createFakeTransporter(async () => ({
       messageId: "bun-upgraded-message-id",
     }));
-    nodemailerMock.createTransport
+    createTransporter
       .mockReturnValueOnce(failingTransporter)
       .mockReturnValueOnce(upgradedTransporter);
 
     const result = await sendDummy();
 
     expect(result).toEqual({ messageId: "bun-upgraded-message-id" });
-    expect(nodemailerMock.createTransport).toHaveBeenCalledTimes(2);
-    expect(nodemailerMock.createTransport.mock.calls[1]?.[0]).toMatchObject({
+    expect(createTransporter).toHaveBeenCalledTimes(2);
+    expect(createTransporter.mock.calls[1]?.[0]).toMatchObject({
       secure: true,
     });
   });
@@ -266,7 +263,7 @@ describe("sendEmail", () => {
     const secondTransporter = createFakeTransporter(async () => ({
       messageId: "second-message-id",
     }));
-    nodemailerMock.createTransport
+    createTransporter
       .mockReturnValueOnce(firstTransporter)
       .mockReturnValueOnce(secondTransporter);
 
@@ -280,7 +277,7 @@ describe("sendEmail", () => {
       messageId: "second-message-id",
     });
 
-    expect(nodemailerMock.createTransport).toHaveBeenCalledTimes(2);
+    expect(createTransporter).toHaveBeenCalledTimes(2);
     expect(firstTransporter.close).toHaveBeenCalledTimes(1);
     expect(secondTransporter.close).not.toHaveBeenCalled();
   });
@@ -290,12 +287,12 @@ describe("sendEmail", () => {
     const transporter = createFakeTransporter(async () => ({
       messageId: "cached-message-id",
     }));
-    nodemailerMock.createTransport.mockReturnValue(transporter);
+    createTransporter.mockReturnValue(transporter);
 
     await sendDummy();
     await sendDummy();
 
-    expect(nodemailerMock.createTransport).toHaveBeenCalledTimes(1);
+    expect(createTransporter).toHaveBeenCalledTimes(1);
     expect(transporter.close).not.toHaveBeenCalled();
   });
 });

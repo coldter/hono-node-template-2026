@@ -21,7 +21,7 @@ export function CommandMenu() {
   const { open, setOpen } = useSearchBar();
 
   const runCommand = React.useCallback(
-    (command: () => unknown) => {
+    (command: () => void) => {
       setOpen(false);
       command();
     },

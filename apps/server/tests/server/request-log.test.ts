@@ -2,16 +2,13 @@ import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "@/lib/context";
+import { logger } from "@/lib/logger";
 
-const logSpy = vi.hoisted(() => vi.fn());
+const httpLogger = logger.child({ label: "Http-Request" });
+const logSpy = vi.spyOn(httpLogger, "log").mockReturnValue(httpLogger);
+vi.spyOn(logger, "child").mockReturnValue(httpLogger);
 
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    child: () => ({ log: logSpy }),
-  },
-}));
-
-import { requestLogMiddleware } from "@/middlewares/request-log";
+const { requestLogMiddleware } = await import("@/middlewares/request-log");
 
 function makeApp() {
   const app = new Hono<Env>();

@@ -1,12 +1,22 @@
 import { sql } from "drizzle-orm";
-import { db, isDbSkipped } from "@/db";
+
+import type { Executor } from "@/db";
 import { logger } from "@/lib/logger";
-import { getRedis, isRedisEnabled } from "@/lib/redis";
 
 export type ReadinessChecks = {
   database: boolean;
 
   redis: boolean | null;
+};
+
+export type ReadinessRedis = {
+  getClient(): Promise<{ ping(): Promise<string> }>;
+  isEnabled(): boolean;
+};
+
+export type ReadinessDependencies = {
+  database: Executor | null;
+  redis: ReadinessRedis;
 };
 
 const DEFAULT_PROBE_TIMEOUT_MS = 2000;
@@ -31,8 +41,11 @@ async function withProbeTimeout<T>(
   }
 }
 
-async function probeDatabase(timeoutMs: number): Promise<boolean> {
-  if (isDbSkipped) {
+async function probeDatabase(
+  db: Executor | null,
+  timeoutMs: number
+): Promise<boolean> {
+  if (db === null) {
     return true;
   }
   try {
@@ -46,13 +59,16 @@ async function probeDatabase(timeoutMs: number): Promise<boolean> {
   }
 }
 
-async function probeRedis(timeoutMs: number): Promise<boolean | null> {
-  if (!isRedisEnabled()) {
+async function probeRedis(
+  redis: ReadinessRedis,
+  timeoutMs: number
+): Promise<boolean | null> {
+  if (!redis.isEnabled()) {
     return null;
   }
   try {
     await withProbeTimeout(
-      getRedis().then((client) => client.ping()),
+      redis.getClient().then((client) => client.ping()),
       timeoutMs
     );
     return true;
@@ -65,11 +81,12 @@ async function probeRedis(timeoutMs: number): Promise<boolean | null> {
 }
 
 export async function checkReadiness(
+  dependencies: ReadinessDependencies,
   timeoutMs = DEFAULT_PROBE_TIMEOUT_MS
 ): Promise<ReadinessChecks> {
   const [database, redis] = await Promise.all([
-    probeDatabase(timeoutMs),
-    probeRedis(timeoutMs),
+    probeDatabase(dependencies.database, timeoutMs),
+    probeRedis(dependencies.redis, timeoutMs),
   ]);
   return { database, redis };
 }

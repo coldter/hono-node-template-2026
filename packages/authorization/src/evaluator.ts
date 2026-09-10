@@ -7,28 +7,30 @@ import type {
   Principal,
 } from "./types";
 
-export interface EvaluateInput {
+export interface EvaluateInput<TResource = unknown> {
   action: string;
   globalPolicies: PolicyRule[];
   principal: Principal | null | undefined;
-  resolveOrganization?: (resource: never) => string | null | undefined;
-  resource?: unknown;
+  resolveOrganization?: (resource: TResource) => string | null | undefined;
+  resource?: TResource;
   resourcePolicies: PolicyRule[];
   systemAdminRoles: readonly string[];
 }
 
-export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
+export async function evaluate<TResource = unknown>(
+  input: EvaluateInput<TResource>
+): Promise<PolicyDecision> {
   return runEvaluation(input, false);
 }
 
-export async function evaluateOptimistic(
-  input: EvaluateInput
+export async function evaluateOptimistic<TResource = unknown>(
+  input: EvaluateInput<TResource>
 ): Promise<PolicyDecision> {
   return runEvaluation(input, true);
 }
 
-async function runEvaluation(
-  input: EvaluateInput,
+async function runEvaluation<TResource>(
+  input: EvaluateInput<TResource>,
   optimistic: boolean
 ): Promise<PolicyDecision> {
   const {
@@ -192,10 +194,10 @@ function hasResourceConditions(policy: PolicyRule): boolean {
   return policy.conditions.some((c) => c.effect === "requires_resource");
 }
 
-function describeError(error: unknown) {
-  return error instanceof Error
-    ? { message: error.message, name: error.name, stack: error.stack }
-    : { value: String(error) };
+function describeError(cause: unknown) {
+  return cause instanceof Error
+    ? { message: cause.message, name: cause.name, stack: cause.stack }
+    : { value: String(cause) };
 }
 
 type MatchResult = {
@@ -204,11 +206,11 @@ type MatchResult = {
   conditionError?: true;
 };
 
-async function matchPolicy(
+async function matchPolicy<TResource>(
   policy: PolicyRule,
   principal: Principal,
   action: string,
-  resource: unknown | undefined,
+  resource: TResource | undefined,
   optimistic: boolean
 ): Promise<MatchResult> {
   if (!roleMatches(policy, principal)) {
@@ -268,10 +270,10 @@ type OrgCheckResult =
     }
   | { cause: unknown; kind: "error" };
 
-function checkOrgScoping(
+function checkOrgScoping<TResource>(
   principal: Principal,
-  resource: unknown,
-  resolveOrganization: (resource: never) => string | null | undefined,
+  resource: TResource,
+  resolveOrganization: (resource: TResource) => string | null | undefined,
   policy: PolicyRule,
   systemAdminRoles: readonly string[]
 ): OrgCheckResult {
@@ -290,9 +292,7 @@ function checkOrgScoping(
 
   let resourceOrgId: string | null | undefined;
   try {
-    resourceOrgId = (
-      resolveOrganization as (r: unknown) => string | null | undefined
-    )(resource);
+    resourceOrgId = resolveOrganization(resource);
   } catch (error) {
     console.error(
       JSON.stringify({

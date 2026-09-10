@@ -75,6 +75,21 @@ export type SessionWithAdditionalFields = {
   activeOrgRole: string | null;
 };
 
+type SessionInference = {
+  Session: {
+    user: User & UserWithStatusFields;
+    session: Session & SessionWithAdditionalFields;
+  };
+};
+
+type EndpointContext = {
+  context?: {
+    session?: {
+      user?: { id?: string } | null;
+    } | null;
+  };
+};
+
 const MOBILE_PATTERNS = [
   /android/i,
   /iphone/i,
@@ -118,7 +133,9 @@ const endpointCtxSchema = z
   })
   .loose();
 
-function getSessionUserId(ctx: unknown): string | undefined {
+function getSessionUserId(
+  ctx: EndpointContext | null | undefined
+): string | undefined {
   const parsed = endpointCtxSchema.safeParse(ctx);
   if (!parsed.success) {
     return;
@@ -353,11 +370,9 @@ const authConfig = {
             return { data: session };
           }
 
-          const persistedPlatform =
-            typeof (session as { platform?: unknown }).platform === "string" &&
-            (session as { platform: string }).platform === "mobile"
-              ? ("mobile" as const)
-              : ("web" as const);
+          const persistedPlatform = platformSchema
+            .catch("web")
+            .parse(session.platform);
 
           if (persistedPlatform === "web") {
             return {
@@ -376,19 +391,21 @@ const authConfig = {
     },
     user: {
       create: {
-        before: async (user) => ({
-          data: {
-            ...user,
-            email:
-              typeof user.email === "string"
-                ? user.email.trim().toLowerCase()
+        before: async (user) => {
+          const email = z.string().safeParse(user.email);
+          return {
+            data: {
+              ...user,
+              email: email.success
+                ? email.data.trim().toLowerCase()
                 : user.email,
-            failedLoginAttempts: 0,
-            roleSlugs: [SYSTEM_ROLES.USER.slug],
-            status: "active",
-            twoFactorEnabled: false,
-          },
-        }),
+              failedLoginAttempts: 0,
+              roleSlugs: [SYSTEM_ROLES.USER.slug],
+              status: "active",
+              twoFactorEnabled: false,
+            },
+          };
+        },
       },
       update: {
         after: async (user, context) => {
@@ -399,11 +416,11 @@ const authConfig = {
             const { AUDIT_EVENTS, TARGET_TYPES } = await import(
               "@/modules/audit-logs/constants"
             );
-            const userId =
-              typeof user?.id === "string" ? (user.id as string) : null;
-            if (!userId) {
+            const parsedUserId = z.string().safeParse(user?.id);
+            if (!(parsedUserId.success && parsedUserId.data)) {
               return;
             }
+            const userId = parsedUserId.data;
             const actorId = getSessionUserId(context) ?? userId;
             await auditLogService.create({
               actorId,
@@ -530,12 +547,8 @@ const authConfig = {
       disableDefaultReference: true,
     }),
     {
-      $Infer: {} as {
-        Session: {
-          user: User & UserWithStatusFields;
-          session: Session & SessionWithAdditionalFields;
-        };
-      },
+      // SAFETY: better-auth reads `$Infer` only at the type level, so this runtime value is intentionally empty.
+      $Infer: {} as SessionInference,
       id: "override-type",
     },
   ],

@@ -19,10 +19,12 @@ export function isHealthCheckPath(path: string): boolean {
   return HEALTH_CHECK_PATHS.has(path);
 }
 
-export function getClientAddressInfo(c: Context<Env>): {
+export interface ClientAddressInfo {
   forwardedFor: string | undefined;
   remoteAddress: string | undefined;
-} {
+}
+
+export function getClientAddressInfo(c: Context<Env>): ClientAddressInfo {
   let remoteAddress: string | undefined;
   try {
     remoteAddress = getConnInfo(c).remote.address ?? undefined;

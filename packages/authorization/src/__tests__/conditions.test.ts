@@ -93,8 +93,8 @@ describe("createSelfTargetCondition", () => {
 
 describe("createPredicateCondition", () => {
   it("evaluates sync predicate", () => {
-    const condition = createPredicateCondition(
-      (ctx) => (ctx.resource as { status: string }).status === "draft",
+    const condition = createPredicateCondition<{ status: string }>(
+      (ctx) => ctx.resource?.status === "draft",
       "custom:draft-check"
     );
     const ctx: ConditionContext<{ status: string }> = {

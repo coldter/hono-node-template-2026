@@ -13,7 +13,6 @@ import {
 } from "./helpers";
 import notificationsRoutes from "./routes";
 import { notificationService } from "./service";
-import type { ListNotificationsQuery } from "./types";
 
 const app = new OpenAPIHono<Env>({ defaultHook });
 
@@ -22,10 +21,7 @@ const notificationsHandler = app
     const userId = requireUserId(c);
     const query = c.req.valid("query");
 
-    const result = await notificationService.listByUser(userId, {
-      ...query,
-      sort: query.sort as ListNotificationsQuery["sort"],
-    });
+    const result = await notificationService.listByUser(userId, query);
 
     return c.json(
       {

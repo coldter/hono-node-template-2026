@@ -6,16 +6,10 @@ import {
 import type { AuditEventKey } from "@/modules/audit-logs/types";
 
 export const ACTOR_TYPES = SHARED_ACTOR_TYPES;
-export const ACTOR_TYPE_VALUES = Object.values(ACTOR_TYPES) as [
-  (typeof ACTOR_TYPES)[keyof typeof ACTOR_TYPES],
-  ...(typeof ACTOR_TYPES)[keyof typeof ACTOR_TYPES][],
-];
+export const ACTOR_TYPE_VALUES = Object.values(ACTOR_TYPES);
 
 export const TARGET_TYPES = SHARED_TARGET_TYPES;
-export const TARGET_TYPE_VALUES = Object.values(TARGET_TYPES) as [
-  (typeof TARGET_TYPES)[keyof typeof TARGET_TYPES],
-  ...(typeof TARGET_TYPES)[keyof typeof TARGET_TYPES][],
-];
+export const TARGET_TYPE_VALUES = Object.values(TARGET_TYPES);
 
 export const AUDIT_EVENTS = SHARED_AUDIT_EVENTS;
 

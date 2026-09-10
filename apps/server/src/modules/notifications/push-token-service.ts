@@ -1,12 +1,16 @@
 import { pushTokens } from "@repo/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
-import { db } from "@/db";
+import { db, type Executor } from "@/db";
 import type { PushTokenRecord, RegisterPushTokenInput } from "./types";
 
 export const notificationPushTokenService = {
-  async deactivatePushToken(tokenId: string, userId: string): Promise<boolean> {
-    const result = await db
+  async deactivatePushToken(
+    tokenId: string,
+    userId: string,
+    executor: Executor = db
+  ): Promise<boolean> {
+    const result = await executor
       .update(pushTokens)
       .set({ isActive: false })
       .where(and(eq(pushTokens.id, tokenId), eq(pushTokens.userId, userId)))
@@ -14,15 +18,21 @@ export const notificationPushTokenService = {
     return result.length > 0;
   },
 
-  async deletePushTokenByToken(token: string): Promise<boolean> {
-    const result = await db
+  async deletePushTokenByToken(
+    token: string,
+    executor: Executor = db
+  ): Promise<boolean> {
+    const result = await executor
       .delete(pushTokens)
       .where(eq(pushTokens.token, token))
       .returning({ id: pushTokens.id });
     return result.length > 0;
   },
-  async listPushTokens(userId: string): Promise<PushTokenRecord[]> {
-    return db
+  async listPushTokens(
+    userId: string,
+    executor: Executor = db
+  ): Promise<PushTokenRecord[]> {
+    return executor
       .select()
       .from(pushTokens)
       .where(and(eq(pushTokens.userId, userId), eq(pushTokens.isActive, true)))
@@ -32,9 +42,10 @@ export const notificationPushTokenService = {
   async registerPushToken(
     userId: string,
     sessionId: string,
-    input: RegisterPushTokenInput
+    input: RegisterPushTokenInput,
+    executor: Executor = db
   ): Promise<PushTokenRecord> {
-    const [existing] = await db
+    const [existing] = await executor
       .select()
       .from(pushTokens)
       .where(eq(pushTokens.token, input.token))
@@ -47,7 +58,7 @@ export const notificationPushTokenService = {
     }
 
     if (existing) {
-      const [updated] = await db
+      const [updated] = await executor
         .update(pushTokens)
         .set({
           deviceId: input.deviceId ?? existing.deviceId,
@@ -63,7 +74,7 @@ export const notificationPushTokenService = {
       return updated ?? existing;
     }
 
-    const [newToken] = await db
+    const [newToken] = await executor
       .insert(pushTokens)
       .values({
         deviceId: input.deviceId ?? null,

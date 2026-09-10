@@ -3,29 +3,35 @@ import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import pg from "pg";
 import { PostgresError } from "pg-error-enum";
+import { z } from "zod";
 import { env } from "@/env";
 import type { Env } from "@/lib/context";
 import { logger } from "@/lib/logger";
 import { getTraceIdFromContext } from "@/lib/otel-utils";
 
-function errorResponse(
-  code: string,
-  message: string,
-  details?: string
-): { error: { code: string; message: string; details?: string } } {
-  return {
-    error: {
-      code,
-      message,
-      ...(details ? { details } : {}),
-    },
-  };
+const errorCauseSchema = z.object({ code: z.string() });
+
+const defaultCodeByStatus = new Map([
+  [400, "BAD_REQUEST"],
+  [401, "UNAUTHORIZED"],
+  [403, "FORBIDDEN"],
+  [404, "NOT_FOUND"],
+  [405, "METHOD_NOT_ALLOWED"],
+  [409, "CONFLICT"],
+  [429, "RATE_LIMITED"],
+  [500, "INTERNAL_SERVER_ERROR"],
+  [503, "SERVICE_UNAVAILABLE"],
+]);
+
+function errorResponse(code: string, message: string, details?: string) {
+  if (!details) {
+    return { error: { code, message } };
+  }
+
+  return { error: { code, details, message } };
 }
 
-function requestCorrelation(c: Context<Env>): {
-  request_id: string | null;
-  trace_id: string | null;
-} {
+function requestCorrelation(c: Context<Env>) {
   return {
     request_id: c.get("requestId") ?? null,
     trace_id: getTraceIdFromContext(c),
@@ -44,27 +50,11 @@ export function handleError(err: Error, c: Context<Env>): Response {
         ...requestCorrelation(c),
       });
     }
-    const causeCode =
-      typeof err.cause === "object" &&
-      err.cause !== null &&
-      "code" in err.cause &&
-      typeof (err.cause as { code?: unknown }).code === "string"
-        ? (err.cause as { code: string }).code
-        : null;
-    const defaultCodeByStatus: Record<number, string> = {
-      400: "BAD_REQUEST",
-      401: "UNAUTHORIZED",
-      403: "FORBIDDEN",
-      404: "NOT_FOUND",
-      405: "METHOD_NOT_ALLOWED",
-      409: "CONFLICT",
-      429: "RATE_LIMITED",
-      500: "INTERNAL_SERVER_ERROR",
-      503: "SERVICE_UNAVAILABLE",
-    };
+    const parsedCause = errorCauseSchema.safeParse(err.cause);
+    const causeCode = parsedCause.success ? parsedCause.data.code : null;
     const errorCode =
       causeCode ??
-      defaultCodeByStatus[err.status] ??
+      defaultCodeByStatus.get(err.status) ??
       (err.status >= 500 ? "INTERNAL_SERVER_ERROR" : "REQUEST_FAILED");
 
     const responseMessage =

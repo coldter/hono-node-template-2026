@@ -1,4 +1,4 @@
-import { useTable } from "@tanstack/react-table";
+import { functionalUpdate, useTable } from "@tanstack/react-table";
 import { useEffect } from "react";
 
 import type { NavigateFn } from "@/hooks/use-table-url-state";
@@ -19,19 +19,18 @@ export function UsersTable() {
   const search = Route.useSearch();
 
   const tableNavigate: NavigateFn = ({ search: searchUpdate, replace }) => {
-    if (typeof searchUpdate === "function") {
-      routeNavigate({
-        replace,
-        search: (prev: UsersSearch) => ({ ...prev, ...searchUpdate(prev) }),
-      });
-    } else if (searchUpdate === true) {
+    if (searchUpdate === true) {
       routeNavigate({ replace, search: true });
-    } else {
-      routeNavigate({
-        replace,
-        search: (prev: UsersSearch) => ({ ...prev, ...searchUpdate }),
-      });
+      return;
     }
+
+    routeNavigate({
+      replace,
+      search: (prev: UsersSearch) => ({
+        ...prev,
+        ...functionalUpdate(searchUpdate, prev),
+      }),
+    });
   };
 
   const {

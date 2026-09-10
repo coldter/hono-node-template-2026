@@ -149,7 +149,7 @@ function validateRoles(
 }
 
 function validateOrgRoles(
-  orgRoles: unknown,
+  orgRoles: readonly string[] | undefined,
   orgRoleValues: readonly string[],
   context: { label: string; scope: string }
 ): void {
@@ -159,9 +159,9 @@ function validateOrgRoles(
     );
   }
   for (const role of orgRoles) {
-    if (typeof role !== "string" || !orgRoleValues.includes(role)) {
+    if (!orgRoleValues.includes(role)) {
       throw new Error(
-        `Policy "${context.label}" in ${context.scope} references org role "${String(role)}" not in schema. Available: ${orgRoleValues.join(", ")}`
+        `Policy "${context.label}" in ${context.scope} references org role "${role}" not in schema. Available: ${orgRoleValues.join(", ")}`
       );
     }
   }

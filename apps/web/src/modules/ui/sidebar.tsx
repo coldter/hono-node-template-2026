@@ -68,24 +68,25 @@ function SidebarProvider({
   const [_open, _setOpen] = React.useState(defaultOpen);
   const open = openProp ?? _open;
   const setOpen = React.useCallback(
-    (value: boolean | ((value: boolean) => boolean)) => {
-      const openState = typeof value === "function" ? value(open) : value;
+    (value: boolean) => {
       if (setOpenProp) {
-        setOpenProp(openState);
+        setOpenProp(value);
       } else {
-        _setOpen(openState);
+        _setOpen(value);
       }
 
-      useUIStore.getState().setSidebarOpen(openState);
+      useUIStore.getState().setSidebarOpen(value);
     },
-    [setOpenProp, open]
+    [setOpenProp]
   );
 
-  const toggleSidebar = React.useCallback(
-    () =>
-      isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open),
-    [isMobile, setOpen]
-  );
+  const toggleSidebar = React.useCallback(() => {
+    if (isMobile) {
+      setOpenMobile((openMobile) => !openMobile);
+    } else {
+      setOpen(!open);
+    }
+  }, [isMobile, open, setOpen]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -117,6 +118,7 @@ function SidebarProvider({
     [state, open, setOpen, isMobile, openMobile, toggleSidebar]
   );
 
+  // SAFETY: React's CSSProperties has no index signature for CSS custom properties, so the cast supplies only the `--*` variables the sidebar CSS consumes.
   return (
     <SidebarContext.Provider value={contextValue}>
       <TooltipProvider delayDuration={0}>
@@ -172,6 +174,7 @@ function Sidebar({
   }
 
   if (isMobile) {
+    // SAFETY: React's CSSProperties has no index signature for CSS custom properties, so the cast supplies only the `--sidebar-width` variable the mobile sheet consumes.
     return (
       <Sheet onOpenChange={setOpenMobile} open={openMobile} {...props}>
         <SheetContent
@@ -205,7 +208,6 @@ function Sidebar({
       data-state={state}
       data-variant={variant}
     >
-      {/* This is what handles the sidebar gap on desktop */}
       <div
         className={cn(
           "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
@@ -496,12 +498,14 @@ function SidebarMenuButton({
   variant = "default",
   size = "default",
   tooltip,
+  tooltipContentProps,
   className,
   ...props
 }: React.ComponentProps<"button"> & {
   asChild?: boolean;
   isActive?: boolean;
-  tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+  tooltip?: React.ReactNode;
+  tooltipContentProps?: React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot : "button";
   const { isMobile, state } = useSidebar();
@@ -521,12 +525,6 @@ function SidebarMenuButton({
     return button;
   }
 
-  if (typeof tooltip === "string") {
-    tooltip = {
-      children: tooltip,
-    };
-  }
-
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
@@ -534,8 +532,10 @@ function SidebarMenuButton({
         align="center"
         hidden={state !== "collapsed" || isMobile}
         side="right"
-        {...tooltip}
-      />
+        {...tooltipContentProps}
+      >
+        {tooltip}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -606,6 +606,7 @@ function SidebarMenuSkeleton({
     []
   );
 
+  // SAFETY: React's CSSProperties has no index signature for CSS custom properties, so the cast supplies only the `--skeleton-width` variable the skeleton CSS consumes.
   return (
     <div
       className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}

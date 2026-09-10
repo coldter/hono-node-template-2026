@@ -25,9 +25,13 @@ if (env.NODE_ENV === "production") {
   process.exit(1);
 }
 
-function prettyJson(data: unknown): string {
+function prettyJson(data: Record<string, string>): string {
   const json = JSON.stringify(data, null, 2);
   return highlight(json, { ignoreIllegals: true, language: "json" });
+}
+
+function isNotificationType(value: string): value is NotificationType {
+  return Object.values(NOTIFICATION_TYPES).some((type) => type === value);
 }
 
 function printHeader(): void {
@@ -185,15 +189,18 @@ async function sendCommand(
   let type: NotificationType;
 
   if (notificationType) {
-    const allTypes: string[] = Object.values(NOTIFICATION_TYPES);
-    if (!allTypes.includes(notificationType)) {
+    if (!isNotificationType(notificationType)) {
       console.error(
         chalk.red(`Unknown notification type: ${notificationType}`)
       );
-      console.log(chalk.dim(`Available types:\n  ${allTypes.join("\n  ")}`));
+      console.log(
+        chalk.dim(
+          `Available types:\n  ${Object.values(NOTIFICATION_TYPES).join("\n  ")}`
+        )
+      );
       return;
     }
-    type = notificationType as NotificationType;
+    type = notificationType;
   } else {
     const allTypes = Object.values(NOTIFICATION_TYPES);
     type = await select({
@@ -462,9 +469,10 @@ async function sendRawCommand(
 async function sendAllTypesCommand(identifier: string): Promise<void> {
   const user = await resolveUser(identifier);
 
-  const pushTypes = Object.entries(NOTIFICATION_TYPE_CONFIG)
-    .filter(([, config]) => config.channels.includes("push"))
-    .map(([type]) => type as NotificationType);
+  const pushTypes = Object.entries(NOTIFICATION_TYPE_CONFIG).flatMap(
+    ([type, config]) =>
+      config.channels.includes("push") && isNotificationType(type) ? [type] : []
+  );
 
   console.log(
     chalk.dim(

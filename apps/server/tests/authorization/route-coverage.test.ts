@@ -1,5 +1,5 @@
+import type { RouteConfig } from "@hono/zod-openapi";
 import { isAuthorizationGuard } from "@repo/authorization/hono";
-import type { MiddlewareHandler } from "hono";
 import { describe, expect, it } from "vitest";
 import auditLogsRoutes from "@/modules/audit-logs/routes";
 import rolesRoutes from "@/modules/auth/roles/routes";
@@ -11,11 +11,15 @@ const routeMaps = {
   notifications: notificationsRoutes,
   roles: rolesRoutes,
   users: usersRoutes,
-};
+} satisfies Record<string, Record<string, RouteConfig>>;
 
-function middlewareOf(route: unknown): MiddlewareHandler[] {
-  const { middleware } = route as { middleware?: unknown };
-  return Array.isArray(middleware) ? middleware : [];
+function middlewareOf(route: RouteConfig) {
+  if (!route.middleware) {
+    return [];
+  }
+  return Array.isArray(route.middleware)
+    ? route.middleware
+    : [route.middleware];
 }
 
 const routes = Object.entries(routeMaps).flatMap(([routeModule, routeMap]) =>

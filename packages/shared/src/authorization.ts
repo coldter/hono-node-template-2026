@@ -4,7 +4,7 @@ import {
   principalNotActive,
 } from "@repo/authorization";
 import { SYSTEM_ROLE_SLUG_VALUES } from "./roles";
-import { USER_STATUS_VALUES, type UserStatus } from "./users";
+import { isUserStatus, type UserStatus } from "./users";
 
 export { SYSTEM_ROLE_SLUG_VALUES, SYSTEM_ROLES } from "./roles";
 
@@ -39,24 +39,20 @@ export type AuthorizationSessionInput = {
   activeOrgRole?: string | null;
 };
 
-const VALID_STATUSES = new Set<AuthorizationAttributes["status"]>(
-  USER_STATUS_VALUES
-);
-
-const VALID_ORG_ROLES = new Set<AuthorizationOrgRole>([
-  "owner",
-  "admin",
-  "member",
-]);
+const VALID_ORG_ROLES: Record<AuthorizationOrgRole, true> = {
+  admin: true,
+  member: true,
+  owner: true,
+};
 
 export function isAuthorizationRole(slug: string): slug is AuthorizationRole {
-  return SYSTEM_ROLE_SLUG_VALUES.includes(slug as AuthorizationRole);
+  return SYSTEM_ROLE_SLUG_VALUES.some((role) => role === slug);
 }
 
 export function isAuthorizationOrgRole(
   role: string
 ): role is AuthorizationOrgRole {
-  return VALID_ORG_ROLES.has(role as AuthorizationOrgRole);
+  return Object.hasOwn(VALID_ORG_ROLES, role);
 }
 
 export function buildAuthorizationPrincipal(
@@ -67,27 +63,29 @@ export function buildAuthorizationPrincipal(
   const roles = allSlugs.filter(isAuthorizationRole);
 
   const requestedStatus = user.status;
-  const status = VALID_STATUSES.has(
-    requestedStatus as AuthorizationAttributes["status"]
-  )
-    ? (requestedStatus as AuthorizationAttributes["status"])
-    : "deleted";
+  const status =
+    requestedStatus !== undefined && isUserStatus(requestedStatus)
+      ? requestedStatus
+      : "deleted";
 
-  return {
+  const principal: AuthorizationPrincipal = {
     attributes: { status },
     id: user.id,
     roles,
-    ...(session.activeOrganizationId &&
+  };
+
+  if (
+    session.activeOrganizationId &&
     session.activeOrgRole &&
     isAuthorizationOrgRole(session.activeOrgRole)
-      ? {
-          organization: {
-            id: session.activeOrganizationId,
-            role: session.activeOrgRole,
-          },
-        }
-      : {}),
-  };
+  ) {
+    principal.organization = {
+      id: session.activeOrganizationId,
+      role: session.activeOrgRole,
+    };
+  }
+
+  return principal;
 }
 
 export interface UserAuthorizationResource {

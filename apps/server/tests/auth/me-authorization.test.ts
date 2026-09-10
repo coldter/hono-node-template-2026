@@ -1,3 +1,4 @@
+import type { RouteConfig } from "@hono/zod-openapi";
 import {
   authorization,
   buildAuthorizationPrincipal,
@@ -14,21 +15,47 @@ const currentUser = buildAuthorizationPrincipal({
   status: "active",
 });
 
-const getMyAccountMiddleware =
-  (usersRoutes.getMyAccount as unknown as { middleware?: MiddlewareHandler[] })
-    .middleware ?? [];
+const sessionUser: Env["Variables"]["user"] = {
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  deactivatedAt: null,
+  deactivatedBy: null,
+  deactivatedReason: null,
+  email: "self@example.com",
+  emailVerified: true,
+  failedLoginAttempts: 0,
+  id: "usr_self",
+  image: null,
+  lockedUntil: null,
+  name: "Self",
+  onboardingCompletedAt: null,
+  roleSlugs: ["user"],
+  status: "active",
+  twoFactorEnabled: false,
+  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
 
-async function requestMyAccount() {
+const getMyAccountRoute: RouteConfig = usersRoutes.getMyAccount;
+
+function routeMiddleware(route: RouteConfig): MiddlewareHandler[] {
+  if (!route.middleware) {
+    return [];
+  }
+  return Array.isArray(route.middleware)
+    ? route.middleware
+    : [route.middleware];
+}
+
+const getMyAccountMiddleware = routeMiddleware(getMyAccountRoute);
+
+function createApp(user: Env["Variables"]["user"]): Hono<Env> {
   const app = new Hono<Env>();
 
-  app.use(async (c, next) => {
-    c.set("user", {
-      id: currentUser.id,
-      roleSlugs: ["user"],
-      status: "active",
-    } as Env["Variables"]["user"]);
-    await next();
-  });
+  if (user) {
+    app.use(async (c, next) => {
+      c.set("user", user);
+      await next();
+    });
+  }
 
   for (const middleware of getMyAccountMiddleware) {
     app.use("/me", middleware);
@@ -36,20 +63,12 @@ async function requestMyAccount() {
 
   app.get("/me", (c) => c.json({ ok: true }));
 
-  return app.request("/me");
+  return app;
 }
 
 describe("GET /api/users/me authorization", () => {
   it("returns 401 when unauthenticated", async () => {
-    const app = new Hono<Env>();
-
-    for (const middleware of getMyAccountMiddleware) {
-      app.use("/me", middleware);
-    }
-
-    app.get("/me", (c) => c.json({ ok: true }));
-
-    const response = await app.request("/me");
+    const response = await createApp(null).request("/me");
     expect(response.status).toBe(401);
   });
 
@@ -62,7 +81,7 @@ describe("GET /api/users/me authorization", () => {
   });
 
   it("authorizes the getMyAccount route guard with the current user resource", async () => {
-    const response = await requestMyAccount();
+    const response = await createApp(sessionUser).request("/me");
     expect(response.status).toBe(200);
   });
 });

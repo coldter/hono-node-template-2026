@@ -3,14 +3,14 @@ import { db } from "@/db";
 import { EVENTS, pushEvent } from "@/lib/events";
 import { isHatchetEnabled } from "@/lib/hatchet";
 import { logger } from "@/lib/logger";
-import { NOTIFICATION_TYPE_CONFIG, type NotificationType } from "./constants";
+import { NOTIFICATION_TYPE_CONFIG } from "./constants";
 import { resolveEnabledChannels } from "./helpers";
 import { notificationPreferencesService } from "./preferences-service";
 import type { SendNotificationInput, SendResult } from "./types";
 
 export const notificationDeliveryService = {
   async send(input: SendNotificationInput): Promise<SendResult> {
-    const typeConfig = NOTIFICATION_TYPE_CONFIG[input.type as NotificationType];
+    const typeConfig = NOTIFICATION_TYPE_CONFIG[input.type];
     const requestedChannels = input.channels ??
       typeConfig?.channels ?? ["push"];
     const priority = input.priority ?? typeConfig?.priority ?? "medium";

@@ -13,6 +13,7 @@ function isAuthRoute(path: string): boolean {
 async function getBetterAuthSession(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
 
+  // SAFETY: this auth instance declares the augmented session shape through its $Infer override.
   return session as typeof auth.$Infer.Session | null;
 }
 

@@ -1,123 +1,128 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import type { Context, Next } from "hono";
+import type { AuditLog } from "@repo/db/schema";
+import { buildAuthorizationPrincipal } from "@repo/shared/authorization";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+import type { Env } from "@/lib/context";
+import { createAuditLogsHandler } from "@/modules/audit-logs/handler";
+import type { auditLogService } from "@/modules/audit-logs/service";
 
-vi.mock("@/middlewares/rate-limit", () => ({
-  globalRateLimitMW: async (_c: Context, next: Next) => {
+const findMock = vi.fn<typeof auditLogService.find>();
+
+const adminPrincipal = buildAuthorizationPrincipal({
+  id: "usr_admin",
+  roleSlugs: ["admin"],
+  status: "active",
+});
+
+function createApp() {
+  const app = new OpenAPIHono<Env>();
+
+  app.use(async (c, next) => {
+    c.set("principal", adminPrincipal);
     await next();
-  },
-  rateLimiter: vi.fn().mockReturnValue(async (_c: Context, next: Next) => {
-    await next();
+  });
+  app.route("/", createAuditLogsHandler({ find: findMock }));
+
+  return app;
+}
+
+const baseRow = {
+  actorId: "usr_actor",
+  actorType: "user",
+  createdAt: new Date("2026-05-01T00:00:00.000Z"),
+  event: "user.created",
+  id: "row_known",
+  ipAddress: "127.0.0.1",
+  metadata: null,
+  targetId: "usr_target",
+  targetType: "user",
+  userAgent: "vitest",
+} satisfies AuditLog;
+
+function droppedEventRow(id: string): AuditLog {
+  const legacyEvent: string = "legacy.unknown.event";
+
+  // SAFETY: stored audit rows can carry event keys from a newer deploy than this build's enum; dropping that drift is the behavior under test.
+  return { ...baseRow, event: legacyEvent, id } as AuditLog;
+}
+
+const responseBodySchema = z.object({
+  data: z.array(z.object({ event: z.string(), id: z.string() })),
+  meta: z.object({
+    page: z.number(),
+    pageCount: z.number(),
+    perPage: z.number(),
+    total: z.number(),
   }),
-}));
-
-vi.mock("@/auth/middleware", () => ({
-  authorize: () => async (_c: Context, next: Next) => {
-    await next();
-  },
-  getAuthorizedResource: () => null,
-  resolvePrincipalFromContext: () => null,
-}));
-
-const findMock = vi.fn();
-
-vi.mock("@/modules/audit-logs/service", () => ({
-  auditLogService: {
-    create: vi.fn(),
-    find: (...args: unknown[]) => findMock(...args),
-  },
-}));
-
-vi.mock("@/modules/auth/handler", () => ({
-  default: new OpenAPIHono(),
-}));
-
-const auditLogsHandler = (await import("@/modules/audit-logs/handler")).default;
+});
 
 beforeEach(() => {
   findMock.mockReset();
 });
 
-type ListResponseBody = {
-  data: Array<{ id: string; event: string }>;
-  meta: { total: number; page: number; perPage: number; pageCount: number };
-};
-
 describe("audit-logs handler event filtering", () => {
-  it("should drop rows with unknown event keys via flatMap", async () => {
-    const baseRow = {
-      actorId: "usr_actor",
-      actorType: "user",
-      createdAt: new Date("2026-05-01T00:00:00.000Z"),
-      event: "user.created",
-      id: "row_known",
-      ipAddress: "127.0.0.1",
-      metadata: null,
-      targetId: "usr_target",
-      targetType: "user",
-      userAgent: "vitest",
-    };
-    const unknownRow = {
-      ...baseRow,
-      event: "legacy.unknown.event",
-      id: "row_unknown",
-    };
-
+  it("should drop rows with unknown event keys during formatting", async () => {
     findMock.mockResolvedValueOnce({
-      data: [baseRow, unknownRow],
-      meta: { page: 1, pageCount: 1, perPage: 20, total: 2 },
+      data: [baseRow, droppedEventRow("row_unknown")],
+      meta: {
+        hasNext: false,
+        hasPrev: false,
+        nextPage: null,
+        page: 1,
+        pageCount: 1,
+        perPage: 20,
+        prevPage: null,
+        total: 2,
+      },
     });
 
-    const response = await auditLogsHandler.request(
-      "http://localhost/?page=1&perPage=20"
-    );
+    const response = await createApp().request("/?page=1&perPage=20");
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as ListResponseBody;
+    expect(findMock).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, perPage: 20 })
+    );
 
+    const body = responseBodySchema.parse(await response.json());
     expect(body.data).toHaveLength(1);
     expect(body.data[0]?.id).toBe("row_known");
     expect(body.data[0]?.event).toBe("user.created");
-    expect(body.data.find((r) => r.id === "row_unknown")).toBeUndefined();
+    expect(body.data.find((row) => row.id === "row_unknown")).toBeUndefined();
   });
 
   it("keeps the server-reported total when rows are dropped during formatting", async () => {
     findMock.mockResolvedValueOnce({
       data: [
         {
+          ...baseRow,
           actorId: null,
-          actorType: "user",
-          createdAt: new Date("2026-05-01T00:00:00.000Z"),
           event: "user.viewed",
           id: "r_keep",
           ipAddress: null,
-          metadata: null,
           targetId: null,
           targetType: null,
           userAgent: null,
         },
-        {
-          actorId: null,
-          actorType: "user",
-          createdAt: new Date("2026-05-01T00:00:00.000Z"),
-          event: "unknown.event",
-          id: "r_drop",
-          ipAddress: null,
-          metadata: null,
-          targetId: null,
-          targetType: null,
-          userAgent: null,
-        },
+        droppedEventRow("r_drop"),
       ],
-      meta: { page: 1, pageCount: 1, perPage: 20, total: 2 },
+      meta: {
+        hasNext: false,
+        hasPrev: false,
+        nextPage: null,
+        page: 1,
+        pageCount: 1,
+        perPage: 20,
+        prevPage: null,
+        total: 2,
+      },
     });
 
-    const response = await auditLogsHandler.request(
-      "http://localhost/?page=1&perPage=20"
-    );
+    const response = await createApp().request("/?page=1&perPage=20");
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as ListResponseBody;
+
+    const body = responseBodySchema.parse(await response.json());
     expect(body.data).toHaveLength(1);
     expect(body.meta.total).toBe(2);
     expect(body.meta.pageCount).toBe(1);

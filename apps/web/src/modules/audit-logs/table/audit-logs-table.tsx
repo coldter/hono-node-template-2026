@@ -1,4 +1,4 @@
-import { flexRender, useTable } from "@tanstack/react-table";
+import { flexRender, functionalUpdate, useTable } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import type { NavigateFn } from "@/hooks/use-table-url-state";
 import { useTableUrlState } from "@/hooks/use-table-url-state";
@@ -28,19 +28,18 @@ export function AuditLogsTable() {
   const [detailOpen, setDetailOpen] = useState(false);
 
   const tableNavigate: NavigateFn = ({ search: searchUpdate, replace }) => {
-    if (typeof searchUpdate === "function") {
-      routeNavigate({
-        replace,
-        search: (prev) => ({ ...prev, ...searchUpdate(prev) }),
-      });
-    } else if (searchUpdate === true) {
+    if (searchUpdate === true) {
       routeNavigate({ replace, search: true });
-    } else {
-      routeNavigate({
-        replace,
-        search: (prev) => ({ ...prev, ...searchUpdate }),
-      });
+      return;
     }
+
+    routeNavigate({
+      replace,
+      search: (prev) => ({
+        ...prev,
+        ...functionalUpdate(searchUpdate, prev),
+      }),
+    });
   };
 
   const {

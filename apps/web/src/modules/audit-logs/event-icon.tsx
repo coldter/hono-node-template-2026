@@ -17,9 +17,9 @@ import {
   UserPlus,
   UserX,
 } from "lucide-react";
-import { getEventIconName } from "./event-utils";
+import { getEventIconName, type KnownEventIconName } from "./event-utils";
 
-const iconMap: Record<string, LucideIcon> = {
+const iconMap = {
   Activity,
   Eye,
   KeyRound,
@@ -36,7 +36,7 @@ const iconMap: Record<string, LucideIcon> = {
   UserMinus,
   UserPlus,
   UserX,
-};
+} satisfies Record<KnownEventIconName, LucideIcon>;
 
 type EventIconProps = {
   event: string;
@@ -45,6 +45,6 @@ type EventIconProps = {
 
 export function EventIcon({ event, className }: EventIconProps) {
   const iconName = getEventIconName(event);
-  const Icon = iconMap[iconName] ?? Activity;
+  const Icon = iconMap[iconName];
   return <Icon className={className} />;
 }

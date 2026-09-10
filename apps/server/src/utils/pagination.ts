@@ -15,6 +15,7 @@ export function buildOrderBy<T extends Record<string, Column>>(
   order: SortOrder,
   fallback: T[keyof T]
 ): SQL {
+  // SAFETY: Object.hasOwn confirmed that sort is an own key of columns.
   const column =
     sort !== undefined && Object.hasOwn(columns, sort)
       ? columns[sort as keyof T]

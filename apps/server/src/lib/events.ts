@@ -14,6 +14,19 @@ export const EVENTS = {
   USER_UPDATED: "user.updated",
 } as const;
 
+export type EventFieldValue =
+  | boolean
+  | null
+  | number
+  | string
+  | EventFieldValue[]
+  | { [key: string]: EventFieldValue };
+
+export type EventFieldChange = {
+  readonly from: EventFieldValue;
+  readonly to: EventFieldValue;
+};
+
 export type EventPayloads = {
   [EVENTS.USER_CREATED]: {
     userId: string;
@@ -22,7 +35,7 @@ export type EventPayloads = {
   };
   [EVENTS.USER_UPDATED]: {
     userId: string;
-    changes: Record<string, unknown>;
+    changes: Record<string, EventFieldChange>;
   };
   [EVENTS.USER_DEACTIVATED]: {
     userId: string;
@@ -64,9 +77,7 @@ export async function pushEvent<K extends keyof EventPayloads>(
     if (env.NODE_ENV === "development") {
       logger.error(`[HATCHET] Failed to push event: ${eventName}`, {
         error: err.message,
-        payload: redactSensitiveFields(
-          payload as unknown as Record<string, unknown>
-        ),
+        payload: redactSensitiveFields(payload),
         stack: err.stack,
       });
     } else {
@@ -115,9 +126,7 @@ export async function pushEvents<K extends keyof EventPayloads>(
     if (env.NODE_ENV === "development") {
       logger.error(`[HATCHET] Failed to bulk push events: ${eventName}`, {
         error: err.message,
-        payloads: payloads.map((payload) =>
-          redactSensitiveFields(payload as unknown as Record<string, unknown>)
-        ),
+        payloads: payloads.map((payload) => redactSensitiveFields(payload)),
         stack: err.stack,
       });
     } else {
