@@ -139,15 +139,12 @@ describe("sendEmail", () => {
     await expect(sendDummy()).rejects.toThrow("SMTP delivery failed");
   });
 
-  test("throws in production when no SMTP transport is configured", async () => {
+  test("throws in production instead of using the console transport", async () => {
     process.env.NODE_ENV = "production";
     delete process.env.SMTP_HOST;
 
     await expect(sendDummy()).rejects.toThrow(SMTP_HOST_PATTERN);
-  });
 
-  test("throws in production when EMAIL_PROVIDER is console", async () => {
-    process.env.NODE_ENV = "production";
     process.env.EMAIL_PROVIDER = "console";
 
     await expect(sendDummy()).rejects.toThrow(EMAIL_PROVIDER_PATTERN);

@@ -7,7 +7,7 @@ import {
 } from "../pagination";
 
 describe("getPaginationParams", () => {
-  it("returns defaults for an empty query", () => {
+  it("falls back to defaults for missing and non-finite values", () => {
     expect(getPaginationParams({})).toEqual({
       offset: 0,
       order: PAGINATION_DEFAULTS.ORDER,
@@ -15,40 +15,28 @@ describe("getPaginationParams", () => {
       perPage: PAGINATION_DEFAULTS.PER_PAGE,
       sort: undefined,
     });
-  });
-
-  it("clamps page to at least 1", () => {
-    expect(getPaginationParams({ page: 0 }).page).toBe(1);
-    expect(getPaginationParams({ page: -7 }).page).toBe(1);
-    expect(getPaginationParams({ page: 0 }).offset).toBe(0);
-  });
-
-  it("truncates fractional page and perPage", () => {
-    expect(getPaginationParams({ page: 2.9 }).page).toBe(2);
-    expect(getPaginationParams({ perPage: 9.9 }).perPage).toBe(9);
-  });
-
-  it("clamps perPage between 1 and MAX_PER_PAGE", () => {
-    expect(getPaginationParams({ perPage: 0 }).perPage).toBe(1);
-    expect(getPaginationParams({ perPage: -10 }).perPage).toBe(1);
-    expect(getPaginationParams({ perPage: 5000 }).perPage).toBe(
-      PAGINATION_DEFAULTS.MAX_PER_PAGE
-    );
-  });
-
-  it("falls back to defaults for non-finite values", () => {
     expect(getPaginationParams({ page: Number.NaN }).page).toBe(
       PAGINATION_DEFAULTS.PAGE
-    );
-    expect(getPaginationParams({ page: Number.POSITIVE_INFINITY }).page).toBe(
-      PAGINATION_DEFAULTS.PAGE
-    );
-    expect(getPaginationParams({ perPage: Number.NaN }).perPage).toBe(
-      PAGINATION_DEFAULTS.PER_PAGE
     );
     expect(
       getPaginationParams({ perPage: Number.NEGATIVE_INFINITY }).perPage
     ).toBe(PAGINATION_DEFAULTS.PER_PAGE);
+  });
+
+  it("clamps page to at least 1 and truncates fractional pages", () => {
+    expect(getPaginationParams({ page: 0 }).page).toBe(1);
+    expect(getPaginationParams({ page: 0 }).offset).toBe(0);
+    expect(getPaginationParams({ page: -7 }).page).toBe(1);
+    expect(getPaginationParams({ page: 2.9 }).page).toBe(2);
+  });
+
+  it("clamps perPage between 1 and MAX_PER_PAGE and truncates fractions", () => {
+    expect(getPaginationParams({ perPage: 0 }).perPage).toBe(1);
+    expect(getPaginationParams({ perPage: -10 }).perPage).toBe(1);
+    expect(getPaginationParams({ perPage: 9.9 }).perPage).toBe(9);
+    expect(getPaginationParams({ perPage: 5000 }).perPage).toBe(
+      PAGINATION_DEFAULTS.MAX_PER_PAGE
+    );
   });
 
   it("caps pages so offsets stay safe integers", () => {
@@ -100,14 +88,14 @@ describe("createPaginatedResponse", () => {
     expect(paginationMetaSchema.parse(response.meta)).toEqual(response.meta);
   });
 
-  it("reports no next page on the last page", () => {
-    const response = createPaginatedResponse({
+  it("handles the last page and empty result sets", () => {
+    const lastPage = createPaginatedResponse({
       data: [{ id: "z" }],
       query: { page: 3, perPage: 20 },
       total: 42,
     });
 
-    expect(response.meta).toMatchObject({
+    expect(lastPage.meta).toMatchObject({
       hasNext: false,
       nextPage: null,
       page: 3,
@@ -115,12 +103,10 @@ describe("createPaginatedResponse", () => {
       prevPage: 2,
       total: 42,
     });
-  });
 
-  it("handles an empty result set", () => {
-    const response = createPaginatedResponse({ data: [], query: {}, total: 0 });
+    const empty = createPaginatedResponse({ data: [], query: {}, total: 0 });
 
-    expect(response).toEqual({
+    expect(empty).toEqual({
       data: [],
       meta: {
         hasNext: false,

@@ -9,12 +9,6 @@ import { describe, expect, it } from "vitest";
 import type { Env } from "@/lib/context";
 import usersRoutes from "@/modules/users/routes";
 
-const currentUser = buildAuthorizationPrincipal({
-  id: "usr_self",
-  roleSlugs: ["user"],
-  status: "active",
-});
-
 const sessionUser: Env["Variables"]["user"] = {
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   deactivatedAt: null,
@@ -35,6 +29,12 @@ const sessionUser: Env["Variables"]["user"] = {
 };
 
 const getMyAccountRoute: RouteConfig = usersRoutes.getMyAccount;
+
+const currentUser = buildAuthorizationPrincipal({
+  id: "usr_self",
+  roleSlugs: ["user"],
+  status: "active",
+});
 
 function routeMiddleware(route: RouteConfig): MiddlewareHandler[] {
   if (!route.middleware) {

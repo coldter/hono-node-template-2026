@@ -22,17 +22,12 @@ describe("LocalEncryptionProvider", () => {
     expect(envelope.kid).toBe("test-key");
   });
 
-  it("should fail to decrypt with a different master key", async () => {
+  it("should reject decrypting with a different master key or tampered ciphertext", async () => {
     const provider = new LocalEncryptionProvider(MASTER_KEY);
+    const envelope = await provider.encrypt(Buffer.from("secret"));
+
     const otherProvider = new LocalEncryptionProvider(generateMasterKey());
-    const envelope = await provider.encrypt(Buffer.from("secret"));
-
     await expect(otherProvider.decrypt(envelope)).rejects.toThrow();
-  });
-
-  it("should reject tampered ciphertext via the GCM auth tag", async () => {
-    const provider = new LocalEncryptionProvider(MASTER_KEY);
-    const envelope = await provider.encrypt(Buffer.from("secret"));
 
     const combined = Buffer.from(envelope.ct, "base64");
 

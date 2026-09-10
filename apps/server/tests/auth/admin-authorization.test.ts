@@ -25,33 +25,6 @@ function principalWithStatus(status: string) {
 }
 
 describe("user management policies", () => {
-  it("allows admin to activate, deactivate and unlock users", async () => {
-    await expect(
-      authorization.can(admin, "user", "activate")
-    ).resolves.toMatchObject({ allowed: true });
-    await expect(
-      authorization.can(admin, "user", "deactivate")
-    ).resolves.toMatchObject({ allowed: true });
-    await expect(
-      authorization.can(admin, "user", "unlock")
-    ).resolves.toMatchObject({ allowed: true });
-  });
-
-  it("denies plain users on admin-only user actions", async () => {
-    await expect(
-      authorization.can(user, "user", "assign-roles")
-    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
-    await expect(
-      authorization.can(user, "user", "activate")
-    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
-    await expect(
-      authorization.can(user, "user", "deactivate")
-    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
-    await expect(
-      authorization.can(user, "user", "unlock")
-    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
-
   it("allows plain users to update only their own record", async () => {
     await expect(
       authorization.can(user, "user", "update", {

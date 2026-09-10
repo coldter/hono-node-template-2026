@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 
 describe("audit-logs handler event filtering", () => {
-  it("should drop rows with unknown event keys during formatting", async () => {
+  it("should drop rows with unknown event keys and keep the server-reported total", async () => {
     findMock.mockResolvedValueOnce({
       data: [baseRow, droppedEventRow("row_unknown")],
       meta: {
@@ -88,42 +88,6 @@ describe("audit-logs handler event filtering", () => {
     expect(body.data).toHaveLength(1);
     expect(body.data[0]?.id).toBe("row_known");
     expect(body.data[0]?.event).toBe("user.created");
-    expect(body.data.find((row) => row.id === "row_unknown")).toBeUndefined();
-  });
-
-  it("keeps the server-reported total when rows are dropped during formatting", async () => {
-    findMock.mockResolvedValueOnce({
-      data: [
-        {
-          ...baseRow,
-          actorId: null,
-          event: "user.viewed",
-          id: "r_keep",
-          ipAddress: null,
-          targetId: null,
-          targetType: null,
-          userAgent: null,
-        },
-        droppedEventRow("r_drop"),
-      ],
-      meta: {
-        hasNext: false,
-        hasPrev: false,
-        nextPage: null,
-        page: 1,
-        pageCount: 1,
-        perPage: 20,
-        prevPage: null,
-        total: 2,
-      },
-    });
-
-    const response = await createApp().request("/?page=1&perPage=20");
-
-    expect(response.status).toBe(200);
-
-    const body = responseBodySchema.parse(await response.json());
-    expect(body.data).toHaveLength(1);
     expect(body.meta.total).toBe(2);
     expect(body.meta.pageCount).toBe(1);
   });

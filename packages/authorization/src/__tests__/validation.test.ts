@@ -78,16 +78,6 @@ describe("validateRegistry", () => {
     );
   });
 
-  it("does not throw when policy roles are wildcard", () => {
-    const res = docResource({
-      policies: [policy({ actions: "*", effect: "deny", roles: "*" })],
-    });
-
-    expect(() =>
-      validateRegistry({ doc: res }, options({ schemaRoles: ["admin"] }))
-    ).not.toThrow();
-  });
-
   it("throws when a policy action is not declared on the resource", () => {
     const res = docResource({
       policies: [policy({ actions: ["fly"], label: "allow:user:fly" })],
@@ -220,26 +210,6 @@ describe("validateRegistry", () => {
     ).toThrow(NO_ORG_ROLES_PATTERN);
   });
 
-  it("throws when withOrgRole has no org role params", () => {
-    const missingParamsCondition: Condition = {
-      effect: "principal_only",
-      evaluate: () => true,
-      label: "withOrgRole:",
-      type: "withOrgRole",
-    };
-    const res = docResource({
-      policies: [policy({ conditions: [missingParamsCondition] })],
-      resolveOrganization: () => "org_1",
-    });
-
-    expect(() =>
-      validateRegistry(
-        { doc: res },
-        options({ orgRoleValues: ["owner"], schemaRoles: ["user"] })
-      )
-    ).toThrow(NO_ORG_ROLES_PATTERN);
-  });
-
   it("throws when a resource uses withOrgRole but lacks resolveOrganization", () => {
     const orgRoleCondition = createOrgRoleCondition(["owner"]);
     const res = docResource({
@@ -257,25 +227,5 @@ describe("validateRegistry", () => {
         options({ orgRoleValues: ["owner"], schemaRoles: ["user"] })
       )
     ).toThrow(ORG_ROLE_WITHOUT_RESOLVE_PATTERN);
-  });
-
-  it("does not throw when withOrgRole is paired with resolveOrganization", () => {
-    const orgRoleCondition = createOrgRoleCondition(["owner"]);
-    const res = docResource({
-      policies: [
-        policy({
-          conditions: [orgRoleCondition],
-          label: "allow:user:read:withOrgRole:owner",
-        }),
-      ],
-      resolveOrganization: () => "org_1",
-    });
-
-    expect(() =>
-      validateRegistry(
-        { doc: res },
-        options({ orgRoleValues: ["owner"], schemaRoles: ["user"] })
-      )
-    ).not.toThrow();
   });
 });

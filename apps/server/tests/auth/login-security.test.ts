@@ -16,23 +16,17 @@ describe("login lockout failure classification", () => {
     ).toBe(true);
   });
 
-  it("does not count session creation failures", () => {
+  it("does not count other unauthorized failures", () => {
     expect(
       isCredentialFailure(apiError("UNAUTHORIZED", "FAILED_TO_CREATE_SESSION"))
     ).toBe(false);
-  });
-
-  it("does not count unauthorized errors without a code", () => {
     expect(isCredentialFailure(apiError("UNAUTHORIZED"))).toBe(false);
   });
 
-  it("does not count unverified email rejections", () => {
+  it("does not count failures with non-unauthorized statuses", () => {
     expect(
       isCredentialFailure(apiError("FORBIDDEN", "USER_NOT_VERIFIED"))
     ).toBe(false);
-  });
-
-  it("does not count rate limited requests", () => {
     expect(isCredentialFailure(apiError("TOO_MANY_REQUESTS"))).toBe(false);
   });
 

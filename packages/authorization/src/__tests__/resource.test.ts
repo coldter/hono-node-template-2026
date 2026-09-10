@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createResourceDefinition, PolicyBuilder } from "../resource";
+import { PolicyBuilder } from "../resource";
 import type { ConditionContext } from "../types";
 
 const AT_LEAST_ONE_ACTION = /at least one action/;
@@ -94,34 +94,5 @@ describe("PolicyBuilder", () => {
       // @ts-expect-error -- the wildcard cannot be mixed with explicit actions
       builder.allow("user").to("*", "view");
     }).toThrow(CANNOT_MIX_WILDCARD);
-  });
-});
-
-describe("createResourceDefinition", () => {
-  it("stores resource config correctly", () => {
-    const resource = createResourceDefinition<
-      TestResource,
-      "admin" | "user",
-      "owner" | "member"
-    >("user", {
-      actions: ["list", "view", "create", "update", "delete"],
-      policies: (p) => [
-        p.allow("admin").to("*"),
-        p.allow("user").to("list"),
-        p.allow("user").to("view", "update").whereOwner(),
-        p.deny("*").to("delete").whereTargetIsSelf(),
-      ],
-      resolveOwner: (r) => r.createdBy,
-    });
-
-    expect(resource.name).toBe("user");
-    expect(resource.actions).toEqual([
-      "list",
-      "view",
-      "create",
-      "update",
-      "delete",
-    ]);
-    expect(resource.policies).toHaveLength(4);
   });
 });

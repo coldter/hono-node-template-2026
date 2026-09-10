@@ -29,21 +29,21 @@ describe("resolveRateLimitKey", () => {
     expect(key).toBe("9.9.9.9");
   });
 
-  it("should return null when no IP is resolvable", () => {
-    const key = resolveRateLimitKey({
-      forwardedFor: undefined,
-      remoteAddress: undefined,
-      trustProxy: false,
-    });
-    expect(key).toBeNull();
-  });
+  it("should return null rather than an empty string when no IP is resolvable", () => {
+    expect(
+      resolveRateLimitKey({
+        forwardedFor: undefined,
+        remoteAddress: undefined,
+        trustProxy: false,
+      })
+    ).toBeNull();
 
-  it("should never return an empty string for a whitespace-only header", () => {
-    const key = resolveRateLimitKey({
-      forwardedFor: " , ",
-      remoteAddress: undefined,
-      trustProxy: true,
-    });
-    expect(key).toBeNull();
+    expect(
+      resolveRateLimitKey({
+        forwardedFor: " , ",
+        remoteAddress: undefined,
+        trustProxy: true,
+      })
+    ).toBeNull();
   });
 });

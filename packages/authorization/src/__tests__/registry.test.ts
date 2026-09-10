@@ -95,11 +95,13 @@ describe("buildRegistry", () => {
     });
   });
 
-  it("assertCan throws AuthorizationError on deny", async () => {
+  it("assertCan throws AuthorizationError with the deny reason", async () => {
     const { AuthorizationError } = await import("../errors");
-    await expect(
-      registry.assertCan(userPrincipal, "test", "create")
-    ).rejects.toThrow(AuthorizationError);
+    const pending = registry.assertCan(userPrincipal, "test", "create");
+    await expect(pending).rejects.toThrow(AuthorizationError);
+    await expect(pending).rejects.toMatchObject({
+      reason: "NO_MATCHING_POLICY",
+    });
   });
 
   it("assertCan does not throw on allow", async () => {

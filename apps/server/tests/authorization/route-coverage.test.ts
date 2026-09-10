@@ -31,10 +31,11 @@ const routes = Object.entries(routeMaps).flatMap(([routeModule, routeMap]) =>
 );
 
 describe("authorization route coverage", () => {
-  it.each(routes)(
-    "$routeModule.$operation is protected by an authorization guard",
-    ({ middleware }) => {
-      expect(middleware.some(isAuthorizationGuard)).toBe(true);
-    }
-  );
+  it("protects every registered route with an authorization guard", () => {
+    const unprotected = routes
+      .filter(({ middleware }) => !middleware.some(isAuthorizationGuard))
+      .map(({ operation, routeModule }) => `${routeModule}.${operation}`);
+
+    expect(unprotected).toEqual([]);
+  });
 });

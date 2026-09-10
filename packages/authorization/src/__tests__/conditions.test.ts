@@ -13,15 +13,19 @@ const ORG_ROLE_REQUIRED_PATTERN = /at least one org role/;
 describe("principalNotActive", () => {
   const condition = principalNotActive();
 
-  it("returns true when status is not active", () => {
-    const ctx: ConditionContext = {
+  it("returns true when status is inactive or missing", () => {
+    const inactive: ConditionContext = {
       principal: {
         attributes: { status: "inactive" },
         id: "u1",
         roles: ["user"],
       },
     };
-    expect(condition.evaluate(ctx)).toBe(true);
+    const missing: ConditionContext = {
+      principal: { attributes: {}, id: "u1", roles: ["user"] },
+    };
+    expect(condition.evaluate(inactive)).toBe(true);
+    expect(condition.evaluate(missing)).toBe(true);
   });
 
   it("returns false when status is active", () => {
@@ -33,13 +37,6 @@ describe("principalNotActive", () => {
       },
     };
     expect(condition.evaluate(ctx)).toBe(false);
-  });
-
-  it("returns true when status is missing", () => {
-    const ctx: ConditionContext = {
-      principal: { attributes: {}, id: "u1", roles: ["user"] },
-    };
-    expect(condition.evaluate(ctx)).toBe(true);
   });
 });
 

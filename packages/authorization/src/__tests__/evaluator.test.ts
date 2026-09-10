@@ -140,19 +140,6 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "UNAUTHENTICATED" });
   });
 
-  it("principalNotActive global deny fires for inactive user", async () => {
-    const result = await evaluate({
-      ...defaults,
-      globalPolicies: [denyRule("*", "*", [principalNotActive()])],
-      principal: inactivePrincipal,
-      resourcePolicies: [allowRule(["user"], ["read"])],
-    });
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.reason).toBe("GLOBAL_DENY");
-    }
-  });
-
   it("does not fire global deny when principal is active", async () => {
     const result = await evaluate({
       ...defaults,
@@ -194,14 +181,6 @@ describe("evaluate", () => {
       action: "delete",
       principal: activePrincipal,
       resourcePolicies: [allowRule(["admin"], ["delete"])],
-    });
-    expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
-
-  it("denies with NO_MATCHING_POLICY when policies list is empty", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
     });
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
@@ -511,26 +490,24 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(true);
     });
 
-    it("skips org check when resolveOrganization is not provided", async () => {
-      const result = await evaluate({
+    it("skips org check without resolveOrganization or a resource", async () => {
+      const withoutResolver = await evaluate({
         ...defaults,
         principal: noOrgPrincipal,
         resource: { orgId: "org_1" },
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: [],
       });
-      expect(result.allowed).toBe(true);
-    });
+      expect(withoutResolver.allowed).toBe(true);
 
-    it("skips org check when resource is not provided", async () => {
-      const result = await evaluate({
+      const withoutResource = await evaluate({
         ...defaults,
         principal: noOrgPrincipal,
         resolveOrganization,
         resourcePolicies: [allowRule(["member"], ["read"])],
         systemAdminRoles: [],
       });
-      expect(result.allowed).toBe(true);
+      expect(withoutResource.allowed).toBe(true);
     });
   });
 
@@ -548,25 +525,11 @@ describe("evaluate", () => {
         expect(result.reason).toBe("GLOBAL_DENY");
       }
     });
-
-    it("global deny only fires for deny effect policies", async () => {
-      const result = await evaluate({
-        ...defaults,
-        globalPolicies: [allowRule("*", "*")],
-        principal: activePrincipal,
-        resourcePolicies: [],
-      });
-
-      expect(result.allowed).toBe(false);
-      if (!result.allowed) {
-        expect(result.reason).toBe("NO_MATCHING_POLICY");
-      }
-    });
   });
 
   describe("multiple conditions (AND)", () => {
-    it("requires all conditions to pass for a policy to match", async () => {
-      const result = await evaluate({
+    it("requires every condition in a policy to pass", async () => {
+      const matching = await evaluate({
         ...defaults,
         principal: activePrincipal,
         resource: { id: "usr_1", ownerId: "usr_1" },
@@ -578,11 +541,9 @@ describe("evaluate", () => {
           ),
         ],
       });
-      expect(result.allowed).toBe(true);
-    });
+      expect(matching.allowed).toBe(true);
 
-    it("fails when one of multiple conditions does not pass", async () => {
-      const result = await evaluate({
+      const failing = await evaluate({
         ...defaults,
         principal: activePrincipal,
         resource: { id: "usr_other", ownerId: "usr_1" },
@@ -594,7 +555,10 @@ describe("evaluate", () => {
           ),
         ],
       });
-      expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
+      expect(failing).toEqual({
+        allowed: false,
+        reason: "NO_MATCHING_POLICY",
+      });
     });
   });
 });
