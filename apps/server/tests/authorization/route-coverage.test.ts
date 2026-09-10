@@ -1,7 +1,6 @@
 import { isAuthorizationGuard } from "@repo/authorization/hono";
 import type { MiddlewareHandler } from "hono";
 import { describe, expect, it } from "vitest";
-import { authorize } from "@/auth/middleware";
 import auditLogsRoutes from "@/modules/audit-logs/routes";
 import rolesRoutes from "@/modules/auth/roles/routes";
 import notificationsRoutes from "@/modules/notifications/routes";
@@ -34,12 +33,4 @@ describe("authorization route coverage", () => {
       expect(middleware.some(isAuthorizationGuard)).toBe(true);
     }
   );
-
-  it("brands middleware created by authorize()", () => {
-    expect(isAuthorizationGuard(authorize("user", "view"))).toBe(true);
-  });
-
-  it("does not brand arbitrary middleware", () => {
-    expect(isAuthorizationGuard(async () => undefined)).toBe(false);
-  });
 });

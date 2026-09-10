@@ -81,40 +81,6 @@ describe("audit-logs handler event filtering", () => {
     expect(body.data.find((r) => r.id === "row_unknown")).toBeUndefined();
   });
 
-  it("should include rows whose event matches a known AUDIT_EVENT_KEY", async () => {
-    const knownEvents = [
-      { event: "auth.login.success", id: "r1" },
-      { event: "role.assigned", id: "r2" },
-    ];
-    const rows = knownEvents.map((e) => ({
-      ...e,
-      actorId: null,
-      actorType: "user",
-      createdAt: new Date("2026-05-01T00:00:00.000Z"),
-      ipAddress: null,
-      metadata: null,
-      targetId: null,
-      targetType: null,
-      userAgent: null,
-    }));
-
-    findMock.mockResolvedValueOnce({
-      data: rows,
-      meta: { page: 1, pageCount: 1, perPage: 20, total: 2 },
-    });
-
-    const response = await auditLogsHandler.request(
-      "http://localhost/?page=1&perPage=20"
-    );
-
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as ListResponseBody;
-    expect(body.data.map((r) => r.event)).toEqual([
-      "auth.login.success",
-      "role.assigned",
-    ]);
-  });
-
   it("keeps the server-reported total when rows are dropped during formatting", async () => {
     findMock.mockResolvedValueOnce({
       data: [

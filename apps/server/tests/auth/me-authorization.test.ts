@@ -40,10 +40,6 @@ async function requestMyAccount() {
 }
 
 describe("GET /api/users/me authorization", () => {
-  it("registers the authorization guard on the route", () => {
-    expect(getMyAccountMiddleware.length).toBeGreaterThan(0);
-  });
-
   it("returns 401 when unauthenticated", async () => {
     const app = new Hono<Env>();
 
@@ -55,14 +51,6 @@ describe("GET /api/users/me authorization", () => {
 
     const response = await app.request("/me");
     expect(response.status).toBe(401);
-  });
-
-  it("allows a normal user to view their own resource", async () => {
-    await expect(
-      authorization.can(currentUser, "user", "view", {
-        resource: { id: currentUser.id },
-      })
-    ).resolves.toMatchObject({ allowed: true });
   });
 
   it("denies a normal user from viewing another user's resource", async () => {

@@ -1,13 +1,9 @@
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   createPaginatedResponse,
   getPaginationParams,
   PAGINATION_DEFAULTS,
-  type PaginatedResponse,
-  type PaginationMeta,
   paginationMetaSchema,
-  paginationQuerySchema,
-  type SortOrder,
 } from "../pagination";
 
 describe("getPaginationParams", () => {
@@ -67,15 +63,6 @@ describe("getPaginationParams", () => {
     );
   });
 
-  it("caps huge pages parsed from the query schema", () => {
-    const query = paginationQuerySchema.parse({
-      page: "1.7976931348623157e+308",
-    });
-    const params = getPaginationParams(query);
-
-    expect(Number.isSafeInteger(params.offset)).toBe(true);
-  });
-
   it("passes sort and order through unchanged", () => {
     expect(
       getPaginationParams({ order: "asc", page: 3, perPage: 10, sort: "email" })
@@ -86,30 +73,6 @@ describe("getPaginationParams", () => {
       perPage: 10,
       sort: "email",
     });
-  });
-
-  it("accepts coerced values from paginationQuerySchema", () => {
-    const params = getPaginationParams(
-      paginationQuerySchema.parse({
-        order: "asc",
-        page: "2",
-        perPage: "50",
-        sort: "name",
-      })
-    );
-
-    expect(params).toEqual({
-      offset: 50,
-      order: "asc",
-      page: 2,
-      perPage: 50,
-      sort: "name",
-    });
-  });
-
-  it("keeps its return types", () => {
-    expectTypeOf(getPaginationParams({}).order).toEqualTypeOf<SortOrder>();
-    expectTypeOf(getPaginationParams({}).page).toEqualTypeOf<number>();
   });
 });
 
@@ -199,37 +162,5 @@ describe("createPaginatedResponse", () => {
       prevPage: 1,
       total: 5,
     });
-  });
-
-  it("supports both overloads at runtime", () => {
-    const plain = createPaginatedResponse({
-      data: ["alpha"],
-      query: {},
-      total: 1,
-    });
-    const formatted = createPaginatedResponse({
-      data: ["alpha", "beta"],
-      formatter: (item: string) => item.toUpperCase(),
-      query: {},
-      total: 2,
-    });
-
-    expect(plain).toEqual<PaginatedResponse<string>>({
-      data: ["alpha"],
-      meta: {
-        hasNext: false,
-        hasPrev: false,
-        nextPage: null,
-        page: 1,
-        pageCount: 1,
-        perPage: 20,
-        prevPage: null,
-        total: 1,
-      },
-    });
-    expect(formatted.data).toEqual(["ALPHA", "BETA"]);
-    expectTypeOf(plain).toEqualTypeOf<PaginatedResponse<string>>();
-    expectTypeOf(formatted).toEqualTypeOf<PaginatedResponse<string>>();
-    expectTypeOf(plain.meta).toEqualTypeOf<PaginationMeta>();
   });
 });

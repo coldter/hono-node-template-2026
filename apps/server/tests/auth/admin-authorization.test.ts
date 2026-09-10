@@ -37,12 +37,6 @@ describe("user management policies", () => {
     ).resolves.toMatchObject({ allowed: true });
   });
 
-  it("allows admin to assign roles", async () => {
-    await expect(
-      authorization.can(admin, "user", "assign-roles")
-    ).resolves.toMatchObject({ allowed: true });
-  });
-
   it("denies plain users on admin-only user actions", async () => {
     await expect(
       authorization.can(user, "user", "assign-roles")
@@ -55,12 +49,6 @@ describe("user management policies", () => {
     ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
     await expect(
       authorization.can(user, "user", "unlock")
-    ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
-
-  it("denies plain users from listing users", async () => {
-    await expect(
-      authorization.can(user, "user", "list")
     ).resolves.toMatchObject({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 

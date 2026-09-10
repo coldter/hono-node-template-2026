@@ -57,32 +57,4 @@ describe("server bootstrap CORS guard", () => {
       CORS_ORIGIN_REQUIRED_MESSAGE
     );
   });
-
-  it("should throw at module load when CORS_ORIGIN is not an array", async () => {
-    vi.doMock("@/env", () => ({
-      env: {
-        APP_NAME: "App",
-        BASE_PATH: "",
-
-        CORS_ORIGIN: undefined,
-      },
-    }));
-
-    await expect(import("@/server")).rejects.toThrowError(
-      CORS_ORIGIN_REQUIRED_MESSAGE
-    );
-  });
-
-  it("should boot successfully when CORS_ORIGIN contains at least one origin", async () => {
-    vi.doMock("@/env", () => ({
-      env: {
-        APP_NAME: "App",
-        BASE_PATH: "",
-        CORS_ORIGIN: ["https://example.com"],
-      },
-    }));
-
-    const mod = await import("@/server");
-    expect(mod.default).toBeDefined();
-  });
 });

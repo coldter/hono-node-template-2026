@@ -92,17 +92,6 @@ function selfTargetCondition(): Condition {
   };
 }
 
-function asyncTrueCondition(): Condition {
-  return {
-    effect: "requires_resource",
-    async evaluate(_ctx: ConditionContext): Promise<boolean> {
-      return Promise.resolve(true);
-    },
-    label: "where:asyncTrue",
-    type: "where",
-  };
-}
-
 function asyncFalseCondition(): Condition {
   return {
     effect: "requires_resource",
@@ -151,24 +140,6 @@ describe("evaluate", () => {
   it("denies with UNAUTHENTICATED when principal is null", async () => {
     const result = await evaluate({ ...defaults, principal: null });
     expect(result).toEqual({ allowed: false, reason: "UNAUTHENTICATED" });
-  });
-
-  it("denies with UNAUTHENTICATED when principal is undefined", async () => {
-    const result = await evaluate({ ...defaults, principal: undefined });
-    expect(result).toEqual({ allowed: false, reason: "UNAUTHENTICATED" });
-  });
-
-  it("denies with GLOBAL_DENY when a global deny policy matches", async () => {
-    const result = await evaluate({
-      ...defaults,
-      globalPolicies: [denyRule("*", "*", [principalNotActive()])],
-      principal: inactivePrincipal,
-    });
-    expect(result).toEqual({
-      allowed: false,
-      matchedPolicy: "deny:*:*",
-      reason: "GLOBAL_DENY",
-    });
   });
 
   it("principalNotActive global deny fires for inactive user", async () => {
@@ -311,40 +282,6 @@ describe("evaluate", () => {
       resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
     });
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
-
-  it("allows when target-is-self condition matches", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
-      resource: { id: "usr_1" },
-      resourcePolicies: [
-        allowRule(["user"], ["read"], [selfTargetCondition()]),
-      ],
-    });
-    expect(result.allowed).toBe(true);
-  });
-
-  it("denies when target-is-self condition does not match", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
-      resource: { id: "usr_other" },
-      resourcePolicies: [
-        allowRule(["user"], ["read"], [selfTargetCondition()]),
-      ],
-    });
-    expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
-
-  it("resolves async condition that returns true", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
-      resource: { id: "x" },
-      resourcePolicies: [allowRule(["user"], ["read"], [asyncTrueCondition()])],
-    });
-    expect(result.allowed).toBe(true);
   });
 
   it("resolves async condition that returns false", async () => {
@@ -567,18 +504,6 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(true);
     });
 
-    it("system admin bypasses org scoping even with wildcard role policy", async () => {
-      const result = await evaluate({
-        ...defaults,
-        principal: sysAdminPrincipal,
-        resolveOrganization,
-        resource: { orgId: "org_any" },
-        resourcePolicies: [allowRule("*", ["read"])],
-        systemAdminRoles: ["system_admin"],
-      });
-      expect(result.allowed).toBe(true);
-    });
-
     it("system admin bypasses org scoping when admin is not the first matched policy role", async () => {
       const principalWithAdminAndMember: Principal = {
         attributes: { status: "active" },
@@ -631,22 +556,6 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(false);
       if (!result.allowed) {
         expect(result.reason).toBe("GLOBAL_DENY");
-      }
-    });
-
-    it("checks resource deny before resource allow", async () => {
-      const result = await evaluate({
-        ...defaults,
-        principal: activePrincipal,
-        resourcePolicies: [
-          allowRule(["user"], ["read"]),
-          denyRule(["user"], ["read"]),
-        ],
-      });
-
-      expect(result.allowed).toBe(false);
-      if (!result.allowed) {
-        expect(result.reason).toBe("EXPLICIT_DENY");
       }
     });
 

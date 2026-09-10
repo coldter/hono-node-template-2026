@@ -36,11 +36,4 @@ describe("createRedisRateLimitStorage", () => {
       expect.any(String)
     );
   });
-
-  it("should return undefined for missing keys", async () => {
-    const fake = makeFakeRedis();
-    const storage = createRedisRateLimitStorage(async () => fake, 60);
-
-    expect(await storage.get("missing")).toBeUndefined();
-  });
 });

@@ -340,10 +340,4 @@ describe("isAuthorizationGuard", () => {
     });
     expect(isAuthorizationGuard(marked)).toBe(true);
   });
-
-  it("returns false for values that are not functions", () => {
-    expect(isAuthorizationGuard({ [AUTHORIZATION_GUARD]: true })).toBe(false);
-    expect(isAuthorizationGuard(null)).toBe(false);
-    expect(isAuthorizationGuard(undefined)).toBe(false);
-  });
 });

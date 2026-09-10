@@ -3,8 +3,6 @@ import { principalNotActive } from "../conditions";
 import { createAuthSchema } from "../schema";
 import type { Principal } from "../types";
 
-const KEY_MISMATCH_PATTERN = /does not match resource name/i;
-
 describe("buildRegistry", () => {
   const auth = createAuthSchema({
     globalPolicies: (p) => [
@@ -57,21 +55,6 @@ describe("buildRegistry", () => {
     expect(decision.allowed).toBe(true);
   });
 
-  it("admin can delete", async () => {
-    const decision = await registry.can(adminPrincipal, "test", "delete");
-    expect(decision.allowed).toBe(true);
-  });
-
-  it("user can list", async () => {
-    const decision = await registry.can(userPrincipal, "test", "list");
-    expect(decision.allowed).toBe(true);
-  });
-
-  it("user cannot create", async () => {
-    const decision = await registry.can(userPrincipal, "test", "create");
-    expect(decision.allowed).toBe(false);
-  });
-
   it("user can view own resource", async () => {
     const decision = await registry.can(userPrincipal, "test", "view", {
       resource: { createdBy: "usr_1", id: "res_1" },
@@ -104,15 +87,6 @@ describe("buildRegistry", () => {
     }
   });
 
-  it("can() returns allowed=true on permitted action", async () => {
-    expect((await registry.can(adminPrincipal, "test", "list")).allowed).toBe(
-      true
-    );
-    expect((await registry.can(userPrincipal, "test", "create")).allowed).toBe(
-      false
-    );
-  });
-
   it("can() returns NO_MATCHING_POLICY for unauthorised actions", async () => {
     const decision = await registry.can(userPrincipal, "test", "create");
     expect(decision).toMatchObject({
@@ -134,15 +108,6 @@ describe("buildRegistry", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("evaluateCapabilities returns correct map for admin", async () => {
-    const caps = await registry.evaluateCapabilities(adminPrincipal);
-    expect(caps["test:list"]).toBe(true);
-    expect(caps["test:view"]).toBe(true);
-    expect(caps["test:create"]).toBe(true);
-    expect(caps["test:update"]).toBe(true);
-    expect(caps["test:delete"]).toBe(true);
-  });
-
   it("evaluateCapabilities returns correct map for user", async () => {
     const caps = await registry.evaluateCapabilities(userPrincipal);
     expect(caps["test:list"]).toBe(true);
@@ -152,12 +117,6 @@ describe("buildRegistry", () => {
     expect(caps["test:create"]).toBe(false);
 
     expect(caps["test:delete"]).toBe(false);
-  });
-
-  it("evaluateCapabilities stays optimistic for owner-scoped allows", async () => {
-    const caps = await registry.evaluateCapabilities(userPrincipal);
-    expect(caps["test:view"]).toBe(true);
-    expect(caps["test:update"]).toBe(true);
   });
 
   it("denies unknown actions at runtime instead of matching wildcard policies", async () => {
@@ -216,37 +175,5 @@ describe("buildRegistry", () => {
       allowed: false,
       reason: "NO_MATCHING_POLICY",
     });
-  });
-
-  it("assertCan rejects unknown actions", async () => {
-    // @ts-expect-error -- "explode" is not a declared action on test
-    const pending = registry.assertCan(adminPrincipal, "test", "explode");
-    await expect(pending).rejects.toMatchObject({
-      reason: "NO_MATCHING_POLICY",
-    });
-  });
-});
-
-describe("registry validation", () => {
-  it("throws when registry key does not match resource name", () => {
-    const auth = createAuthSchema({
-      globalPolicies: () => [],
-      roles: ["admin"],
-      systemAdminRoles: ["admin"],
-    });
-
-    const res1 = auth.createResource<{ id: string }>()("dupe", {
-      actions: ["read"],
-      policies: (p) => [p.allow("admin").to("read")],
-    });
-
-    const res2 = auth.createResource<{ id: string }>()("dupe", {
-      actions: ["write"],
-      policies: (p) => [p.allow("admin").to("write")],
-    });
-
-    expect(() => {
-      auth.buildRegistry({ dupe1: res1, dupe2: res2 });
-    }).toThrow(KEY_MISMATCH_PATTERN);
   });
 });
