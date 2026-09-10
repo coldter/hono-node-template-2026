@@ -500,7 +500,7 @@ export const zGetUserResponse = z.object({
   })
 });
 
-export const zUpdateUserBody = z.object({
+export const zUpdateUserBody = z.strictObject({
   name: z.string().min(1).max(100).optional()
 });
 

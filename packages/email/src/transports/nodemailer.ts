@@ -1,6 +1,6 @@
 import { resolve4 } from "node:dns/promises";
 import { isIP } from "node:net";
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import type {
   EmailTransport,
   SendEmailOptions,
@@ -19,7 +19,7 @@ export interface NodemailerConfig {
 
 export class NodemailerTransport implements EmailTransport {
   private config: NodemailerConfig;
-  private transporter: nodemailer.Transporter;
+  private transporter: Transporter;
 
   constructor(config: NodemailerConfig) {
     this.config = config;

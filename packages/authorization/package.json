@@ -14,9 +14,9 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "hono": "^4.13.5",
+    "hono": "^4.13.7",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   },
   "peerDependencies": {
     "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
