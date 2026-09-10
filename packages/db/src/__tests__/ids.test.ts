@@ -13,23 +13,26 @@ const BETTER_AUTH_MODELS = [
   ["verification", "ver"],
 ] as const;
 
+const UNKNOWN_MODELS = [
+  "organization",
+  "",
+  "toString",
+  "constructor",
+  "__proto__",
+];
+
 describe("generateIdForModel", () => {
-  it("maps every Better Auth model to a registered prefix", () => {
+  it("maps known models to their prefixes and falls back to ent for unknown and prototype keys", () => {
     for (const [model, prefix] of BETTER_AUTH_MODELS) {
       const id = generateIdForModel(model);
       expect(id.startsWith(`${prefix}_`)).toBe(true);
       expect(id).toMatch(PREFIXED_HEX);
     }
-  });
 
-  it("falls back to the ent prefix for unknown models", () => {
-    expect(generateIdForModel("organization")).toMatch(ENT_ID);
-    expect(generateIdForModel("")).toMatch(ENT_ID);
-  });
+    expect(generateIdForModel("user")).not.toBe(generateIdForModel("user"));
 
-  it("ignores inherited prototype members when resolving prefixes", () => {
-    expect(generateIdForModel("toString")).toMatch(ENT_ID);
-    expect(generateIdForModel("constructor")).toMatch(ENT_ID);
-    expect(generateIdForModel("__proto__")).toMatch(ENT_ID);
+    for (const model of UNKNOWN_MODELS) {
+      expect(generateIdForModel(model)).toMatch(ENT_ID);
+    }
   });
 });

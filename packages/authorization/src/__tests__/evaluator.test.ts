@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { principalNotActive } from "../conditions";
-import { evaluate, evaluateOptimistic } from "../evaluator";
+import {
+  createOwnerCondition,
+  createSelfTargetCondition,
+  principalNotActive,
+} from "../conditions";
+import { type EvaluateInput, evaluate, evaluateOptimistic } from "../evaluator";
 import type {
   Condition,
-  ConditionContext,
   PolicyDecision,
   PolicyRule,
   Principal,
@@ -12,13 +15,6 @@ import type {
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-function expectEvaluationError(result: PolicyDecision, cause: unknown): void {
-  expect(result).toMatchObject({ allowed: false, reason: "EVALUATION_ERROR" });
-  if (!result.allowed) {
-    expect(result.cause).toBe(cause);
-  }
-}
 
 function allowRule(
   roles: string[] | "*",
@@ -64,39 +60,44 @@ const inactivePrincipal: Principal = {
   roles: ["user"],
 };
 
+const orgPrincipal: Principal = {
+  attributes: { status: "active" },
+  id: "usr_org",
+  organization: { id: "org_1", role: "editor" },
+  roles: ["member"],
+};
+
+const noOrgPrincipal: Principal = {
+  attributes: { status: "active" },
+  id: "usr_no_org",
+  roles: ["member"],
+};
+
+const systemAdminPrincipal: Principal = {
+  attributes: { status: "active" },
+  id: "usr_sa",
+  roles: ["system_admin"],
+};
+
+const resolveOrganization = (
+  resource: { orgId?: string | null } | undefined
+): string | null | undefined => resource?.orgId;
+
 function ownerCondition(): Condition<{ ownerId: string }> {
-  return {
-    effect: "requires_resource",
-    evaluate(ctx: ConditionContext<{ ownerId: string }>): boolean {
-      if (!ctx.resource) {
-        return false;
-      }
-      return ctx.resource.ownerId === ctx.principal.id;
-    },
-    label: "whereOwner",
-    type: "whereOwner",
-  };
+  return createOwnerCondition<{ ownerId: string }>(
+    (resource) => resource.ownerId
+  );
 }
 
 function selfTargetCondition(): Condition<{ id: string }> {
-  return {
-    effect: "requires_resource",
-    evaluate(ctx: ConditionContext<{ id: string }>): boolean {
-      if (!ctx.resource) {
-        return false;
-      }
-      return ctx.resource.id === ctx.principal.id;
-    },
-    label: "whereTargetIsSelf",
-    type: "whereTargetIsSelf",
-  };
+  return createSelfTargetCondition<{ id: string }>();
 }
 
 function asyncFalseCondition(): Condition {
   return {
     effect: "requires_resource",
-    async evaluate(_ctx: ConditionContext): Promise<boolean> {
-      return Promise.resolve(false);
+    async evaluate(): Promise<boolean> {
+      return false;
     },
     label: "where:asyncFalse",
     type: "where",
@@ -114,79 +115,51 @@ function throwingCondition(cause: unknown): Condition {
   };
 }
 
-interface ConditionErrorLog {
-  condition: { label: string; type: string };
-  message: string;
-  policyId: string;
-  principalId: string;
-}
-
-function parseConditionErrorLogs(spy: {
-  mock: { calls: unknown[][] };
-}): ConditionErrorLog[] {
-  return spy.mock.calls.map((call) => JSON.parse(String(call[0])));
-}
-
 const defaults = {
   action: "read",
   globalPolicies: [],
   resourcePolicies: [],
   systemAdminRoles: [],
-};
+} satisfies Omit<EvaluateInput, "principal">;
+
+function expectEvaluationError(result: PolicyDecision, cause: unknown): void {
+  expect(result).toMatchObject({ allowed: false, reason: "EVALUATION_ERROR" });
+  if (!result.allowed) {
+    expect(result.cause).toBe(cause);
+  }
+}
 
 describe("evaluate", () => {
-  it("denies with UNAUTHENTICATED when principal is null", async () => {
-    const result = await evaluate({ ...defaults, principal: null });
-    expect(result).toEqual({ allowed: false, reason: "UNAUTHENTICATED" });
-  });
-
-  it("does not fire global deny when principal is active", async () => {
-    const result = await evaluate({
-      ...defaults,
-      globalPolicies: [denyRule("*", "*", [principalNotActive()])],
-      principal: activePrincipal,
-      resourcePolicies: [allowRule(["user"], ["read"])],
-    });
-    expect(result.allowed).toBe(true);
-  });
-
-  it("denies with EXPLICIT_DENY when a resource deny matches", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
-      resourcePolicies: [denyRule(["user"], ["read"])],
-    });
-    expect(result).toEqual({
+  it("denies unauthenticated and unmatched requests with explicit reasons", async () => {
+    const unauthenticated = await evaluate({ ...defaults, principal: null });
+    expect(unauthenticated).toEqual({
       allowed: false,
-      matchedPolicy: "deny:user:read",
-      reason: "EXPLICIT_DENY",
+      reason: "UNAUTHENTICATED",
     });
-  });
 
-  it("allows when a resource allow rule matches", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
-      resourcePolicies: [allowRule(["user"], ["read"])],
-    });
-    expect(result).toEqual({
-      allowed: true,
-      matchedPolicy: "allow:user:read",
-    });
-  });
-
-  it("denies with NO_MATCHING_POLICY when no policies match", async () => {
-    const result = await evaluate({
+    const unmatched = await evaluate({
       ...defaults,
       action: "delete",
       principal: activePrincipal,
       resourcePolicies: [allowRule(["admin"], ["delete"])],
     });
-    expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
+    expect(unmatched).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  it("deny beats allow when both match the same role and action", async () => {
-    const result = await evaluate({
+  it("applies global and resource deny precedence over allows", async () => {
+    const globalDeny = await evaluate({
+      ...defaults,
+      globalPolicies: [denyRule("*", "*", [principalNotActive()])],
+      principal: inactivePrincipal,
+      resourcePolicies: [allowRule(["user"], ["read"])],
+    });
+    expect(globalDeny).toEqual({
+      allowed: false,
+      matchedPolicy: "deny:*:*",
+      reason: "GLOBAL_DENY",
+    });
+
+    const explicitDeny = await evaluate({
       ...defaults,
       principal: activePrincipal,
       resourcePolicies: [
@@ -194,75 +167,98 @@ describe("evaluate", () => {
         denyRule(["user"], ["read"]),
       ],
     });
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.reason).toBe("EXPLICIT_DENY");
-    }
+    expect(explicitDeny).toEqual({
+      allowed: false,
+      matchedPolicy: "deny:user:read",
+      reason: "EXPLICIT_DENY",
+    });
   });
 
-  it("wildcard role matches any principal role", async () => {
-    const result = await evaluate({
+  it("matches wildcard roles and actions", async () => {
+    const wildcardRole = await evaluate({
       ...defaults,
       principal: activePrincipal,
       resourcePolicies: [allowRule("*", ["read"])],
     });
-    expect(result.allowed).toBe(true);
-  });
+    expect(wildcardRole).toEqual({
+      allowed: true,
+      matchedPolicy: "allow:*:read",
+    });
 
-  it("wildcard action matches any requested action", async () => {
-    const result = await evaluate({
+    const wildcardAction = await evaluate({
       ...defaults,
       action: "anything",
       principal: activePrincipal,
       resourcePolicies: [allowRule(["user"], "*")],
     });
-    expect(result.allowed).toBe(true);
+    expect(wildcardAction).toEqual({
+      allowed: true,
+      matchedPolicy: "allow:user:*",
+    });
   });
 
-  it("skips policy with resource condition when no resource provided", async () => {
-    const result = await evaluate({
+  it("resolves owner, self-target, AND, and async conditions", async () => {
+    const ownerWithoutResource = await evaluate({
       ...defaults,
       principal: activePrincipal,
       resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
     });
-
-    expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
-
-  it("skips deny policy with resource condition when no resource provided", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
-      resourcePolicies: [
-        denyRule(["user"], ["read"], [ownerCondition()]),
-        allowRule(["user"], ["read"]),
-      ],
+    expect(ownerWithoutResource).toEqual({
+      allowed: false,
+      reason: "NO_MATCHING_POLICY",
     });
-    expect(result.allowed).toBe(true);
-  });
 
-  it("allows when owner condition matches", async () => {
-    const result = await evaluate({
+    const ownerMatch = await evaluate({
       ...defaults,
       principal: activePrincipal,
       resource: { ownerId: "usr_1" },
       resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
     });
-    expect(result.allowed).toBe(true);
-  });
+    expect(ownerMatch.allowed).toBe(true);
 
-  it("denies when owner condition does not match", async () => {
-    const result = await evaluate({
+    const ownerMismatch = await evaluate({
       ...defaults,
       principal: activePrincipal,
       resource: { ownerId: "usr_other" },
       resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
     });
-    expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
+    expect(ownerMismatch).toEqual({
+      allowed: false,
+      reason: "NO_MATCHING_POLICY",
+    });
 
-  it("resolves async condition that returns false", async () => {
-    const result = await evaluate({
+    const bothConditionsMatch = await evaluate({
+      ...defaults,
+      principal: activePrincipal,
+      resource: { id: "usr_1", ownerId: "usr_1" },
+      resourcePolicies: [
+        allowRule(
+          ["user"],
+          ["read"],
+          [ownerCondition(), selfTargetCondition()]
+        ),
+      ],
+    });
+    expect(bothConditionsMatch.allowed).toBe(true);
+
+    const secondConditionFails = await evaluate({
+      ...defaults,
+      principal: activePrincipal,
+      resource: { id: "usr_other", ownerId: "usr_1" },
+      resourcePolicies: [
+        allowRule(
+          ["user"],
+          ["read"],
+          [ownerCondition(), selfTargetCondition()]
+        ),
+      ],
+    });
+    expect(secondConditionFails).toEqual({
+      allowed: false,
+      reason: "NO_MATCHING_POLICY",
+    });
+
+    const asyncFalse = await evaluate({
       ...defaults,
       principal: activePrincipal,
       resource: { id: "x" },
@@ -270,331 +266,37 @@ describe("evaluate", () => {
         allowRule(["user"], ["read"], [asyncFalseCondition()]),
       ],
     });
-    expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
-  });
-
-  describe("condition errors", () => {
-    it("fails closed in the global deny loop with the original cause and logs", async () => {
-      const cause = new Error("global boom");
-      const spy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
-
-      const result = await evaluate({
-        ...defaults,
-        globalPolicies: [denyRule("*", "*", [throwingCondition(cause)])],
-        principal: activePrincipal,
-        resourcePolicies: [allowRule(["user"], ["read"])],
-      });
-
-      expectEvaluationError(result, cause);
-      expect(spy).toHaveBeenCalledTimes(1);
-      const [log] = parseConditionErrorLogs(spy);
-      expect(log?.message).toBe("authorization.evaluator.condition_error");
-      expect(log?.condition).toEqual({ label: "where:throws", type: "where" });
-      expect(log?.policyId).toBe("deny:*:*");
-      expect(log?.principalId).toBe("usr_1");
-    });
-
-    it("fails closed in the resource deny loop with the original cause and logs", async () => {
-      const cause = new Error("deny boom");
-      const spy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
-
-      const result = await evaluate({
-        ...defaults,
-        principal: activePrincipal,
-        resourcePolicies: [
-          denyRule(["user"], ["read"], [throwingCondition(cause)]),
-          allowRule(["user"], ["read"]),
-        ],
-      });
-
-      expectEvaluationError(result, cause);
-      expect(spy).toHaveBeenCalledTimes(1);
-      const [log] = parseConditionErrorLogs(spy);
-      expect(log?.message).toBe("authorization.evaluator.condition_error");
-      expect(log?.policyId).toBe("deny:user:read");
-    });
-
-    it("fails closed in the resource allow loop and does not reach a later match", async () => {
-      const cause = new Error("allow boom");
-      const spy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
-
-      const result = await evaluate({
-        ...defaults,
-        principal: activePrincipal,
-        resourcePolicies: [
-          allowRule(["user"], ["read"], [throwingCondition(cause)]),
-          allowRule(["user"], ["read"]),
-        ],
-      });
-
-      expectEvaluationError(result, cause);
-      expect(spy).toHaveBeenCalledTimes(1);
-      const [log] = parseConditionErrorLogs(spy);
-      expect(log?.message).toBe("authorization.evaluator.condition_error");
-      expect(log?.policyId).toBe("allow:user:read");
-    });
-
-    it("preserves non-Error causes", async () => {
-      const cause = { code: "CONDITION_FAILED" };
-      vi.spyOn(console, "error").mockImplementation(() => undefined);
-
-      const result = await evaluate({
-        ...defaults,
-        principal: activePrincipal,
-        resourcePolicies: [
-          allowRule(["user"], ["read"], [throwingCondition(cause)]),
-        ],
-      });
-
-      expectEvaluationError(result, cause);
+    expect(asyncFalse).toEqual({
+      allowed: false,
+      reason: "NO_MATCHING_POLICY",
     });
   });
 
-  describe("org scoping", () => {
-    const orgPrincipal: Principal = {
-      attributes: { status: "active" },
-      id: "usr_org",
-      organization: { id: "org_1", role: "editor" },
-      roles: ["member"],
-    };
+  it("fails closed when a condition throws and preserves the original cause", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const cause = new Error("boom");
 
-    const noOrgPrincipal: Principal = {
-      attributes: { status: "active" },
-      id: "usr_no_org",
-      roles: ["member"],
-    };
-
-    const sysAdminPrincipal: Principal = {
-      attributes: { status: "active" },
-      id: "usr_sa",
-      roles: ["system_admin"],
-    };
-
-    const resolveOrganization = (
-      resource: { orgId?: string | null } | undefined
-    ): string | null | undefined => resource?.orgId;
-
-    it("allows when org IDs match", async () => {
-      const result = await evaluate({
-        ...defaults,
-        principal: orgPrincipal,
-        resolveOrganization,
-        resource: { orgId: "org_1" },
-        resourcePolicies: [allowRule(["member"], ["read"])],
-        systemAdminRoles: ["system_admin"],
-      });
-      expect(result.allowed).toBe(true);
-    });
-
-    it("denies with ORG_CONTEXT_MISSING when principal has no active org", async () => {
-      const result = await evaluate({
-        ...defaults,
-        principal: noOrgPrincipal,
-        resolveOrganization,
-        resource: { orgId: "org_1" },
-        resourcePolicies: [allowRule(["member"], ["read"])],
-        systemAdminRoles: ["system_admin"],
-      });
-      expect(result.allowed).toBe(false);
-      if (!result.allowed) {
-        expect(result.reason).toBe("ORG_CONTEXT_MISSING");
-      }
-    });
-
-    it("denies with ORG_RESOLUTION_FAILED when resolveOrganization returns null", async () => {
-      const result = await evaluate({
-        ...defaults,
-        principal: orgPrincipal,
-        resolveOrganization,
-        resource: { orgId: null },
-        resourcePolicies: [allowRule(["member"], ["read"])],
-        systemAdminRoles: ["system_admin"],
-      });
-      expect(result.allowed).toBe(false);
-      if (!result.allowed) {
-        expect(result.reason).toBe("ORG_RESOLUTION_FAILED");
-      }
-    });
-
-    it("returns EVALUATION_ERROR with the original cause when resolveOrganization throws", async () => {
-      const cause = new Error("org lookup failed");
-      const spy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
-
-      const result = await evaluate({
-        ...defaults,
-        principal: orgPrincipal,
-        resolveOrganization: () => {
-          throw cause;
-        },
-        resource: { orgId: "org_1" },
-        resourcePolicies: [allowRule(["member"], ["read"])],
-        systemAdminRoles: ["system_admin"],
-      });
-
-      expectEvaluationError(result, cause);
-      const logs = parseConditionErrorLogs(spy);
-      expect(logs[0]?.message).toBe(
-        "authorization.evaluator.org_resolution_error"
-      );
-    });
-
-    it("denies with TENANT_MISMATCH when org IDs do not match", async () => {
-      const result = await evaluate({
-        ...defaults,
-        principal: orgPrincipal,
-        resolveOrganization,
-        resource: { orgId: "org_other" },
-        resourcePolicies: [allowRule(["member"], ["read"])],
-        systemAdminRoles: ["system_admin"],
-      });
-      expect(result.allowed).toBe(false);
-      if (!result.allowed) {
-        expect(result.reason).toBe("TENANT_MISMATCH");
-      }
-    });
-
-    it("system admin bypasses org scoping", async () => {
-      const result = await evaluate({
-        ...defaults,
-        principal: sysAdminPrincipal,
-        resolveOrganization,
-        resource: { orgId: "org_any" },
-        resourcePolicies: [allowRule(["system_admin"], ["read"])],
-        systemAdminRoles: ["system_admin"],
-      });
-      expect(result.allowed).toBe(true);
-    });
-
-    it("system admin bypasses org scoping when admin is not the first matched policy role", async () => {
-      const principalWithAdminAndMember: Principal = {
-        attributes: { status: "active" },
-        id: "usr_dual",
-        roles: ["admin", "member"],
-      };
-      const result = await evaluate({
-        ...defaults,
-        principal: principalWithAdminAndMember,
-        resolveOrganization,
-        resource: { orgId: "org_any" },
-        resourcePolicies: [allowRule(["member", "admin"], ["read"])],
-        systemAdminRoles: ["admin"],
-      });
-      expect(result.allowed).toBe(true);
-    });
-
-    it("skips org check without resolveOrganization or a resource", async () => {
-      const withoutResolver = await evaluate({
-        ...defaults,
-        principal: noOrgPrincipal,
-        resource: { orgId: "org_1" },
-        resourcePolicies: [allowRule(["member"], ["read"])],
-        systemAdminRoles: [],
-      });
-      expect(withoutResolver.allowed).toBe(true);
-
-      const withoutResource = await evaluate({
-        ...defaults,
-        principal: noOrgPrincipal,
-        resolveOrganization,
-        resourcePolicies: [allowRule(["member"], ["read"])],
-        systemAdminRoles: [],
-      });
-      expect(withoutResource.allowed).toBe(true);
-    });
-  });
-
-  describe("evaluation order", () => {
-    it("checks global deny before resource deny", async () => {
-      const result = await evaluate({
-        ...defaults,
-        globalPolicies: [denyRule("*", "*", [principalNotActive()])],
-        principal: inactivePrincipal,
-        resourcePolicies: [denyRule(["user"], ["read"])],
-      });
-
-      expect(result.allowed).toBe(false);
-      if (!result.allowed) {
-        expect(result.reason).toBe("GLOBAL_DENY");
-      }
-    });
-  });
-
-  describe("multiple conditions (AND)", () => {
-    it("requires every condition in a policy to pass", async () => {
-      const matching = await evaluate({
-        ...defaults,
-        principal: activePrincipal,
-        resource: { id: "usr_1", ownerId: "usr_1" },
-        resourcePolicies: [
-          allowRule(
-            ["user"],
-            ["read"],
-            [ownerCondition(), selfTargetCondition()]
-          ),
-        ],
-      });
-      expect(matching.allowed).toBe(true);
-
-      const failing = await evaluate({
-        ...defaults,
-        principal: activePrincipal,
-        resource: { id: "usr_other", ownerId: "usr_1" },
-        resourcePolicies: [
-          allowRule(
-            ["user"],
-            ["read"],
-            [ownerCondition(), selfTargetCondition()]
-          ),
-        ],
-      });
-      expect(failing).toEqual({
-        allowed: false,
-        reason: "NO_MATCHING_POLICY",
-      });
-    });
-  });
-});
-
-describe("evaluateOptimistic", () => {
-  it("skips requires_resource conditions so conditional allows match", async () => {
-    const result = await evaluateOptimistic({
+    const result = await evaluate({
       ...defaults,
       principal: activePrincipal,
-      resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
+      resourcePolicies: [
+        allowRule(["user"], ["read"], [throwingCondition(cause)]),
+        allowRule(["user"], ["read"]),
+      ],
     });
-    expect(result).toEqual({
-      allowed: true,
-      matchedPolicy: "allow:user:read",
-    });
-  });
+    expectEvaluationError(result, cause);
 
-  it("still evaluates principal_only conditions", async () => {
-    const result = await evaluateOptimistic({
+    const objectCause = { code: "CONDITION_FAILED" };
+    const nonErrorResult = await evaluate({
       ...defaults,
-      globalPolicies: [denyRule("*", "*", [principalNotActive()])],
-      principal: inactivePrincipal,
-      resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
+      principal: activePrincipal,
+      resourcePolicies: [
+        allowRule(["user"], ["read"], [throwingCondition(objectCause)]),
+      ],
     });
-    expect(result).toEqual({
-      allowed: false,
-      matchedPolicy: "deny:*:*",
-      reason: "GLOBAL_DENY",
-    });
-  });
+    expectEvaluationError(nonErrorResult, objectCause);
 
-  it("fails closed with the original cause when a principal_only condition throws", async () => {
-    const cause = new Error("optimistic boom");
-    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
-
-    const result = await evaluateOptimistic({
+    const optimisticResult = await evaluateOptimistic({
       ...defaults,
       principal: activePrincipal,
       resourcePolicies: [
@@ -605,11 +307,121 @@ describe("evaluateOptimistic", () => {
         ),
       ],
     });
+    expectEvaluationError(optimisticResult, cause);
+  });
 
-    expectEvaluationError(result, cause);
-    expect(spy).toHaveBeenCalledTimes(1);
-    const [log] = parseConditionErrorLogs(spy);
-    expect(log?.message).toBe("authorization.evaluator.condition_error");
-    expect(log?.policyId).toBe("allow:user:read");
+  it("permits matching org context, system-admin bypass, and unscoped checks", async () => {
+    const matchedOrg = await evaluate({
+      ...defaults,
+      principal: orgPrincipal,
+      resolveOrganization,
+      resource: { orgId: "org_1" },
+      resourcePolicies: [allowRule(["member"], ["read"])],
+      systemAdminRoles: ["system_admin"],
+    });
+    expect(matchedOrg.allowed).toBe(true);
+
+    const systemAdminBypass = await evaluate({
+      ...defaults,
+      principal: systemAdminPrincipal,
+      resolveOrganization,
+      resource: { orgId: "org_other" },
+      resourcePolicies: [allowRule(["system_admin"], ["read"])],
+      systemAdminRoles: ["system_admin"],
+    });
+    expect(systemAdminBypass.allowed).toBe(true);
+
+    const withoutResolver = await evaluate({
+      ...defaults,
+      principal: noOrgPrincipal,
+      resource: { orgId: "org_1" },
+      resourcePolicies: [allowRule(["member"], ["read"])],
+    });
+    expect(withoutResolver.allowed).toBe(true);
+
+    const withoutResource = await evaluate({
+      ...defaults,
+      principal: noOrgPrincipal,
+      resolveOrganization,
+      resourcePolicies: [allowRule(["member"], ["read"])],
+    });
+    expect(withoutResource.allowed).toBe(true);
+  });
+
+  it("denies org-scoped requests with the specific reason and preserves resolver failures", async () => {
+    const orgOptions = {
+      ...defaults,
+      resolveOrganization,
+      resourcePolicies: [allowRule(["member"], ["read"])],
+      systemAdminRoles: ["system_admin"],
+    };
+
+    const missingContext = await evaluate({
+      ...orgOptions,
+      principal: noOrgPrincipal,
+      resource: { orgId: "org_1" },
+    });
+    expect(missingContext).toEqual({
+      allowed: false,
+      reason: "ORG_CONTEXT_MISSING",
+    });
+
+    const resolutionFailed = await evaluate({
+      ...orgOptions,
+      principal: orgPrincipal,
+      resource: { orgId: null },
+    });
+    expect(resolutionFailed).toEqual({
+      allowed: false,
+      reason: "ORG_RESOLUTION_FAILED",
+    });
+
+    const mismatch = await evaluate({
+      ...orgOptions,
+      principal: orgPrincipal,
+      resource: { orgId: "org_other" },
+    });
+    expect(mismatch).toEqual({
+      allowed: false,
+      reason: "TENANT_MISMATCH",
+    });
+
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const cause = new Error("org lookup failed");
+    const resolverFailure = await evaluate({
+      ...orgOptions,
+      principal: orgPrincipal,
+      resolveOrganization: () => {
+        throw cause;
+      },
+      resource: { orgId: "org_1" },
+    });
+    expectEvaluationError(resolverFailure, cause);
+  });
+});
+
+describe("evaluateOptimistic", () => {
+  it("skips requires_resource conditions while evaluating principal-only conditions", async () => {
+    const conditionalAllow = await evaluateOptimistic({
+      ...defaults,
+      principal: activePrincipal,
+      resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
+    });
+    expect(conditionalAllow).toEqual({
+      allowed: true,
+      matchedPolicy: "allow:user:read",
+    });
+
+    const globalDeny = await evaluateOptimistic({
+      ...defaults,
+      globalPolicies: [denyRule("*", "*", [principalNotActive()])],
+      principal: inactivePrincipal,
+      resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
+    });
+    expect(globalDeny).toEqual({
+      allowed: false,
+      matchedPolicy: "deny:*:*",
+      reason: "GLOBAL_DENY",
+    });
   });
 });

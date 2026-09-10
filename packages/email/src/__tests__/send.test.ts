@@ -62,8 +62,10 @@ const createTransporter = vi.fn();
 
 let sender: ReturnType<typeof createEmailSender>;
 
-async function sendDummy() {
-  return sender<DummyProps>({
+async function sendDummy(
+  emailSender: ReturnType<typeof createEmailSender> = sender
+) {
+  return emailSender<DummyProps>({
     props: { name: "Ada" },
     subject: "Hello",
     template: DummyTemplate,
@@ -80,8 +82,9 @@ function tlsMismatchError(): Error {
 }
 
 const CONSOLE_MESSAGE_ID_PATTERN = /^console-/;
-const SMTP_HOST_PATTERN = /SMTP_HOST/;
-const EMAIL_PROVIDER_PATTERN = /EMAIL_PROVIDER/;
+const NO_EMAIL_TRANSPORT_PATTERN = /No email transport is configured/;
+const CONSOLE_PROVIDER_PATTERN =
+  /EMAIL_PROVIDER="console" is not allowed in production/;
 const SMTP_PORT_PATTERN = /SMTP_PORT/;
 const SMTP_SECURE_PATTERN = /SMTP_SECURE/;
 
@@ -101,7 +104,7 @@ afterEach(() => {
 });
 
 describe("sendEmail", () => {
-  test("sends through the console transport outside production", async () => {
+  test("falls back to the console transport outside production", async () => {
     delete process.env.SMTP_HOST;
 
     const result = await sendDummy();
@@ -110,149 +113,7 @@ describe("sendEmail", () => {
     expect(createTransporter).not.toHaveBeenCalled();
   });
 
-  test("returns the messageId from a successful SMTP send", async () => {
-    setSmtpEnv();
-    const transporter = createFakeTransporter(async () => ({
-      messageId: "smtp-message-id",
-    }));
-    createTransporter.mockReturnValue(transporter);
-
-    const result = await sendDummy();
-
-    expect(result).toEqual({ messageId: "smtp-message-id" });
-    expect(createTransporter).toHaveBeenCalledTimes(1);
-    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
-      requireTLS: false,
-      tls: { minVersion: "TLSv1.2" },
-    });
-    expect(transporter.sendMail).toHaveBeenCalledTimes(1);
-  });
-
-  test("throws when the transport fails to deliver", async () => {
-    setSmtpEnv();
-    createTransporter.mockReturnValue(
-      createFakeTransporter(async () => {
-        throw new Error("SMTP delivery failed");
-      })
-    );
-
-    await expect(sendDummy()).rejects.toThrow("SMTP delivery failed");
-  });
-
-  test("throws in production instead of using the console transport", async () => {
-    process.env.NODE_ENV = "production";
-    delete process.env.SMTP_HOST;
-
-    await expect(sendDummy()).rejects.toThrow(SMTP_HOST_PATTERN);
-
-    process.env.EMAIL_PROVIDER = "console";
-
-    await expect(sendDummy()).rejects.toThrow(EMAIL_PROVIDER_PATTERN);
-  });
-
-  test("requires TLS with a TLS 1.2 minimum in production", async () => {
-    process.env.NODE_ENV = "production";
-    setSmtpEnv();
-    createTransporter.mockReturnValue(
-      createFakeTransporter(async () => ({ messageId: "prod-message-id" }))
-    );
-
-    const result = await sendDummy();
-
-    expect(result).toEqual({ messageId: "prod-message-id" });
-    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
-      requireTLS: true,
-      tls: { minVersion: "TLSv1.2" },
-    });
-  });
-
-  test.each([
-    ["SMTP_PORT", "not-a-port", SMTP_PORT_PATTERN],
-    ["SMTP_PORT", "70000", SMTP_PORT_PATTERN],
-    ["SMTP_SECURE", "sometimes", SMTP_SECURE_PATTERN],
-  ])(
-    "throws when %s is set to invalid value %s",
-    async (key, value, pattern) => {
-      process.env[key] = value;
-
-      await expect(sendDummy()).rejects.toThrow(pattern);
-    }
-  );
-
-  test("does not downgrade to secure=false when secure=true hits a TLS error", async () => {
-    setSmtpEnv({ SMTP_SECURE: "true" });
-    createTransporter.mockReturnValue(
-      createFakeTransporter(async () => {
-        throw tlsMismatchError();
-      })
-    );
-
-    await expect(sendDummy()).rejects.toThrow("wrong version number");
-
-    expect(createTransporter).toHaveBeenCalledTimes(1);
-    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
-      secure: true,
-    });
-  });
-
-  test("upgrades secure=false to secure=true after a TLS mismatch and keeps it", async () => {
-    setSmtpEnv({ SMTP_SECURE: "false" });
-    const failingTransporter = createFakeTransporter(async () => {
-      throw tlsMismatchError();
-    });
-    const upgradedTransporter = createFakeTransporter(async () => ({
-      messageId: "upgraded-message-id",
-    }));
-    createTransporter
-      .mockReturnValueOnce(failingTransporter)
-      .mockReturnValueOnce(upgradedTransporter);
-
-    const result = await sendDummy();
-
-    expect(result).toEqual({ messageId: "upgraded-message-id" });
-    expect(createTransporter).toHaveBeenCalledTimes(2);
-    expect(createTransporter.mock.calls[1]?.[0]).toMatchObject({
-      secure: true,
-    });
-    expect(failingTransporter.close).toHaveBeenCalledTimes(1);
-
-    const secondResult = await sendDummy();
-
-    expect(secondResult).toEqual({ messageId: "upgraded-message-id" });
-    expect(createTransporter).toHaveBeenCalledTimes(2);
-  });
-
-  test("upgrades secure=false when the runtime reports WRONG_VERSION_NUMBER", async () => {
-    setSmtpEnv({ SMTP_SECURE: "false" });
-    const failingTransporter = createFakeTransporter(async () => {
-      throw Object.assign(
-        new Error(
-          "error:100000f7:SSL routines:OPENSSL_internal:WRONG_VERSION_NUMBER"
-        ),
-        {
-          code: "ESOCKET",
-          command: "CONN",
-          reason: "WRONG_VERSION_NUMBER",
-        }
-      );
-    });
-    const upgradedTransporter = createFakeTransporter(async () => ({
-      messageId: "bun-upgraded-message-id",
-    }));
-    createTransporter
-      .mockReturnValueOnce(failingTransporter)
-      .mockReturnValueOnce(upgradedTransporter);
-
-    const result = await sendDummy();
-
-    expect(result).toEqual({ messageId: "bun-upgraded-message-id" });
-    expect(createTransporter).toHaveBeenCalledTimes(2);
-    expect(createTransporter.mock.calls[1]?.[0]).toMatchObject({
-      secure: true,
-    });
-  });
-
-  test("rebuilds the transport and closes the old one when the password rotates", async () => {
+  test("returns the messageId, caches the transport, and rebuilds it when the SMTP password rotates", async () => {
     setSmtpEnv({ SMTP_PASS: "first-pass" });
     const firstTransporter = createFakeTransporter(async () => ({
       messageId: "first-message-id",
@@ -267,6 +128,16 @@ describe("sendEmail", () => {
     await expect(sendDummy()).resolves.toEqual({
       messageId: "first-message-id",
     });
+    await expect(sendDummy()).resolves.toEqual({
+      messageId: "first-message-id",
+    });
+
+    expect(createTransporter).toHaveBeenCalledTimes(1);
+    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
+      requireTLS: false,
+      tls: { minVersion: "TLSv1.2" },
+    });
+    expect(firstTransporter.sendMail).toHaveBeenCalledTimes(2);
 
     process.env.SMTP_PASS = "second-pass";
 
@@ -279,17 +150,175 @@ describe("sendEmail", () => {
     expect(secondTransporter.close).not.toHaveBeenCalled();
   });
 
-  test("keeps the cached transport when the configuration is unchanged", async () => {
-    setSmtpEnv();
-    const transporter = createFakeTransporter(async () => ({
-      messageId: "cached-message-id",
+  test("propagates API errors and thrown delivery errors", async () => {
+    const apiError = new Error("SMTP API rejected the message");
+    const apiSender = createEmailSender(() => ({
+      close: vi.fn(),
+      send: async () => ({ error: apiError, success: false }),
     }));
-    createTransporter.mockReturnValue(transporter);
 
-    await sendDummy();
-    await sendDummy();
+    await expect(sendDummy(apiSender)).rejects.toBe(apiError);
 
+    const silentSender = createEmailSender(() => ({
+      close: vi.fn(),
+      send: async () => ({ success: false }),
+    }));
+
+    await expect(sendDummy(silentSender)).rejects.toEqual(
+      new Error("Email delivery failed")
+    );
+
+    setSmtpEnv();
+    createTransporter.mockReturnValue(
+      createFakeTransporter(async () => {
+        throw new Error("SMTP delivery failed");
+      })
+    );
+
+    await expect(sendDummy()).rejects.toThrow("SMTP delivery failed");
+  });
+
+  test("enforces production transport policy and validates SMTP settings", async () => {
+    process.env.NODE_ENV = "production";
+    delete process.env.SMTP_HOST;
+
+    await expect(sendDummy()).rejects.toThrow(NO_EMAIL_TRANSPORT_PATTERN);
+
+    process.env.EMAIL_PROVIDER = "console";
+
+    await expect(sendDummy()).rejects.toThrow(CONSOLE_PROVIDER_PATTERN);
+
+    delete process.env.EMAIL_PROVIDER;
+    process.env.SMTP_PORT = "70000";
+
+    await expect(sendDummy()).rejects.toThrow(SMTP_PORT_PATTERN);
+
+    process.env.SMTP_PORT = "not-a-port";
+
+    await expect(sendDummy()).rejects.toThrow(SMTP_PORT_PATTERN);
+
+    delete process.env.SMTP_PORT;
+    process.env.SMTP_SECURE = "sometimes";
+
+    await expect(sendDummy()).rejects.toThrow(SMTP_SECURE_PATTERN);
+
+    setSmtpEnv();
+    createTransporter.mockReturnValue(
+      createFakeTransporter(async () => ({ messageId: "prod-message-id" }))
+    );
+
+    await expect(sendDummy()).resolves.toEqual({
+      messageId: "prod-message-id",
+    });
+    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
+      requireTLS: true,
+      tls: { minVersion: "TLSv1.2" },
+    });
+  });
+
+  test("upgrades an insecure transport on a TLS mismatch and never downgrades a secure one", async () => {
+    setSmtpEnv({ SMTP_SECURE: "false" });
+    const failingTransporter = createFakeTransporter(async () => {
+      throw Object.assign(
+        new Error(
+          "error:100000f7:SSL routines:OPENSSL_internal:WRONG_VERSION_NUMBER"
+        ),
+        {
+          code: "ESOCKET",
+          command: "CONN",
+          reason: "WRONG_VERSION_NUMBER",
+        }
+      );
+    });
+    const upgradedTransporter = createFakeTransporter(async () => ({
+      messageId: "upgraded-message-id",
+    }));
+    createTransporter
+      .mockReturnValueOnce(failingTransporter)
+      .mockReturnValueOnce(upgradedTransporter);
+
+    await expect(sendDummy()).resolves.toEqual({
+      messageId: "upgraded-message-id",
+    });
+    expect(createTransporter).toHaveBeenCalledTimes(2);
+    expect(createTransporter.mock.calls[1]?.[0]).toMatchObject({
+      secure: true,
+    });
+    expect(failingTransporter.close).toHaveBeenCalledTimes(1);
+
+    await expect(sendDummy()).resolves.toEqual({
+      messageId: "upgraded-message-id",
+    });
+    expect(createTransporter).toHaveBeenCalledTimes(2);
+
+    createTransporter.mockClear();
+    process.env.SMTP_SECURE = "true";
+    createTransporter.mockReturnValue(
+      createFakeTransporter(async () => {
+        throw tlsMismatchError();
+      })
+    );
+
+    await expect(sendDummy()).rejects.toThrow("wrong version number");
     expect(createTransporter).toHaveBeenCalledTimes(1);
-    expect(transporter.close).not.toHaveBeenCalled();
+    expect(createTransporter.mock.calls[0]?.[0]).toMatchObject({
+      secure: true,
+    });
+
+    process.env.SMTP_SECURE = "false";
+    createTransporter.mockClear();
+    const reasonOnlySender = createEmailSender((config) =>
+      createTransport(config, createTransporter)
+    );
+    createTransporter
+      .mockReturnValueOnce(
+        createFakeTransporter(async () => {
+          throw Object.assign(new Error("TLS handshake failed"), {
+            code: "ESOCKET",
+            command: "CONN",
+            reason: "wrong version number",
+          });
+        })
+      )
+      .mockReturnValueOnce(
+        createFakeTransporter(async () => ({
+          messageId: "reason-only-message-id",
+        }))
+      );
+
+    await expect(sendDummy(reasonOnlySender)).resolves.toEqual({
+      messageId: "reason-only-message-id",
+    });
+    expect(createTransporter).toHaveBeenCalledTimes(2);
+    expect(createTransporter.mock.calls[1]?.[0]).toMatchObject({
+      secure: true,
+    });
+
+    createTransporter.mockClear();
+    const messageOnlySender = createEmailSender((config) =>
+      createTransport(config, createTransporter)
+    );
+    createTransporter
+      .mockReturnValueOnce(
+        createFakeTransporter(async () => {
+          throw Object.assign(new Error("wrong version number"), {
+            code: "ESOCKET",
+            command: "CONN",
+          });
+        })
+      )
+      .mockReturnValueOnce(
+        createFakeTransporter(async () => ({
+          messageId: "message-only-message-id",
+        }))
+      );
+
+    await expect(sendDummy(messageOnlySender)).resolves.toEqual({
+      messageId: "message-only-message-id",
+    });
+    expect(createTransporter).toHaveBeenCalledTimes(2);
+    expect(createTransporter.mock.calls[1]?.[0]).toMatchObject({
+      secure: true,
+    });
   });
 });

@@ -31,8 +31,8 @@ function redisDependencies(options: {
   };
 }
 
-function handlerReturning(checks: ReadinessChecks) {
-  return createStatusHandler(async () => checks);
+function handlerFor(dependencies: ReadinessDependencies, timeoutMs?: number) {
+  return createStatusHandler(() => checkReadiness(dependencies, timeoutMs));
 }
 
 afterEach(() => {
@@ -40,121 +40,77 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("checkReadiness", () => {
-  it("reports the database ready and redis unset when redis is not configured", async () => {
-    const checks = await checkReadiness({
-      database: fakeDatabase(async () => {}),
-      redis: redisDependencies({ enabled: false, ping: async () => "PONG" }),
-    });
-
-    expect(checks).toEqual({ database: true, redis: null });
-  });
-
-  it("reports the database not ready when the probe rejects", async () => {
-    const checks = await checkReadiness({
-      database: fakeDatabase(() =>
-        Promise.reject(new Error("connection refused"))
-      ),
-      redis: redisDependencies({ enabled: false, ping: async () => "PONG" }),
-    });
-
-    expect(checks).toEqual({ database: false, redis: null });
-  });
-
-  it("reports redis not ready when redis is configured but unreachable", async () => {
-    const checks = await checkReadiness({
-      database: fakeDatabase(async () => {}),
-      redis: redisDependencies({
-        enabled: true,
-        ping: () => Promise.reject(new Error("redis down")),
-      }),
-    });
-
-    expect(checks).toEqual({ database: true, redis: false });
-  });
-
-  it("reports redis ready when redis is configured and reachable", async () => {
-    const checks = await checkReadiness({
-      database: fakeDatabase(async () => {}),
-      redis: redisDependencies({ enabled: true, ping: async () => "PONG" }),
-    });
-
-    expect(checks).toEqual({ database: true, redis: true });
-  });
-
-  it("marks the database not ready when the probe exceeds the timeout", async () => {
-    const checks = await checkReadiness(
-      {
-        database: fakeDatabase(() => new Promise<void>(() => undefined)),
-        redis: redisDependencies({ enabled: false, ping: async () => "PONG" }),
-      },
-      20
-    );
-
-    expect(checks).toEqual({ database: false, redis: null });
-  });
-
-  it("treats a missing database dependency as skipped", async () => {
-    const checks = await checkReadiness({
-      database: null,
-      redis: redisDependencies({ enabled: false, ping: async () => "PONG" }),
-    });
-
-    expect(checks).toEqual({ database: true, redis: null });
-  });
+const redisUnset = redisDependencies({
+  enabled: false,
+  ping: async () => "PONG",
 });
+const databaseUp = () => fakeDatabase(async () => {});
 
 describe("GET /ready", () => {
-  it("should return 200 with redis null when db is up and redis is not configured", async () => {
-    const res = await handlerReturning({
-      database: true,
-      redis: null,
-    }).request("/ready");
+  it("maps every database and redis probe outcome to 200 or 503", async () => {
+    const scenarios: {
+      dependencies: ReadinessDependencies;
+      expected: { checks: ReadinessChecks; status: 200 | 503 };
+      timeoutMs?: number;
+    }[] = [
+      {
+        dependencies: { database: databaseUp(), redis: redisUnset },
+        expected: { checks: { database: true, redis: null }, status: 200 },
+      },
+      {
+        dependencies: {
+          database: fakeDatabase(() =>
+            Promise.reject(new Error("connection refused"))
+          ),
+          redis: redisUnset,
+        },
+        expected: { checks: { database: false, redis: null }, status: 503 },
+      },
+      {
+        dependencies: {
+          database: fakeDatabase(() => new Promise<void>(() => undefined)),
+          redis: redisUnset,
+        },
+        expected: { checks: { database: false, redis: null }, status: 503 },
+        timeoutMs: 20,
+      },
+      {
+        dependencies: { database: null, redis: redisUnset },
+        expected: { checks: { database: true, redis: null }, status: 200 },
+      },
+      {
+        dependencies: {
+          database: databaseUp(),
+          redis: redisDependencies({
+            enabled: true,
+            ping: () => Promise.reject(new Error("redis down")),
+          }),
+        },
+        expected: { checks: { database: true, redis: false }, status: 503 },
+      },
+      {
+        dependencies: {
+          database: databaseUp(),
+          redis: redisDependencies({ enabled: true, ping: async () => "PONG" }),
+        },
+        expected: { checks: { database: true, redis: true }, status: 200 },
+      },
+    ];
 
-    expect(res.status).toBe(200);
-    expect(readinessBodySchema.parse(await res.json())).toEqual({
-      checks: { database: true, redis: null },
-      status: "ok",
-    });
-  });
+    await Promise.all(
+      scenarios.map(async (scenario) => {
+        const response = await handlerFor(
+          scenario.dependencies,
+          scenario.timeoutMs
+        ).request("/ready");
 
-  it("should return 503 when the database probe fails", async () => {
-    const res = await handlerReturning({
-      database: false,
-      redis: null,
-    }).request("/ready");
-
-    expect(res.status).toBe(503);
-    expect(readinessBodySchema.parse(await res.json())).toEqual({
-      checks: { database: false, redis: null },
-      status: "unavailable",
-    });
-  });
-
-  it("should return 503 when redis is configured but unreachable", async () => {
-    const res = await handlerReturning({
-      database: true,
-      redis: false,
-    }).request("/ready");
-
-    expect(res.status).toBe(503);
-    expect(readinessBodySchema.parse(await res.json())).toEqual({
-      checks: { database: true, redis: false },
-      status: "unavailable",
-    });
-  });
-
-  it("should return 200 when redis is configured and reachable", async () => {
-    const res = await handlerReturning({
-      database: true,
-      redis: true,
-    }).request("/ready");
-
-    expect(res.status).toBe(200);
-    expect(readinessBodySchema.parse(await res.json())).toEqual({
-      checks: { database: true, redis: true },
-      status: "ok",
-    });
+        expect(response.status).toBe(scenario.expected.status);
+        expect(readinessBodySchema.parse(await response.json())).toEqual({
+          checks: scenario.expected.checks,
+          status: scenario.expected.status === 200 ? "ok" : "unavailable",
+        });
+      })
+    );
   });
 
   it("wires the real readiness dependencies through the default handler", async () => {
@@ -170,6 +126,20 @@ describe("GET /ready", () => {
     expect(readinessBodySchema.parse(await res.json())).toEqual({
       checks: { database: true, redis: null },
       status: "ok",
+    });
+
+    vi.stubEnv("REDIS_URL", "redis://127.0.0.1:1");
+    vi.resetModules();
+
+    const { default: unreachableRedisHandler } = await import(
+      "@/modules/status/handler"
+    );
+    const unreachableRes = await unreachableRedisHandler.request("/ready");
+
+    expect(unreachableRes.status).toBe(503);
+    expect(readinessBodySchema.parse(await unreachableRes.json())).toEqual({
+      checks: { database: true, redis: false },
+      status: "unavailable",
     });
   });
 });

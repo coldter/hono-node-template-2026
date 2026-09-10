@@ -9,5 +9,8 @@ describe("audit", () => {
   it("flattens every event into a unique string key", () => {
     expect(AUDIT_EVENT_KEYS.length).toBeGreaterThan(0);
     expect(new Set(AUDIT_EVENT_KEYS).size).toBe(AUDIT_EVENT_KEYS.length);
+    for (const key of AUDIT_EVENT_KEYS) {
+      expect(key.length).toBeGreaterThan(0);
+    }
   });
 });

@@ -14,26 +14,18 @@ function makeFakeRedis() {
 }
 
 describe("createRedisRateLimitStorage", () => {
-  it("should round-trip a rate limit entry", async () => {
+  it("round-trips entries under a namespaced key with a double-window TTL", async () => {
     const fake = makeFakeRedis();
     const storage = createRedisRateLimitStorage(async () => fake, 60);
+    const entry = { count: 3, key: "key1", lastRequest: 1000 };
 
-    await storage.set("key1", { count: 3, key: "key1", lastRequest: 1000 });
-    const entry = await storage.get("key1");
+    await storage.set("key1", entry);
 
-    expect(entry).toEqual({ count: 3, key: "key1", lastRequest: 1000 });
-  });
-
-  it("should set a TTL so keys cannot accumulate forever", async () => {
-    const fake = makeFakeRedis();
-    const storage = createRedisRateLimitStorage(async () => fake, 60);
-
-    await storage.set("key1", { count: 1, key: "key1", lastRequest: 1 });
-
+    await expect(storage.get("key1")).resolves.toEqual(entry);
     expect(fake.setEx).toHaveBeenCalledWith(
       "ba-rate-limit:key1",
       120,
-      expect.any(String)
+      JSON.stringify(entry)
     );
   });
 });

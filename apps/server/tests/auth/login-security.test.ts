@@ -14,23 +14,18 @@ describe("login lockout failure classification", () => {
     expect(
       isCredentialFailure(apiError("UNAUTHORIZED", "INVALID_EMAIL_OR_PASSWORD"))
     ).toBe(true);
-  });
 
-  it("does not count other unauthorized failures", () => {
     expect(
       isCredentialFailure(apiError("UNAUTHORIZED", "FAILED_TO_CREATE_SESSION"))
     ).toBe(false);
     expect(isCredentialFailure(apiError("UNAUTHORIZED"))).toBe(false);
-  });
-
-  it("does not count failures with non-unauthorized statuses", () => {
     expect(
       isCredentialFailure(apiError("FORBIDDEN", "USER_NOT_VERIFIED"))
     ).toBe(false);
+    expect(
+      isCredentialFailure(apiError("FORBIDDEN", "INVALID_EMAIL_OR_PASSWORD"))
+    ).toBe(false);
     expect(isCredentialFailure(apiError("TOO_MANY_REQUESTS"))).toBe(false);
-  });
-
-  it("does not count non-APIError return values", () => {
     expect(isCredentialFailure(undefined)).toBe(false);
     expect(isCredentialFailure(new Error("unexpected"))).toBe(false);
     expect(isCredentialFailure({ status: "UNAUTHORIZED" })).toBe(false);

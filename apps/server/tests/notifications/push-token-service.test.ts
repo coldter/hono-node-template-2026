@@ -9,6 +9,8 @@ const DIFFERENT_USER_MESSAGE = /different user/i;
 const selectResults: PushToken[][] = [];
 const updateResults: PushToken[][] = [];
 const insertResults: PushToken[][] = [];
+const updatePayloads: Record<string, unknown>[] = [];
+const insertPayloads: Record<string, unknown>[] = [];
 
 function nextSelect(): PushToken[] {
   const next = selectResults.shift();
@@ -44,13 +46,19 @@ function createExecutor(): Executor {
 
   const updateChain = {
     returning: () => Promise.resolve(nextUpdate()),
-    set: () => updateChain,
+    set: (payload: Record<string, unknown>) => {
+      updatePayloads.push(payload);
+      return updateChain;
+    },
     where: () => updateChain,
   };
 
   const insertChain = {
     returning: () => Promise.resolve(nextInsert()),
-    values: () => insertChain,
+    values: (payload: Record<string, unknown>) => {
+      insertPayloads.push(payload);
+      return insertChain;
+    },
   };
 
   const deleteChain = {
@@ -92,27 +100,35 @@ beforeEach(() => {
   selectResults.length = 0;
   updateResults.length = 0;
   insertResults.length = 0;
+  updatePayloads.length = 0;
+  insertPayloads.length = 0;
 });
 
 describe("notificationPushTokenService.registerPushToken", () => {
-  it("should throw HTTPException(409) when token already belongs to a different user", async () => {
+  it("should reject another user's token, update same-user tokens, and insert new tokens", async () => {
+    const executor = createExecutor();
+
     selectResults.push([
       makeRow({ id: "tok_conflict", token: "shared-tok", userId: "usr_other" }),
     ]);
 
-    const registration = notificationPushTokenService.registerPushToken(
-      "usr_caller",
-      "sess_new",
-      { platform: "ios", token: "shared-tok" },
-      createExecutor()
-    );
+    const conflict = await notificationPushTokenService
+      .registerPushToken(
+        "usr_caller",
+        "sess_new",
+        { platform: "ios", token: "shared-tok" },
+        executor
+      )
+      .catch((error: unknown) => error);
 
-    await expect(registration).rejects.toBeInstanceOf(HTTPException);
-    await expect(registration).rejects.toThrowError(DIFFERENT_USER_MESSAGE);
-    await expect(registration).rejects.toMatchObject({ status: 409 });
-  });
+    expect(conflict).toBeInstanceOf(HTTPException);
+    expect(conflict).toMatchObject({
+      message: expect.stringMatching(DIFFERENT_USER_MESSAGE),
+      status: 409,
+    });
+    expect(updatePayloads).toHaveLength(0);
+    expect(insertPayloads).toHaveLength(0);
 
-  it("should update sessionId/platform without error when token already belongs to the same user", async () => {
     const existing = makeRow({
       id: "tok_existing",
       platform: "ios",
@@ -120,47 +136,66 @@ describe("notificationPushTokenService.registerPushToken", () => {
       token: "same-tok",
       userId: "usr_caller",
     });
-    const updated = makeRow({
-      ...existing,
-      platform: "android",
-      sessionId: "sess_new",
-    });
-
     selectResults.push([existing]);
-    updateResults.push([updated]);
+    updateResults.push([
+      makeRow({ ...existing, platform: "android", sessionId: "sess_new" }),
+    ]);
 
-    const result = await notificationPushTokenService.registerPushToken(
+    const updated = await notificationPushTokenService.registerPushToken(
       "usr_caller",
       "sess_new",
       { platform: "android", token: "same-tok" },
-      createExecutor()
+      executor
     );
 
-    expect(result.id).toBe("tok_existing");
-    expect(result.sessionId).toBe("sess_new");
-    expect(result.platform).toBe("android");
-  });
+    expect(updated).toMatchObject({
+      id: "tok_existing",
+      platform: "android",
+      sessionId: "sess_new",
+    });
+    expect(updatePayloads).toHaveLength(1);
+    expect(updatePayloads[0]).toMatchObject({
+      isActive: true,
+      lastUsedAt: expect.any(Date),
+      platform: "android",
+      sessionId: "sess_new",
+      userId: "usr_caller",
+    });
+    expect(insertPayloads).toHaveLength(0);
 
-  it("should create a new row when the token is brand new", async () => {
     selectResults.push([]);
-    const created = makeRow({
+    insertResults.push([
+      makeRow({
+        id: "tok_new",
+        platform: "ios",
+        sessionId: "sess_new",
+        token: "brand-new-tok",
+        userId: "usr_caller",
+      }),
+    ]);
+
+    const created = await notificationPushTokenService.registerPushToken(
+      "usr_caller",
+      "sess_new",
+      { platform: "ios", token: "brand-new-tok" },
+      executor
+    );
+
+    expect(created).toMatchObject({
       id: "tok_new",
+      token: "brand-new-tok",
+      userId: "usr_caller",
+    });
+    expect(insertPayloads).toHaveLength(1);
+    expect(insertPayloads[0]).toMatchObject({
+      deviceId: null,
+      deviceName: null,
+      isActive: true,
       platform: "ios",
       sessionId: "sess_new",
       token: "brand-new-tok",
       userId: "usr_caller",
     });
-    insertResults.push([created]);
-
-    const result = await notificationPushTokenService.registerPushToken(
-      "usr_caller",
-      "sess_new",
-      { platform: "ios", token: "brand-new-tok" },
-      createExecutor()
-    );
-
-    expect(result.id).toBe("tok_new");
-    expect(result.userId).toBe("usr_caller");
-    expect(result.token).toBe("brand-new-tok");
+    expect(updatePayloads).toHaveLength(1);
   });
 });

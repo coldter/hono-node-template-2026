@@ -17,15 +17,14 @@ afterEach(() => {
 });
 
 describe("server bootstrap CORS guard", () => {
-  it("should throw at module load when CORS_ORIGIN is an empty array", async () => {
+  it("should throw at module load without an origin and boot with one", async () => {
     vi.stubEnv("CORS_ORIGIN", "");
 
     await expect(import("@/server")).rejects.toThrowError(
       CORS_ORIGIN_REQUIRED_MESSAGE
     );
-  });
 
-  it("should load the app when CORS_ORIGIN contains at least one origin", async () => {
+    vi.resetModules();
     vi.stubEnv("CORS_ORIGIN", "https://allowed.example.com");
 
     const server = await import("@/server");

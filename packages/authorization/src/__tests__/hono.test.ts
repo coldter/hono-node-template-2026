@@ -14,7 +14,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const NO_RESOURCE_LOADED = /no resource was loaded/;
+const NO_RESOURCE_LOADED_PATTERN = /no resource was loaded/;
 
 const auth = createAuthSchema({
   globalPolicies: (p) => [
@@ -55,239 +55,122 @@ const adminPrincipal: Principal = {
   id: "usr_admin",
   roles: ["admin"],
 };
+
 const userPrincipal: Principal = {
   attributes: { status: "active" },
   id: "usr_1",
   roles: ["user"],
 };
 
+const authorize = createAuthorize(registry, {
+  resolvePrincipal: (c) => {
+    const principalHeader = c.req.header("x-test-principal");
+    if (!principalHeader) {
+      return null;
+    }
+    return JSON.parse(principalHeader);
+  },
+});
+
+function principalHeaders(principal: Principal) {
+  return { "x-test-principal": JSON.stringify(principal) };
+}
+
 describe("createAuthorize", () => {
-  const authorize = createAuthorize(registry, {
-    resolvePrincipal: (c) => {
-      const principalHeader = c.req.header("x-test-principal");
-      if (!principalHeader) {
-        return null;
-      }
-      return JSON.parse(principalHeader);
-    },
-  });
+  it("allows authorized requests and exposes the loaded resource", async () => {
+    const adminApp = new Hono();
+    adminApp.use("/test", authorize("test", "list"));
+    adminApp.get("/test", (c) => c.json({ ok: true }));
 
-  it("authorize(resource, action) allows admin", async () => {
-    const app = new Hono();
-    app.use("/test", authorize("test", "list"));
-    app.get("/test", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test", {
-      headers: { "x-test-principal": JSON.stringify(adminPrincipal) },
+    const adminResponse = await adminApp.request("/test", {
+      headers: principalHeaders(adminPrincipal),
     });
-    expect(res.status).toBe(200);
-  });
+    expect(adminResponse.status).toBe(200);
 
-  it("returns 401 when no principal", async () => {
-    const app = new Hono();
-    app.use("/test", authorize("test", "list"));
-    app.get("/test", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test");
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 403 when unauthorized", async () => {
-    const app = new Hono();
-    app.use("/test", authorize("test", "create"));
-    app.get("/test", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test", {
-      headers: { "x-test-principal": JSON.stringify(userPrincipal) },
-    });
-    expect(res.status).toBe(403);
-  });
-
-  it("authorize with loadResource allows owner", async () => {
-    const app = new Hono();
-    app.use(
+    const ownerApp = new Hono();
+    ownerApp.use(
       "/test/:id",
       authorize("test", "view", {
         loadResource: async () => ({ createdBy: "usr_1", id: "res_1" }),
       })
     );
-    app.get("/test/:id", (c) => {
-      const resource = getAuthorizedResource<TestResource>(c);
-      return c.json({ id: resource.id });
-    });
-
-    const res = await app.request("/test/res_1", {
-      headers: { "x-test-principal": JSON.stringify(userPrincipal) },
-    });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.id).toBe("res_1");
-  });
-
-  it("getAuthorizedResource throws when no resource was loaded", async () => {
-    const app = new Hono();
-    app.onError((err, c) =>
-      c.json(
-        { error: { code: "INTERNAL_ERROR", message: err.message } },
-        { status: 500 }
-      )
+    ownerApp.get("/test/:id", (c) =>
+      c.json({ id: getAuthorizedResource<TestResource>(c).id })
     );
-    app.use("/test", authorize("test", "list"));
-    app.get("/test", (c) => {
-      const resource = getAuthorizedResource<TestResource>(c);
-      return c.json({ id: resource.id });
-    });
 
-    const res = await app.request("/test", {
-      headers: { "x-test-principal": JSON.stringify(adminPrincipal) },
+    const ownerResponse = await ownerApp.request("/test/res_1", {
+      headers: principalHeaders(userPrincipal),
     });
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error.message).toMatch(NO_RESOURCE_LOADED);
+    expect(ownerResponse.status).toBe(200);
+    expect(await ownerResponse.json()).toEqual({ id: "res_1" });
   });
 
-  it("authorize with loadResource denies non-owner", async () => {
-    const app = new Hono();
-    app.use(
+  it("maps unauthenticated and forbidden outcomes to uniform bodies", async () => {
+    const unauthorizedApp = new Hono();
+    unauthorizedApp.use("/test", authorize("test", "list"));
+    unauthorizedApp.get("/test", (c) => c.json({ ok: true }));
+
+    const unauthorized = await unauthorizedApp.request("/test");
+    expect(unauthorized.status).toBe(401);
+    expect(await unauthorized.json()).toEqual({
+      error: { code: "UNAUTHORIZED", message: "Unauthorized" },
+    });
+
+    const forbiddenApp = new Hono();
+    forbiddenApp.use("/test", authorize("test", "create"));
+    forbiddenApp.get("/test", (c) => c.json({ ok: true }));
+
+    const forbidden = await forbiddenApp.request("/test", {
+      headers: principalHeaders(userPrincipal),
+    });
+    expect(forbidden.status).toBe(403);
+    expect(await forbidden.json()).toEqual({
+      error: { code: "FORBIDDEN", message: "Forbidden" },
+    });
+
+    const missingResourceApp = new Hono();
+    missingResourceApp.use(
       "/test/:id",
-      authorize("test", "view", {
-        loadResource: async () => ({ createdBy: "usr_other", id: "res_1" }),
-      })
+      authorize("test", "view", { loadResource: async () => null })
     );
-    app.get("/test/:id", (c) => c.json({ ok: true }));
+    missingResourceApp.get("/test/:id", (c) => c.json({ ok: true }));
 
-    const res = await app.request("/test/res_1", {
-      headers: { "x-test-principal": JSON.stringify(userPrincipal) },
+    const missingResource = await missingResourceApp.request("/test/res_1", {
+      headers: principalHeaders(userPrincipal),
     });
-    expect(res.status).toBe(403);
-  });
-
-  it("propagates loadResource errors to Hono onError (does not 403)", async () => {
-    const app = new Hono();
-    app.onError((err, c) =>
-      c.json(
-        { error: { code: "INTERNAL_ERROR", message: err.message } },
-        { status: 500 }
-      )
-    );
-    app.use(
-      "/test/:id",
-      authorize("test", "view", {
-        loadResource: async () => {
-          throw new Error("db error");
-        },
-      })
-    );
-    app.get("/test/:id", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test/res_1", {
-      headers: { "x-test-principal": JSON.stringify(userPrincipal) },
-    });
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error.code).toBe("INTERNAL_ERROR");
-    expect(body.error.message).toBe("db error");
-  });
-
-  it("returns FORBIDDEN with uniform body when loadResource returns null", async () => {
-    const app = new Hono();
-    app.use(
-      "/test/:id",
-      authorize("test", "view", {
-        loadResource: async () => null,
-      })
-    );
-    app.get("/test/:id", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test/res_1", {
-      headers: { "x-test-principal": JSON.stringify(userPrincipal) },
-    });
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body).toEqual({
+    expect(missingResource.status).toBe(403);
+    expect(await missingResource.json()).toEqual({
       error: { code: "FORBIDDEN", message: "Forbidden" },
     });
   });
 
-  it("returns UNAUTHORIZED when the resource is missing and no principal is present", async () => {
-    const app = new Hono();
-    app.use(
+  it("maps missing resources to 404 and evaluation errors to 500 with a logged cause", async () => {
+    const notFoundApp = new Hono();
+    notFoundApp.use(
       "/test/:id",
-      authorize("test", "view", {
-        loadResource: async () => null,
-      })
+      authorize("test", "view", { loadResource: async () => null })
     );
-    app.get("/test/:id", (c) => c.json({ ok: true }));
+    notFoundApp.get("/test/:id", (c) => c.json({ ok: true }));
 
-    const res = await app.request("/test/res_1");
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body).toEqual({
-      error: { code: "UNAUTHORIZED", message: "Unauthorized" },
+    const notFound = await notFoundApp.request("/test/res_1", {
+      headers: principalHeaders(adminPrincipal),
     });
-  });
-
-  it("returns INTERNAL_ERROR when the missing-resource lookup evaluates with an error", async () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
-
-    const app = new Hono();
-    app.use(
-      "/test/:id",
-      authorize("test", "explode", {
-        loadResource: async () => null,
-      })
-    );
-    app.get("/test/:id", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test/res_1", {
-      headers: { "x-test-principal": JSON.stringify(userPrincipal) },
-    });
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body).toEqual({
-      error: { code: "INTERNAL_ERROR", message: "Internal Server Error" },
-    });
-
-    const payloads = spy.mock.calls.map((call) => JSON.parse(String(call[0])));
-    const evaluationLog = payloads.find(
-      (payload) => payload.event === "authorization.evaluation_error"
-    );
-    expect(evaluationLog?.cause?.message).toBe("condition boom");
-  });
-
-  it("returns NOT_FOUND when an allowed action targets a missing resource", async () => {
-    const app = new Hono();
-    app.use(
-      "/test/:id",
-      authorize("test", "view", {
-        loadResource: async () => null,
-      })
-    );
-    app.get("/test/:id", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test/res_1", {
-      headers: { "x-test-principal": JSON.stringify(adminPrincipal) },
-    });
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body).toEqual({
+    expect(notFound.status).toBe(404);
+    expect(await notFound.json()).toEqual({
       error: { code: "NOT_FOUND", message: "Not Found" },
     });
-  });
 
-  it("maps EVALUATION_ERROR to 500 INTERNAL_ERROR and logs the cause", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-    const app = new Hono();
-    app.use("/test", authorize("test", "explode"));
-    app.get("/test", (c) => c.json({ ok: true }));
+    const errorApp = new Hono();
+    errorApp.use("/test", authorize("test", "explode"));
+    errorApp.get("/test", (c) => c.json({ ok: true }));
 
-    const res = await app.request("/test", {
-      headers: { "x-test-principal": JSON.stringify(userPrincipal) },
+    const evaluationError = await errorApp.request("/test", {
+      headers: principalHeaders(userPrincipal),
     });
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body).toEqual({
+    expect(evaluationError.status).toBe(500);
+    expect(await evaluationError.json()).toEqual({
       error: { code: "INTERNAL_ERROR", message: "Internal Server Error" },
     });
 
@@ -298,33 +181,75 @@ describe("createAuthorize", () => {
     expect(evaluationLog?.path).toBe("/test");
     expect(evaluationLog?.cause?.message).toBe("condition boom");
   });
+
+  it("propagates loader failures and rejects unloaded resources", async () => {
+    const loaderErrorApp = new Hono();
+    loaderErrorApp.onError((err, c) =>
+      c.json(
+        { error: { code: "INTERNAL_ERROR", message: err.message } },
+        { status: 500 }
+      )
+    );
+    loaderErrorApp.use(
+      "/test/:id",
+      authorize("test", "view", {
+        loadResource: async () => {
+          throw new Error("db error");
+        },
+      })
+    );
+    loaderErrorApp.get("/test/:id", (c) => c.json({ ok: true }));
+
+    const loaderFailure = await loaderErrorApp.request("/test/res_1", {
+      headers: principalHeaders(userPrincipal),
+    });
+    expect(loaderFailure.status).toBe(500);
+    expect(await loaderFailure.json()).toEqual({
+      error: { code: "INTERNAL_ERROR", message: "db error" },
+    });
+
+    const noResourceApp = new Hono();
+    noResourceApp.onError((err, c) =>
+      c.json(
+        { error: { code: "INTERNAL_ERROR", message: err.message } },
+        { status: 500 }
+      )
+    );
+    noResourceApp.use("/test", authorize("test", "list"));
+    noResourceApp.get("/test", (c) =>
+      c.json({ id: getAuthorizedResource<TestResource>(c).id })
+    );
+
+    const noResource = await noResourceApp.request("/test", {
+      headers: principalHeaders(adminPrincipal),
+    });
+    expect(noResource.status).toBe(500);
+    const body = await noResource.json();
+    expect(body.error.message).toMatch(NO_RESOURCE_LOADED_PATTERN);
+  });
 });
 
 describe("isAuthorizationGuard", () => {
-  const authorize = createAuthorize(registry, {
-    resolvePrincipal: () => null,
-  });
+  it("detects guards by symbol and rejects plain middleware", () => {
+    const guardAuthorize = createAuthorize(registry, {
+      resolvePrincipal: () => null,
+    });
 
-  it("returns true for every middleware created by createAuthorize", () => {
-    expect(isAuthorizationGuard(authorize("test", "list"))).toBe(true);
+    expect(isAuthorizationGuard(guardAuthorize("test", "list"))).toBe(true);
     expect(
       isAuthorizationGuard(
-        authorize("test", "view", {
+        guardAuthorize("test", "view", {
           loadResource: async () => ({ createdBy: "u1", id: "u1" }),
         })
       )
     ).toBe(true);
-  });
 
-  it("returns false for plain functions", () => {
-    expect(isAuthorizationGuard(async () => undefined)).toBe(false);
-    expect(isAuthorizationGuard(() => undefined)).toBe(false);
-  });
-
-  it("detects functions marked with AUTHORIZATION_GUARD", () => {
     const marked = Object.assign(async () => undefined, {
       [AUTHORIZATION_GUARD]: true,
     });
     expect(isAuthorizationGuard(marked)).toBe(true);
+
+    expect(isAuthorizationGuard(async () => undefined)).toBe(false);
+    expect(isAuthorizationGuard(() => undefined)).toBe(false);
   });
 });

@@ -28,10 +28,12 @@ beforeEach(() => {
 });
 
 describe("requestLogMiddleware", () => {
-  it("should emit one structured line per completed request", async () => {
-    const res = await makeApp().request("/api/users/42");
+  it("should log the request shape, level by status, and skip health paths", async () => {
+    const app = makeApp();
 
-    expect(res.status).toBe(200);
+    const ok = await app.request("/api/users/42");
+
+    expect(ok.status).toBe(200);
     expect(logSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).toHaveBeenCalledWith(
       "info",
@@ -45,34 +47,30 @@ describe("requestLogMiddleware", () => {
         status: 200,
       })
     );
-  });
 
-  it("should log at error level for 5xx responses", async () => {
-    const res = await makeApp().request("/boom");
+    const boom = await app.request("/boom");
 
-    expect(res.status).toBe(500);
-    expect(logSpy).toHaveBeenCalledWith(
+    expect(boom.status).toBe(500);
+    expect(logSpy).toHaveBeenLastCalledWith(
       "error",
       "request completed",
       expect.objectContaining({ status: 500 })
     );
-  });
 
-  it("should log at warn level for 4xx responses", async () => {
-    const res = await makeApp().request("/nope");
+    const missing = await app.request("/nope");
 
-    expect(res.status).toBe(404);
-    expect(logSpy).toHaveBeenCalledWith(
+    expect(missing.status).toBe(404);
+    expect(logSpy).toHaveBeenLastCalledWith(
       "warn",
       "request completed",
       expect.objectContaining({ status: 404 })
     );
-  });
 
-  it("should skip healthcheck paths entirely", async () => {
-    const res = await makeApp().request("/api/status");
+    logSpy.mockClear();
 
-    expect(res.status).toBe(200);
+    const health = await app.request("/api/status");
+
+    expect(health.status).toBe(200);
     expect(logSpy).not.toHaveBeenCalled();
   });
 });

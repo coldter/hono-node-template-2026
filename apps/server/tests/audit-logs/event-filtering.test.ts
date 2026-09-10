@@ -66,14 +66,14 @@ describe("audit-logs handler event filtering", () => {
     findMock.mockResolvedValueOnce({
       data: [baseRow, droppedEventRow("row_unknown")],
       meta: {
-        hasNext: false,
+        hasNext: true,
         hasPrev: false,
-        nextPage: null,
+        nextPage: 2,
         page: 1,
-        pageCount: 1,
+        pageCount: 3,
         perPage: 20,
         prevPage: null,
-        total: 2,
+        total: 57,
       },
     });
 
@@ -88,7 +88,9 @@ describe("audit-logs handler event filtering", () => {
     expect(body.data).toHaveLength(1);
     expect(body.data[0]?.id).toBe("row_known");
     expect(body.data[0]?.event).toBe("user.created");
-    expect(body.meta.total).toBe(2);
-    expect(body.meta.pageCount).toBe(1);
+    expect(body.meta.total).toBe(57);
+    expect(body.meta.pageCount).toBe(3);
+    expect(body.meta.page).toBe(1);
+    expect(body.meta.perPage).toBe(20);
   });
 });
