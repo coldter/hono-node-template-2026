@@ -156,11 +156,9 @@
         "vitest": "^5.0.0",
       },
       "peerDependencies": {
-        "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
         "hono": "^4.12.21",
       },
       "optionalPeers": [
-        "drizzle-orm",
         "hono",
       ],
     },

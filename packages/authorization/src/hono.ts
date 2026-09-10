@@ -7,6 +7,15 @@ import type { DenyReason, PolicyDecision, Principal } from "./types";
 
 const AUTHORIZED_RESOURCE_KEY = "authorizedResource";
 
+export const AUTHORIZATION_GUARD = Symbol("authorizationGuard");
+
+export function isAuthorizationGuard(middleware: unknown): boolean {
+  return (
+    typeof middleware === "function" &&
+    Object.hasOwn(middleware, AUTHORIZATION_GUARD)
+  );
+}
+
 function denyReasonOf(input: PolicyDecision | DenyReason): DenyReason {
   if (typeof input === "string") {
     return input;
@@ -17,32 +26,41 @@ function denyReasonOf(input: PolicyDecision | DenyReason): DenyReason {
   return "NO_MATCHING_POLICY";
 }
 
-function denyStatus(reason: DenyReason): 401 | 403 | 404 {
+function denyStatus(reason: DenyReason): 401 | 403 | 404 | 500 {
   if (reason === "UNAUTHENTICATED") {
     return 401;
   }
   if (reason === "RESOURCE_NOT_FOUND") {
     return 404;
   }
+  if (reason === "EVALUATION_ERROR") {
+    return 500;
+  }
   return 403;
 }
 
-function denyMessage(status: 401 | 403 | 404): string {
+function denyMessage(status: 401 | 403 | 404 | 500): string {
   if (status === 401) {
     return "Unauthorized";
   }
   if (status === 404) {
     return "Not Found";
   }
+  if (status === 500) {
+    return "Internal Server Error";
+  }
   return "Forbidden";
 }
 
-function denyCode(status: 401 | 403 | 404): string {
+function denyCode(status: 401 | 403 | 404 | 500): string {
   if (status === 401) {
     return "UNAUTHORIZED";
   }
   if (status === 404) {
     return "NOT_FOUND";
+  }
+  if (status === 500) {
+    return "INTERNAL_ERROR";
   }
   return "FORBIDDEN";
 }
@@ -63,38 +81,48 @@ function denyResponse(
   });
 }
 
+function logEvaluationError(
+  decision: PolicyDecision,
+  action: string,
+  path: string
+): void {
+  if (decision.allowed || decision.reason !== "EVALUATION_ERROR") {
+    return;
+  }
+  const causeInfo =
+    decision.cause instanceof Error
+      ? { message: decision.cause.message, name: decision.cause.name }
+      : { value: String(decision.cause ?? "unknown") };
+  console.error(
+    JSON.stringify({
+      action,
+      cause: causeInfo,
+      event: "authorization.evaluation_error",
+      path,
+    })
+  );
+}
+
 export interface CreateAuthorizeOptions<
   TEnv extends Record<string, unknown> = Record<string, unknown>,
 > {
-  allowedBypassLabels?: readonly string[];
-  resolveDb?: (c: Context<TEnv>) => unknown;
   resolvePrincipal: (c: Context<TEnv>) => Principal | null | undefined;
 }
 
 export interface AuthorizeOptions<TResource = unknown> {
-  loadResource?: (c: Context) => Promise<TResource | null>;
-  resolveRelation?: (
-    subjectType: string,
-    subjectId: string,
-    relation: string,
-    objectType: string,
-    objectId: string
-  ) => Promise<boolean>;
+  loadResource?: (c: Context) => Promise<TResource | null | undefined>;
 }
 
-export interface AuthorizeFunction<
+export type AuthorizeFunction<
   TResources extends Record<string, AnyResourceDef> = Record<
     string,
     AnyResourceDef
   >,
-> {
-  unsafeBypassAuthorization: (label: string) => MiddlewareHandler;
-  <K extends keyof TResources & string>(
-    resource: K,
-    action: ActionsOf<TResources[K]>,
-    opts?: AuthorizeOptions<ResourceTypeFor<TResources[K]>>
-  ): MiddlewareHandler;
-}
+> = <K extends keyof TResources & string>(
+  resource: K,
+  action: ActionsOf<TResources[K]>,
+  opts?: AuthorizeOptions<ResourceTypeFor<TResources[K]>>
+) => MiddlewareHandler;
 
 export function createAuthorize<
   TResources extends Record<string, AnyResourceDef>,
@@ -103,15 +131,12 @@ export function createAuthorize<
   registry: RegistryInstance<TResources>,
   options: CreateAuthorizeOptions<TEnv>
 ): AuthorizeFunction<TResources> {
-  const allowedBypass = new Set(options.allowedBypassLabels ?? []);
-
-  const authorizeImpl =
-    (
-      resource: string,
-      action: string,
-      opts?: AuthorizeOptions
-    ): MiddlewareHandler =>
-    async (c, next) => {
+  const authorizeImpl = (
+    resource: string,
+    action: string,
+    opts?: AuthorizeOptions
+  ): MiddlewareHandler => {
+    const middleware: MiddlewareHandler = async (c, next) => {
       const principal = options.resolvePrincipal(c as Context<TEnv>);
 
       let loadedResource: unknown;
@@ -122,45 +147,29 @@ export function createAuthorize<
             principal,
             resource,
 
-            action as never,
-            {
-              resolveRelation: opts?.resolveRelation,
-            }
+            action as never
           );
 
           if (globalDecision.allowed) {
             throw denyResponse("RESOURCE_NOT_FOUND");
           }
 
-          throw denyResponse("NO_MATCHING_POLICY");
+          logEvaluationError(globalDecision, action, c.req.path);
+          throw denyResponse(globalDecision);
         }
       }
 
       const decision = await registry.can(
         principal,
         resource,
-
         action as never,
         {
-          resolveRelation: opts?.resolveRelation,
-          resource: loadedResource,
+          resource: loadedResource as never,
         }
       );
 
       if (!decision.allowed) {
-        if (decision.reason === "EVALUATION_ERROR") {
-          console.error(
-            JSON.stringify({
-              action,
-              cause:
-                decision.cause instanceof Error
-                  ? decision.cause.message
-                  : String(decision.cause ?? "unknown"),
-              event: "authorization.evaluation_error",
-              path: c.req.path,
-            })
-          );
-        }
+        logEvaluationError(decision, action, c.req.path);
         throw denyResponse(decision);
       }
 
@@ -171,32 +180,12 @@ export function createAuthorize<
       await next();
     };
 
-  const unsafeBypassAuthorization = (label: string): MiddlewareHandler => {
-    if (!allowedBypass.has(label)) {
-      throw new Error(
-        `unsafeBypassAuthorization("${label}") is not in allowedBypassLabels. ` +
-          `Add "${label}" to createAuthorize({ allowedBypassLabels }) ` +
-          "to opt this route out of authorization."
-      );
-    }
-    return async (c, next) => {
-      console.warn(
-        JSON.stringify({
-          event: "authorization.bypass",
-          label,
-          method: c.req.method,
-          path: c.req.path,
-        })
-      );
-      await next();
-    };
+    Object.defineProperty(middleware, AUTHORIZATION_GUARD, { value: true });
+
+    return middleware;
   };
 
-  const authorize = Object.assign(authorizeImpl, {
-    unsafeBypassAuthorization,
-  }) as unknown as AuthorizeFunction<TResources>;
-
-  return authorize;
+  return authorizeImpl as unknown as AuthorizeFunction<TResources>;
 }
 
 export function getAuthorizedResource<T>(c: Context): T {
@@ -209,20 +198,4 @@ export function getAuthorizedResource<T>(c: Context): T {
   }
 
   return value as T;
-}
-
-export async function assertCanOrThrow<
-  TResources extends Record<string, AnyResourceDef>,
-  K extends keyof TResources & string,
->(
-  registry: RegistryInstance<TResources>,
-  principal: Principal | null | undefined,
-  resource: K,
-  action: ActionsOf<TResources[K]>,
-  opts?: { resource?: unknown }
-): Promise<void> {
-  const decision = await registry.can(principal, resource, action, opts);
-  if (!decision.allowed) {
-    throw denyResponse(decision);
-  }
 }

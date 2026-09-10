@@ -5,12 +5,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./hono": "./src/hono.ts",
-    "./drizzle": "./src/drizzle.ts"
+    "./hono": "./src/hono.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "check-types:backup": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -19,13 +17,9 @@
     "vitest": "^5.0.0"
   },
   "peerDependencies": {
-    "drizzle-orm": "^1.0.0-rc.4-5d5b77c",
     "hono": "^4.12.21"
   },
   "peerDependenciesMeta": {
-    "drizzle-orm": {
-      "optional": true
-    },
     "hono": {
       "optional": true
     }

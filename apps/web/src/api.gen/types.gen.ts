@@ -1956,7 +1956,6 @@ export type ListRolesResponses = {
     roles: Array<{
       description: string;
       name: string;
-      permissions: Array<'dashboard:access' | 'users:view' | 'users:create' | 'users:update' | 'users:delete' | 'users:deactivate' | 'users:activate' | 'users:unlock' | 'roles:view' | 'roles:update' | 'audit-logs:view'>;
       slug: string;
     }>;
   };

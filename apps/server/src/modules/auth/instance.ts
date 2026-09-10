@@ -334,7 +334,7 @@ const authConfig = {
               );
 
               if (activeOrgRole === undefined) {
-                return { data: session };
+                return { data: { ...session, activeOrgRole: null } };
               }
 
               return {
@@ -345,7 +345,7 @@ const authConfig = {
               };
             }
 
-            return { data: session };
+            return { data: { ...session, activeOrgRole: null } };
           }
 
           if (!session.expiresAt) {
@@ -563,6 +563,7 @@ const authConfig = {
   session: {
     additionalFields: {
       activeOrganizationId: {
+        input: false,
         required: false,
         type: "string",
       },

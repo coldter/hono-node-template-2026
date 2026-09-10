@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { capabilitiesQueryOptions } from "@/hooks/use-authorization";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/modules/ui/button";
 import { Input } from "@/modules/ui/input";
@@ -80,6 +81,9 @@ export function TwoFactorVerifyStep({
 
       await queryClient.invalidateQueries({
         queryKey: sessionQueryOptions.queryKey,
+      });
+      queryClient.removeQueries({
+        queryKey: capabilitiesQueryOptions.queryKey,
       });
       toast.success("Signed in successfully");
       onSuccess();

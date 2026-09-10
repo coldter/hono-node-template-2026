@@ -7,11 +7,7 @@ import { auth } from "@/modules/auth/instance";
 const AUTH_ROUTE_PREFIX = `${env.BASE_PATH || ""}/api/auth`;
 
 function isAuthRoute(path: string): boolean {
-  if (!path.startsWith(AUTH_ROUTE_PREFIX)) {
-    return false;
-  }
-  const rest = path.charAt(AUTH_ROUTE_PREFIX.length);
-  return rest === "" || rest === "/";
+  return path === AUTH_ROUTE_PREFIX || path.startsWith(`${AUTH_ROUTE_PREFIX}/`);
 }
 
 async function getBetterAuthSession(req: Request) {

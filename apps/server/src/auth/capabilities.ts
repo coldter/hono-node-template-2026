@@ -49,6 +49,7 @@ app.openapi(capabilitiesRoute, async (c) => {
   }
 
   const capabilities = await authorization.evaluateCapabilities(principal);
+  c.header("Cache-Control", "no-store");
   return c.json({ capabilities }, 200);
 });
 

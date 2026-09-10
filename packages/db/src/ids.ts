@@ -3,7 +3,6 @@ export const ID_PREFIXES = {
   auditLog: "aud",
   notification: "ntf",
   pushToken: "ptk",
-  relation: "rel",
   role: "rol",
   session: "ses",
   user: "usr",

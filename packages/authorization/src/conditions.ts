@@ -11,17 +11,6 @@ export function principalNotActive(): Condition {
   };
 }
 
-export function principalHasRole(role: string): Condition {
-  return {
-    effect: "principal_only",
-    evaluate(ctx: ConditionContext): boolean {
-      return ctx.principal.roles.includes(role);
-    },
-    label: `principalHasRole:${role}`,
-    type: "principalHasRole",
-  };
-}
-
 export function createOwnerCondition<TResource>(
   resolveOwner: (resource: TResource) => string
 ): Condition<TResource> {
@@ -71,36 +60,13 @@ export function createPredicateCondition<TResource = unknown>(
   };
 }
 
-export function createRelationCondition<TResource>(
-  relation: string,
-  targetKey: string,
-  resolveTarget: (resource: TResource) => string,
-  subjectType = "user"
-): Condition<TResource> {
-  return {
-    effect: "requires_resource",
-    evaluate(ctx: ConditionContext<TResource>): boolean | Promise<boolean> {
-      if (!(ctx.resource && ctx.resolveRelation)) {
-        return false;
-      }
-      const objectId = resolveTarget(ctx.resource);
-      return ctx.resolveRelation(
-        subjectType,
-        ctx.principal.id,
-        relation,
-        targetKey,
-        objectId
-      );
-    },
-    label: `withRelation:${relation}:${targetKey}`,
-    params: { relation, subjectType, targetKey },
-    type: "withRelation",
-  };
-}
-
 export function createOrgRoleCondition<TResource = unknown>(
   orgRoles: string[]
 ): Condition<TResource> {
+  if (orgRoles.length === 0) {
+    throw new Error("withOrgRole() requires at least one org role.");
+  }
+
   const frozenRoles = [...orgRoles];
   return {
     effect: "principal_only",

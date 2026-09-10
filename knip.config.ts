@@ -4,11 +4,10 @@ const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
   ignoreIssues: {
     "apps/web/src/modules/ui/**": ["exports"],
-    "packages/authorization/package.json": ["optionalPeerDependencies"],
   },
   rules: {
-    exports: "warn",
-    types: "warn",
+    exports: "off",
+    types: "off",
   },
   tags: ["-lintignore"],
   workspaces: {

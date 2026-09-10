@@ -1,4 +1,1 @@
-export {
-  buildAuthorizationPrincipal as buildPrincipal,
-  isAuthorizationRole as isValidRole,
-} from "@repo/shared/authorization";
+export { isAuthorizationRole as isValidRole } from "@repo/shared/authorization";

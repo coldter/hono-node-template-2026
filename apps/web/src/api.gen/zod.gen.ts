@@ -339,19 +339,6 @@ export const zListRolesResponse = z.object({
   roles: z.array(z.object({
     description: z.string(),
     name: z.string(),
-    permissions: z.array(z.enum([
-      'dashboard:access',
-      'users:view',
-      'users:create',
-      'users:update',
-      'users:delete',
-      'users:deactivate',
-      'users:activate',
-      'users:unlock',
-      'roles:view',
-      'roles:update',
-      'audit-logs:view'
-    ])),
     slug: z.string()
   }))
 });

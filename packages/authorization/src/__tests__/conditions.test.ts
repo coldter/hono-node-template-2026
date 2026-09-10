@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  createOrgRoleCondition,
   createOwnerCondition,
   createPredicateCondition,
   createSelfTargetCondition,
   principalNotActive,
 } from "../conditions";
 import type { ConditionContext } from "../types";
+
+const ORG_ROLE_REQUIRED_PATTERN = /at least one org role/;
 
 describe("principalNotActive", () => {
   const condition = principalNotActive();
@@ -110,5 +113,44 @@ describe("createPredicateCondition", () => {
       principal: { attributes: {}, id: "u1", roles: [] },
     };
     await expect(condition.evaluate(ctx)).resolves.toBe(true);
+  });
+});
+
+describe("createOrgRoleCondition", () => {
+  const condition = createOrgRoleCondition<{ id: string }>(["owner"]);
+
+  it("returns true when the principal org role matches", () => {
+    const ctx: ConditionContext<{ id: string }> = {
+      principal: {
+        attributes: {},
+        id: "u1",
+        organization: { id: "org_1", role: "owner" },
+        roles: ["member"],
+      },
+    };
+    expect(condition.evaluate(ctx)).toBe(true);
+  });
+
+  it("returns false when the principal org role does not match", () => {
+    const ctx: ConditionContext<{ id: string }> = {
+      principal: {
+        attributes: {},
+        id: "u1",
+        organization: { id: "org_1", role: "member" },
+        roles: ["member"],
+      },
+    };
+    expect(condition.evaluate(ctx)).toBe(false);
+  });
+
+  it("returns false when the principal has no organization", () => {
+    const ctx: ConditionContext<{ id: string }> = {
+      principal: { attributes: {}, id: "u1", roles: ["member"] },
+    };
+    expect(condition.evaluate(ctx)).toBe(false);
+  });
+
+  it("throws when called with zero org roles", () => {
+    expect(() => createOrgRoleCondition([])).toThrow(ORG_ROLE_REQUIRED_PATTERN);
   });
 });

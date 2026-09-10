@@ -1,7 +1,7 @@
 import { authorize } from "@/auth/middleware";
 import { commonErrorResponses } from "@/lib/common-response";
 import { createRouteConfig } from "@/lib/route-config";
-import { loadUserResource } from "./auth-loader";
+import { loadCurrentUserResource, loadUserResource } from "./auth-loader";
 import {
   createUserBodySchema,
   createUserResponseSchema,
@@ -85,7 +85,9 @@ const usersRoutes = {
 
   getMyAccount: createRouteConfig({
     description: "Returns user-facing profile info and notification summary",
-    guard: [authorize("user", "view")],
+    guard: [
+      authorize("user", "view", { loadResource: loadCurrentUserResource }),
+    ],
     method: "get",
     operationId: "getMyAccount",
     path: "/me",

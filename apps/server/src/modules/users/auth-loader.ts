@@ -6,6 +6,13 @@ import { getAuthorizedResource } from "@/auth/middleware";
 import { db } from "@/db";
 import type { Env } from "@/lib/context";
 
+export async function loadCurrentUserResource(
+  c: Context<Env>
+): Promise<UserAuthorizationResource | null> {
+  const currentUser = c.get("user");
+  return currentUser ? { id: currentUser.id } : null;
+}
+
 export async function loadUserResource(
   c: Context<Env>
 ): Promise<UserAuthorizationResource | null> {

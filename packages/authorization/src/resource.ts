@@ -2,7 +2,6 @@ import {
   createOrgRoleCondition,
   createOwnerCondition,
   createPredicateCondition,
-  createRelationCondition,
   createSelfTargetCondition,
 } from "./conditions";
 import type {
@@ -15,16 +14,13 @@ import type {
 export interface ResourceConfig<
   TResource,
   TRole extends string,
-  TRelation extends string,
-  _TAttributes extends Record<string, unknown>,
   TOrgRole extends string,
   TActions extends readonly string[] = readonly string[],
 > {
   actions: TActions;
   policies: (
-    builder: PolicyBuilder<TResource, TRole, TRelation, TOrgRole>
+    builder: PolicyBuilder<TResource, TRole, TOrgRole, TActions[number]>
   ) => PolicyRule<TResource, TRole>[];
-  relations?: Record<string, (resource: TResource) => string>;
   resolveOrganization?: (resource: TResource) => string | null | undefined;
   resolveOwner?: (resource: TResource) => string;
 }
@@ -34,34 +30,26 @@ export interface ResourceDef<
   TRole extends string,
   TAction extends string = string,
 > {
-  readonly __resource?: TResource;
   readonly actions: readonly TAction[];
   readonly name: string;
   readonly policies: PolicyRule<TResource, TRole>[];
-  readonly relations?: Record<string, (resource: TResource) => string>;
   readonly resolveOrganization?: (
     resource: TResource
   ) => string | null | undefined;
-  readonly resolveOwner?: (resource: TResource) => string;
 }
 
 export class PolicyRuleBuilder<
   TResource,
   TRole extends string,
-  TRelation extends string = string,
   TOrgRole extends string = string,
+  TAction extends string = string,
 > implements PolicyRule<TResource, TRole>
 {
   readonly effect: "allow" | "deny";
   readonly roles: TRole[] | "*";
-  actions: string[] | "*" = [];
+  actions: TAction[] | "*" = [];
   readonly conditions: Condition<TResource>[] = [];
   private readonly _resolveOwner?: (resource: TResource) => string;
-  private readonly _resourceRelations?: Record<
-    string,
-    (resource: TResource) => string
-  >;
-  private readonly _validRelations?: readonly string[];
   private readonly _validOrgRoles?: readonly string[];
 
   constructor(
@@ -69,16 +57,12 @@ export class PolicyRuleBuilder<
     roles: TRole[] | "*",
     opts: {
       resolveOwner?: (resource: TResource) => string;
-      relations?: Record<string, (resource: TResource) => string>;
-      validRelations?: readonly string[];
       validOrgRoles?: readonly string[];
     }
   ) {
     this.effect = effect;
     this.roles = roles;
     this._resolveOwner = opts.resolveOwner;
-    this._resourceRelations = opts.relations;
-    this._validRelations = opts.validRelations;
     this._validOrgRoles = opts.validOrgRoles;
   }
 
@@ -90,20 +74,22 @@ export class PolicyRuleBuilder<
     return `${this.effect}:${roleLabel}:${actionLabel}${condLabels ? `:${condLabels}` : ""}`;
   }
 
-  to(...newActions: string[]): this {
-    if (newActions.length === 0) {
+  to(action: TAction, ...actions: TAction[]): this;
+  to(action: "*"): this;
+  to(...actions: (TAction | "*")[]): this {
+    if (actions.length === 0) {
       throw new Error(
         "to() requires at least one action. Use to('*') to match every action."
       );
     }
-    if (newActions.includes("*") && newActions.length > 1) {
+    if (actions.includes("*") && actions.length > 1) {
       throw new Error(
         "to('*', ...) cannot mix the wildcard with explicit actions. " +
           "Either pass a single '*' or list explicit actions."
       );
     }
     this.actions =
-      newActions.length === 1 && newActions[0] === "*" ? "*" : newActions;
+      actions.length === 1 && actions[0] === "*" ? "*" : (actions as TAction[]);
     return this;
   }
 
@@ -132,32 +118,17 @@ export class PolicyRuleBuilder<
     return this;
   }
 
-  withRelation(relation: TRelation, targetKey: string): this {
-    if (this._validRelations && !this._validRelations.includes(relation)) {
-      throw new Error(
-        `withRelation() references relation "${relation}" not in schema. Available: ${this._validRelations.join(", ")}`
-      );
-    }
-    const resolveTarget = this._resourceRelations?.[targetKey];
-    if (!resolveTarget) {
-      throw new Error(
-        `withRelation() references target "${targetKey}" but no matching relation resolver was found`
-      );
-    }
-    this.conditions.push(
-      createRelationCondition(relation, targetKey, resolveTarget)
-    );
+  whereCondition(condition: Condition<TResource>): this {
+    this.conditions.push(condition);
     return this;
   }
 
   withOrgRole(...orgRoles: TOrgRole[]): this {
-    if (this._validOrgRoles) {
-      for (const role of orgRoles) {
-        if (!this._validOrgRoles.includes(role)) {
-          throw new Error(
-            `withOrgRole() references org role "${role}" not in schema. Available: ${this._validOrgRoles.join(", ")}`
-          );
-        }
+    for (const role of orgRoles) {
+      if (this._validOrgRoles && !this._validOrgRoles.includes(role)) {
+        throw new Error(
+          `withOrgRole() references org role "${role}" not in schema. Available: ${this._validOrgRoles.join(", ")}`
+        );
       }
     }
     this.conditions.push(createOrgRoleCondition<TResource>(orgRoles));
@@ -168,31 +139,29 @@ export class PolicyRuleBuilder<
 export interface PolicyActionStage<
   TResource,
   TRole extends string,
-  TRelation extends string,
   TOrgRole extends string,
+  TAction extends string,
 > {
   to(
-    ...actions: string[]
-  ): PolicyRuleBuilder<TResource, TRole, TRelation, TOrgRole>;
+    action: TAction,
+    ...actions: TAction[]
+  ): PolicyRuleBuilder<TResource, TRole, TOrgRole, TAction>;
+  to(action: "*"): PolicyRuleBuilder<TResource, TRole, TOrgRole, TAction>;
 }
 
 export class PolicyBuilder<
   TResource,
   TRole extends string,
-  TRelation extends string,
   TOrgRole extends string,
+  TAction extends string,
 > {
   private readonly opts: {
     resolveOwner?: (resource: TResource) => string;
-    relations?: Record<string, (resource: TResource) => string>;
-    validRelations?: readonly string[];
     validOrgRoles?: readonly string[];
   };
 
   constructor(opts: {
     resolveOwner?: (resource: TResource) => string;
-    relations?: Record<string, (resource: TResource) => string>;
-    validRelations?: readonly string[];
     validOrgRoles?: readonly string[];
   }) {
     this.opts = opts;
@@ -200,46 +169,45 @@ export class PolicyBuilder<
 
   allow(
     role: TRole | "*"
-  ): PolicyActionStage<TResource, TRole, TRelation, TOrgRole> {
+  ): PolicyActionStage<TResource, TRole, TOrgRole, TAction> {
     const roles = role === "*" ? ("*" as const) : [role];
-    return new PolicyRuleBuilder("allow", roles, this.opts);
+    return new PolicyRuleBuilder<TResource, TRole, TOrgRole, TAction>(
+      "allow",
+      roles,
+      this.opts
+    );
   }
 
   deny(
     role: TRole | "*"
-  ): PolicyActionStage<TResource, TRole, TRelation, TOrgRole> {
+  ): PolicyActionStage<TResource, TRole, TOrgRole, TAction> {
     const roles = role === "*" ? ("*" as const) : [role];
-    return new PolicyRuleBuilder("deny", roles, this.opts);
+    return new PolicyRuleBuilder<TResource, TRole, TOrgRole, TAction>(
+      "deny",
+      roles,
+      this.opts
+    );
   }
 }
 
 export function createResourceDefinition<
   TResource,
   TRole extends string,
-  TRelation extends string,
-  TAttributes extends Record<string, unknown>,
   TOrgRole extends string,
   const TActions extends readonly string[] = readonly string[],
 >(
   name: string,
-  config: ResourceConfig<
+  config: ResourceConfig<TResource, TRole, TOrgRole, TActions>,
+  schemaOpts?: { validOrgRoles?: readonly string[] }
+): ResourceDef<TResource, TRole, TActions[number]> {
+  const builder = new PolicyBuilder<
     TResource,
     TRole,
-    TRelation,
-    TAttributes,
     TOrgRole,
-    TActions
-  >,
-  schemaOpts?: {
-    validRelations?: readonly string[];
-    validOrgRoles?: readonly string[];
-  }
-): ResourceDef<TResource, TRole, TActions[number]> {
-  const builder = new PolicyBuilder<TResource, TRole, TRelation, TOrgRole>({
-    relations: config.relations,
+    TActions[number]
+  >({
     resolveOwner: config.resolveOwner,
     validOrgRoles: schemaOpts?.validOrgRoles,
-    validRelations: schemaOpts?.validRelations,
   });
 
   const policies = config.policies(builder);
@@ -248,9 +216,7 @@ export function createResourceDefinition<
     actions: config.actions,
     name,
     policies,
-    relations: config.relations,
     resolveOrganization: config.resolveOrganization,
-    resolveOwner: config.resolveOwner,
   };
 }
 

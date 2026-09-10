@@ -10,8 +10,7 @@
     "./ids": "./src/ids.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit",
-    "check-types:backup": "tsc --noEmit"
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/shared": "workspace:*",

@@ -1,12 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { principalNotActive } from "../conditions";
-import { evaluate } from "../evaluator";
+import { evaluate, evaluateOptimistic } from "../evaluator";
 import type {
   Condition,
   ConditionContext,
+  PolicyDecision,
   PolicyRule,
   Principal,
 } from "../types";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+function expectEvaluationError(result: PolicyDecision, cause: unknown): void {
+  expect(result).toMatchObject({ allowed: false, reason: "EVALUATION_ERROR" });
+  if (!result.allowed) {
+    expect(result.cause).toBe(cause);
+  }
+}
 
 function allowRule(
   roles: string[] | "*",
@@ -102,21 +114,35 @@ function asyncFalseCondition(): Condition {
   };
 }
 
-function throwingCondition(): Condition {
+function throwingCondition(cause: unknown): Condition {
   return {
     effect: "principal_only",
     evaluate(): boolean {
-      throw new Error("boom");
+      throw cause;
     },
     label: "where:throws",
     type: "where",
   };
 }
 
+interface ConditionErrorLog {
+  condition: { label: string; type: string };
+  message: string;
+  policyId: string;
+  principalId: string;
+}
+
+function parseConditionErrorLogs(spy: {
+  mock: { calls: unknown[][] };
+}): ConditionErrorLog[] {
+  return spy.mock.calls.map(
+    (call) => JSON.parse(String(call[0])) as ConditionErrorLog
+  );
+}
+
 const defaults = {
   action: "read",
   globalPolicies: [] as PolicyRule[],
-  resourceName: "document",
   resourcePolicies: [] as PolicyRule[],
   systemAdminRoles: [] as string[],
 } as const;
@@ -263,7 +289,6 @@ describe("evaluate", () => {
         denyRule(["user"], ["read"], [ownerCondition()]),
         allowRule(["user"], ["read"]),
       ],
-      // no resource; deny policy has a requires_resource condition so it is skipped
     });
     expect(result.allowed).toBe(true);
   });
@@ -334,15 +359,86 @@ describe("evaluate", () => {
     expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
   });
 
-  it("returns EVALUATION_ERROR when a condition throws", async () => {
-    const result = await evaluate({
-      ...defaults,
-      principal: activePrincipal,
-      resourcePolicies: [allowRule(["user"], ["read"], [throwingCondition()])],
+  describe("condition errors", () => {
+    it("fails closed in the global deny loop with the original cause and logs", async () => {
+      const cause = new Error("global boom");
+      const spy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      const result = await evaluate({
+        ...defaults,
+        globalPolicies: [denyRule("*", "*", [throwingCondition(cause)])],
+        principal: activePrincipal,
+        resourcePolicies: [allowRule(["user"], ["read"])],
+      });
+
+      expectEvaluationError(result, cause);
+      expect(spy).toHaveBeenCalledTimes(1);
+      const [log] = parseConditionErrorLogs(spy);
+      expect(log?.message).toBe("authorization.evaluator.condition_error");
+      expect(log?.condition).toEqual({ label: "where:throws", type: "where" });
+      expect(log?.policyId).toBe("deny:*:*");
+      expect(log?.principalId).toBe("usr_1");
     });
-    expect(result).toMatchObject({
-      allowed: false,
-      reason: "EVALUATION_ERROR",
+
+    it("fails closed in the resource deny loop with the original cause and logs", async () => {
+      const cause = new Error("deny boom");
+      const spy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      const result = await evaluate({
+        ...defaults,
+        principal: activePrincipal,
+        resourcePolicies: [
+          denyRule(["user"], ["read"], [throwingCondition(cause)]),
+          allowRule(["user"], ["read"]),
+        ],
+      });
+
+      expectEvaluationError(result, cause);
+      expect(spy).toHaveBeenCalledTimes(1);
+      const [log] = parseConditionErrorLogs(spy);
+      expect(log?.message).toBe("authorization.evaluator.condition_error");
+      expect(log?.policyId).toBe("deny:user:read");
+    });
+
+    it("fails closed in the resource allow loop and does not reach a later match", async () => {
+      const cause = new Error("allow boom");
+      const spy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      const result = await evaluate({
+        ...defaults,
+        principal: activePrincipal,
+        resourcePolicies: [
+          allowRule(["user"], ["read"], [throwingCondition(cause)]),
+          allowRule(["user"], ["read"]),
+        ],
+      });
+
+      expectEvaluationError(result, cause);
+      expect(spy).toHaveBeenCalledTimes(1);
+      const [log] = parseConditionErrorLogs(spy);
+      expect(log?.message).toBe("authorization.evaluator.condition_error");
+      expect(log?.policyId).toBe("allow:user:read");
+    });
+
+    it("preserves non-Error causes", async () => {
+      const cause = { code: "CONDITION_FAILED" };
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+      const result = await evaluate({
+        ...defaults,
+        principal: activePrincipal,
+        resourcePolicies: [
+          allowRule(["user"], ["read"], [throwingCondition(cause)]),
+        ],
+      });
+
+      expectEvaluationError(result, cause);
     });
   });
 
@@ -352,7 +448,7 @@ describe("evaluate", () => {
       id: "usr_org",
       organization: { id: "org_1", role: "editor" },
       roles: ["member"],
-    } as unknown as Principal;
+    };
 
     const noOrgPrincipal: Principal = {
       attributes: { status: "active" },
@@ -418,6 +514,32 @@ describe("evaluate", () => {
       }
     });
 
+    it("returns EVALUATION_ERROR with the original cause when resolveOrganization throws", async () => {
+      const cause = new Error("org lookup failed");
+      const spy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      const result = await evaluate({
+        ...defaults,
+        principal: orgPrincipal,
+        resolveOrganization: () => {
+          throw cause;
+        },
+        resource: { orgId: "org_1" },
+        resourcePolicies: [allowRule(["member"], ["read"])],
+        systemAdminRoles: ["system_admin"],
+      });
+
+      expectEvaluationError(result, cause);
+      const logs = spy.mock.calls.map(
+        (call) => JSON.parse(String(call[0])) as { message?: string }
+      );
+      expect(logs[0]?.message).toBe(
+        "authorization.evaluator.org_resolution_error"
+      );
+    });
+
     it("denies with TENANT_MISMATCH when org IDs do not match", async () => {
       const result = await evaluate({
         ...defaults,
@@ -445,24 +567,6 @@ describe("evaluate", () => {
       expect(result.allowed).toBe(true);
     });
 
-    it("system admin bypass fires regardless of policy role order", async () => {
-      const adminMemberPrincipal: Principal = {
-        attributes: { status: "active" },
-        id: "usr_sa_member",
-        roles: ["admin", "member"],
-      };
-      const result = await evaluate({
-        ...defaults,
-        principal: adminMemberPrincipal,
-        resolveOrganization,
-        resource: { orgId: "org_any" },
-
-        resourcePolicies: [allowRule(["member", "admin"], ["read"])],
-        systemAdminRoles: ["admin"],
-      });
-      expect(result.allowed).toBe(true);
-    });
-
     it("system admin bypasses org scoping even with wildcard role policy", async () => {
       const result = await evaluate({
         ...defaults,
@@ -471,6 +575,23 @@ describe("evaluate", () => {
         resource: { orgId: "org_any" },
         resourcePolicies: [allowRule("*", ["read"])],
         systemAdminRoles: ["system_admin"],
+      });
+      expect(result.allowed).toBe(true);
+    });
+
+    it("system admin bypasses org scoping when admin is not the first matched policy role", async () => {
+      const principalWithAdminAndMember: Principal = {
+        attributes: { status: "active" },
+        id: "usr_dual",
+        roles: ["admin", "member"],
+      };
+      const result = await evaluate({
+        ...defaults,
+        principal: principalWithAdminAndMember,
+        resolveOrganization,
+        resource: { orgId: "org_any" },
+        resourcePolicies: [allowRule(["member", "admin"], ["read"])],
+        systemAdminRoles: ["admin"],
       });
       expect(result.allowed).toBe(true);
     });
@@ -506,6 +627,7 @@ describe("evaluate", () => {
         principal: inactivePrincipal,
         resourcePolicies: [denyRule(["user"], ["read"])],
       });
+
       expect(result.allowed).toBe(false);
       if (!result.allowed) {
         expect(result.reason).toBe("GLOBAL_DENY");
@@ -575,5 +697,56 @@ describe("evaluate", () => {
       });
       expect(result).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
     });
+  });
+});
+
+describe("evaluateOptimistic", () => {
+  it("skips requires_resource conditions so conditional allows match", async () => {
+    const result = await evaluateOptimistic({
+      ...defaults,
+      principal: activePrincipal,
+      resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
+    });
+    expect(result).toEqual({
+      allowed: true,
+      matchedPolicy: "allow:user:read",
+    });
+  });
+
+  it("still evaluates principal_only conditions", async () => {
+    const result = await evaluateOptimistic({
+      ...defaults,
+      globalPolicies: [denyRule("*", "*", [principalNotActive()])],
+      principal: inactivePrincipal,
+      resourcePolicies: [allowRule(["user"], ["read"], [ownerCondition()])],
+    });
+    expect(result).toEqual({
+      allowed: false,
+      matchedPolicy: "deny:*:*",
+      reason: "GLOBAL_DENY",
+    });
+  });
+
+  it("fails closed with the original cause when a principal_only condition throws", async () => {
+    const cause = new Error("optimistic boom");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const result = await evaluateOptimistic({
+      ...defaults,
+      principal: activePrincipal,
+      resourcePolicies: [
+        allowRule(
+          ["user"],
+          ["read"],
+          [ownerCondition(), throwingCondition(cause)]
+        ),
+      ],
+    });
+
+    expectEvaluationError(result, cause);
+    expect(spy).toHaveBeenCalledTimes(1);
+    const [log] = parseConditionErrorLogs(spy);
+    expect(log?.message).toBe("authorization.evaluator.condition_error");
+    expect(log?.policyId).toBe("allow:user:read");
   });
 });

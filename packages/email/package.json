@@ -10,7 +10,6 @@
   "scripts": {
     "build": "tsdown src/index.ts --format esm --dts",
     "check-types": "tsc --noEmit",
-    "check-types:backup": "tsc --noEmit",
     "dev": "email dev --dir ./src/templates --port 3003"
   },
   "dependencies": {

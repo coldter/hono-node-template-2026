@@ -1,24 +1,17 @@
 import {
   authorization,
   buildAuthorizationPrincipal,
-  getLegacyPermissionKeysForRole,
-  LEGACY_PERMISSION_KEYS,
-  toBaseAuthorizationPrincipal,
 } from "@repo/shared/authorization";
 import { describe, expect, it } from "vitest";
 
 describe("shared authorization contract", () => {
   it("admin capabilities stay aligned with the registry", async () => {
-    const principal = buildAuthorizationPrincipal({
-      email: "admin@example.com",
-      emailVerified: true,
-      id: "usr_admin",
-      roleSlugs: ["admin"],
-      status: "active",
-    });
-
     const capabilities = await authorization.evaluateCapabilities(
-      toBaseAuthorizationPrincipal(principal)
+      buildAuthorizationPrincipal({
+        id: "usr_admin",
+        roleSlugs: ["admin"],
+        status: "active",
+      })
     );
 
     expect(capabilities["user:list"]).toBe(true);
@@ -37,16 +30,12 @@ describe("shared authorization contract", () => {
   });
 
   it("user capabilities stay limited to owned resources", async () => {
-    const principal = buildAuthorizationPrincipal({
-      email: "user@example.com",
-      emailVerified: true,
-      id: "usr_user",
-      roleSlugs: ["user"],
-      status: "active",
-    });
-
     const capabilities = await authorization.evaluateCapabilities(
-      toBaseAuthorizationPrincipal(principal)
+      buildAuthorizationPrincipal({
+        id: "usr_user",
+        roleSlugs: ["user"],
+        status: "active",
+      })
     );
 
     expect(capabilities["user:list"]).toBe(false);
@@ -64,18 +53,9 @@ describe("shared authorization contract", () => {
     expect(capabilities["notification:get-unread-count"]).toBe(true);
   });
 
-  it("legacy permission compatibility is derived from the canonical role map", () => {
-    expect(getLegacyPermissionKeysForRole("admin")).toEqual(
-      LEGACY_PERMISSION_KEYS
-    );
-    expect(getLegacyPermissionKeysForRole("user")).toEqual([]);
-  });
-
   it("preserves organization context when normalizing principals", () => {
     const principal = buildAuthorizationPrincipal(
       {
-        email: "member@example.com",
-        emailVerified: true,
         id: "usr_member",
         roleSlugs: ["user"],
         status: "active",
@@ -86,7 +66,7 @@ describe("shared authorization contract", () => {
       }
     );
 
-    expect(toBaseAuthorizationPrincipal(principal)).toMatchObject({
+    expect(principal).toMatchObject({
       id: "usr_member",
       organization: {
         id: "org_123",

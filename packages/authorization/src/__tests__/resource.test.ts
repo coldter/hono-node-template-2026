@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { principalNotActive } from "../conditions";
 import { createResourceDefinition, PolicyBuilder } from "../resource";
 import type { ConditionContext } from "../types";
 
 const AT_LEAST_ONE_ACTION = /at least one action/;
 const CANNOT_MIX_WILDCARD = /cannot mix the wildcard/;
+const ORG_ROLE_REQUIRED_PATTERN = /at least one org role/;
+const UNKNOWN_ORG_ROLE_PATTERN = /references org role "ghost" not in schema/;
 
 type TestResource = { id: string; createdBy: string };
 
@@ -11,11 +14,11 @@ describe("PolicyBuilder", () => {
   const builder = new PolicyBuilder<
     TestResource,
     "admin" | "user",
-    "owner" | "member",
-    "org_owner" | "org_member"
+    "org_owner" | "org_member",
+    "list" | "view" | "update" | "delete" | "manage"
   >({
-    relations: { project: (r) => r.id },
     resolveOwner: (r) => r.createdBy,
+    validOrgRoles: ["org_owner", "org_member"],
   });
 
   it("allow(role).to(action) produces correct rule", () => {
@@ -75,15 +78,14 @@ describe("PolicyBuilder", () => {
     expect(rule.label).toBe("allow:admin:view:where:custom");
   });
 
-  it("allow(role).to(action).withRelation() adds relation condition", () => {
+  it("allow(role).to(action).whereCondition(condition) adds a prebuilt condition", () => {
     const rule = builder
       .allow("user")
-      .to("edit")
-      .withRelation("member", "project");
+      .to("list")
+      .whereCondition(principalNotActive());
     expect(rule.conditions).toHaveLength(1);
-    expect(rule.conditions[0]?.type).toBe("withRelation");
-    expect(rule.conditions[0]?.label).toBe("withRelation:member:project");
-    expect(rule.label).toBe("allow:user:edit:withRelation:member:project");
+    expect(rule.conditions[0]?.type).toBe("principalNotActive");
+    expect(rule.label).toBe("allow:user:list:principalNotActive");
   });
 
   it("allow(role).to(action).withOrgRole() adds org role condition", () => {
@@ -97,6 +99,21 @@ describe("PolicyBuilder", () => {
     expect(rule.label).toBe(
       "allow:user:manage:withOrgRole:org_owner,org_member"
     );
+  });
+
+  it("withOrgRole() with zero roles throws", () => {
+    expect(() => {
+      builder.allow("user").to("manage").withOrgRole();
+    }).toThrow(ORG_ROLE_REQUIRED_PATTERN);
+  });
+
+  it("withOrgRole() with an unknown org role throws", () => {
+    expect(() => {
+      builder
+        .allow("user")
+        .to("manage")
+        .withOrgRole("ghost" as "org_owner");
+    }).toThrow(UNKNOWN_ORG_ROLE_PATTERN);
   });
 
   it("chaining multiple conditions produces AND (multiple conditions)", () => {
@@ -124,18 +141,12 @@ describe("PolicyBuilder", () => {
     expect(rule.label).toBe("allow:user:view,list");
   });
 
-  it("withRelation() throws if target key has no matching resolver", () => {
-    expect(() => {
-      builder.allow("user").to("edit").withRelation("member", "nonexistent");
-    }).toThrow('withRelation() references target "nonexistent"');
-  });
-
   it("whereOwner() throws if resolveOwner is not defined", () => {
     const builderNoOwner = new PolicyBuilder<
       TestResource,
       "admin" | "user",
-      "owner" | "member",
-      "org_owner" | "org_member"
+      "org_owner" | "org_member",
+      "list" | "view" | "update" | "delete" | "manage"
     >({});
 
     expect(() => {
@@ -145,22 +156,27 @@ describe("PolicyBuilder", () => {
 
   it("to() with no args throws", () => {
     expect(() => {
+      // @ts-expect-error -- to() requires at least one action
       builder.allow("user").to();
     }).toThrow(AT_LEAST_ONE_ACTION);
   });
 
   it("to('*', 'view') mixing wildcard and explicit actions throws", () => {
     expect(() => {
+      // @ts-expect-error -- the wildcard cannot be mixed with explicit actions
       builder.allow("user").to("*", "view");
     }).toThrow(CANNOT_MIX_WILDCARD);
   });
 
-  it("allow() return type does not expose where()/whereOwner() until to() runs", () => {
+  it("allow() return type does not expose conditions until to() runs", () => {
     // @ts-expect-error -- where() is not on the action stage; must call to() first
     builder.allow("user").where(() => true);
 
     // @ts-expect-error -- whereOwner() is not on the action stage either
     builder.allow("user").whereOwner();
+
+    // @ts-expect-error -- whereCondition() is not on the action stage either
+    builder.allow("user").whereCondition(principalNotActive());
 
     const rule = builder.allow("user").to("update").whereOwner();
     expect(rule.effect).toBe("allow");
@@ -172,9 +188,7 @@ describe("createResourceDefinition", () => {
     const resource = createResourceDefinition<
       TestResource,
       "admin" | "user",
-      "owner" | "member",
-      Record<string, unknown>,
-      never
+      "owner" | "member"
     >("user", {
       actions: ["list", "view", "create", "update", "delete"],
       policies: (p) => [
@@ -195,36 +209,27 @@ describe("createResourceDefinition", () => {
       "delete",
     ]);
     expect(resource.policies).toHaveLength(4);
-    expect(resource.resolveOwner).toBeDefined();
   });
 
-  it("stores relations and resolveOrganization", () => {
+  it("stores resolveOrganization", () => {
     const resource = createResourceDefinition<
       TestResource,
       "admin" | "user",
-      "owner" | "member",
-      Record<string, unknown>,
-      "org_owner"
+      "owner" | "member"
     >("project", {
       actions: ["view", "edit"],
       policies: (p) => [p.allow("admin").to("*")],
-      relations: { project: (r) => r.id },
       resolveOrganization: (r) => r.id,
-      resolveOwner: (r) => r.createdBy,
     });
 
     expect(resource.name).toBe("project");
     expect(resource.resolveOrganization).toBeDefined();
-    expect(resource.relations).toBeDefined();
-    expect(resource.relations?.project).toBeDefined();
   });
 
   it("policies are evaluated with the builder", () => {
     const resource = createResourceDefinition<
       TestResource,
       "admin" | "user",
-      never,
-      Record<string, unknown>,
       never
     >("item", {
       actions: ["view"],

@@ -1,14 +1,13 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { createAuthorize } from "../hono";
-import { createAuthSchema, principalAttribute } from "../schema";
+import { createAuthSchema } from "../schema";
 import type { Principal } from "../types";
 
-const NO_RESOURCE_LOADED = /no resource was loaded/;
+const UNKNOWN_ACTION_PATTERN =
+  /references action "veiy" not in resource actions/;
 
 const auth = createAuthSchema({
   globalPolicies: () => [],
-  principal: { status: principalAttribute<string>() },
-  relations: [],
   roles: ["admin", "user"],
   systemAdminRoles: ["admin"],
 });
@@ -18,11 +17,8 @@ interface UserResource {
   id: string;
 }
 
-const userResource = auth.createResource<
-  UserResource,
-  readonly ["list", "view", "update"]
->("user", {
-  actions: ["list", "view", "update"] as const,
+const userResource = auth.createResource<UserResource>()("user", {
+  actions: ["list", "view", "update"],
   policies: (p) => [
     p.allow("admin").to("*"),
     p.allow("user").to("list"),
@@ -39,22 +35,40 @@ const adminPrincipal: Principal = {
   roles: ["admin"],
 };
 
-describe("typed actions (Change 1)", () => {
+describe("typed actions", () => {
   it("registry.can rejects unknown actions at the type level", async () => {
     // @ts-expect-error -- "fly" is not a valid action on user
-    await registry.can(adminPrincipal, "user", "fly");
+    const decision = await registry.can(adminPrincipal, "user", "fly");
+    expect(decision).toEqual({ allowed: false, reason: "NO_MATCHING_POLICY" });
 
-    const decision = await registry.can(adminPrincipal, "user", "list");
-    expect(decision.allowed).toBe(true);
+    const allowed = await registry.can(adminPrincipal, "user", "list");
+    expect(allowed.allowed).toBe(true);
   });
 
-  it("registry.assertCan rejects unknown actions at the type level", async () => {
+  it("registry.assertCan rejects unknown actions at runtime", async () => {
     // @ts-expect-error -- "explode" is not a valid action on user
-    await registry.assertCan(adminPrincipal, "user", "explode").catch(() => {});
+    const pending = registry.assertCan(adminPrincipal, "user", "explode");
+    await expect(pending).rejects.toMatchObject({
+      reason: "NO_MATCHING_POLICY",
+    });
 
     await expect(
       registry.assertCan(adminPrincipal, "user", "list")
     ).resolves.toBeUndefined();
+  });
+
+  it("resource policy action typos are type errors and fail at buildRegistry", () => {
+    const typoResource = auth.createResource<UserResource>()("typo", {
+      actions: ["list"],
+      policies: (p) => [
+        // @ts-expect-error -- "veiy" is not one of the declared actions
+        p.allow("admin").to("veiy"),
+      ],
+    });
+
+    expect(() => auth.buildRegistry({ typo: typoResource })).toThrow(
+      UNKNOWN_ACTION_PATTERN
+    );
   });
 
   it("evaluateCapabilities returns a typed CapabilityMap", async () => {
@@ -100,9 +114,5 @@ describe("typed actions (Change 1)", () => {
       loadResource: async () => ({ id: "u1" }),
     });
     expect(bad).toBeDefined();
-  });
-
-  it("regex literal lives at module scope", () => {
-    expect(NO_RESOURCE_LOADED.test("no resource was loaded")).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { AuthorizationError } from "./errors";
-import { evaluate } from "./evaluator";
-import type { ActionsOf } from "./resource";
+import { evaluate, evaluateOptimistic } from "./evaluator";
+import type { ActionsOf, ResourceTypeFor } from "./resource";
 import type { AnyResourceDef } from "./schema";
 import type { PolicyDecision, PolicyRule, Principal } from "./types";
 import { validateRegistry } from "./validation";
@@ -8,7 +8,6 @@ import { validateRegistry } from "./validation";
 export interface RegistryOptions {
   globalPolicies: PolicyRule[];
   orgRoleValues: readonly string[];
-  schemaRelations: readonly string[];
   schemaRoles: readonly string[];
   systemAdminRoles: readonly string[];
 }
@@ -28,29 +27,19 @@ export interface RegistryInstance<
     principal: Principal | null | undefined,
     resource: K,
     action: ActionsOf<TResources[K]>,
-    opts?: { resource?: unknown }
+    opts?: { resource?: ResourceTypeFor<TResources[K]> }
   ): Promise<void>;
+
   can<K extends keyof TResources & string>(
     principal: Principal | null | undefined,
     resource: K,
     action: ActionsOf<TResources[K]>,
-    opts?: {
-      resolveRelation?: (
-        subjectType: string,
-        subjectId: string,
-        relation: string,
-        objectType: string,
-        objectId: string
-      ) => Promise<boolean>;
-      resource?: unknown;
-    }
+    opts?: { resource?: ResourceTypeFor<TResources[K]> }
   ): Promise<PolicyDecision>;
 
   evaluateCapabilities(
     principal: Principal
   ): Promise<CapabilityMap<TResources>>;
-
-  getResource<K extends keyof TResources & string>(name: K): TResources[K];
 
   readonly resources: TResources;
 }
@@ -61,12 +50,7 @@ export function buildRegistryInstance<
   resources: TResources,
   options: RegistryOptions
 ): RegistryInstance<TResources> {
-  validateRegistry(
-    resources,
-    options.schemaRoles,
-    options.schemaRelations,
-    options.orgRoleValues
-  );
+  validateRegistry(resources, options);
 
   return {
     async assertCan(principal, resource, action, opts) {
@@ -77,8 +61,16 @@ export function buildRegistryInstance<
     },
 
     async can(principal, resourceName, action, opts) {
-      const resourceDef = resources[resourceName];
-      if (!resourceDef) {
+      const resourceDef = Object.hasOwn(resources, resourceName)
+        ? resources[resourceName]
+        : undefined;
+
+      if (
+        !(
+          resourceDef &&
+          (resourceDef.actions as readonly string[]).includes(action)
+        )
+      ) {
         return { allowed: false, reason: "NO_MATCHING_POLICY" };
       }
 
@@ -87,44 +79,39 @@ export function buildRegistryInstance<
         globalPolicies: options.globalPolicies,
         principal,
         resolveOrganization: resourceDef.resolveOrganization,
-        resolveRelation: opts?.resolveRelation,
         resource: opts?.resource,
-        resourceName,
         resourcePolicies: resourceDef.policies,
         systemAdminRoles: options.systemAdminRoles,
       });
     },
 
     async evaluateCapabilities(principal) {
-      const decisions = await Promise.all(
-        Object.entries(resources).flatMap(([name, resourceDef]) =>
-          resourceDef.actions.map(async (action) => {
-            const decision = await evaluate({
+      const tasks: Promise<readonly [string, boolean]>[] = [];
+      for (const [name, resourceDef] of Object.entries(resources)) {
+        for (const action of resourceDef.actions) {
+          tasks.push(
+            evaluateOptimistic({
               action,
               globalPolicies: options.globalPolicies,
-              ignoreResourceConditions: true,
               principal,
-              resource: undefined,
-              resourceName: name,
               resourcePolicies: resourceDef.policies,
               systemAdminRoles: options.systemAdminRoles,
-            });
-            return [name, action, decision.allowed] as const;
-          })
-        )
-      );
+            }).then(
+              (decision) => [`${name}:${action}`, decision.allowed] as const
+            )
+          );
+        }
+      }
 
+      const settled = await Promise.all(tasks);
       const capabilities: Record<string, boolean> = {};
-      for (const [name, action, allowed] of decisions) {
-        capabilities[`${name}:${action}`] = allowed;
+      for (const [key, allowed] of settled) {
+        capabilities[key] = allowed;
       }
 
       return capabilities as unknown as CapabilityMap<TResources>;
     },
 
-    getResource<K extends keyof TResources & string>(name: K): TResources[K] {
-      return resources[name];
-    },
     resources,
   };
 }

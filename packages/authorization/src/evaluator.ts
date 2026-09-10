@@ -1,5 +1,4 @@
-// biome-ignore-all lint/performance/noAwaitInLoops: policies evaluate in
-
+// biome-ignore-all lint/performance/noAwaitInLoops: policy evaluation is ordered (deny precedence) and short-circuits on first match, so parallelising would change outcomes.
 import type {
   ConditionContext,
   DenyReason,
@@ -11,152 +10,168 @@ import type {
 export interface EvaluateInput {
   action: string;
   globalPolicies: PolicyRule[];
-
-  ignoreResourceConditions?: boolean;
   principal: Principal | null | undefined;
-
   resolveOrganization?: (resource: never) => string | null | undefined;
-  resolveRelation?: (
-    subjectType: string,
-    subjectId: string,
-    relation: string,
-    objectType: string,
-    objectId: string
-  ) => Promise<boolean>;
   resource?: unknown;
-  resourceName: string;
   resourcePolicies: PolicyRule[];
   systemAdminRoles: readonly string[];
 }
 
 export async function evaluate(input: EvaluateInput): Promise<PolicyDecision> {
-  try {
-    const {
+  return runEvaluation(input, false);
+}
+
+export async function evaluateOptimistic(
+  input: EvaluateInput
+): Promise<PolicyDecision> {
+  return runEvaluation(input, true);
+}
+
+async function runEvaluation(
+  input: EvaluateInput,
+  optimistic: boolean
+): Promise<PolicyDecision> {
+  const {
+    principal,
+    action,
+    globalPolicies,
+    resourcePolicies,
+    systemAdminRoles,
+    resolveOrganization,
+    resource,
+  } = input;
+
+  if (!principal) {
+    return { allowed: false, reason: "UNAUTHENTICATED" };
+  }
+
+  for (const policy of globalPolicies) {
+    if (policy.effect !== "deny") {
+      continue;
+    }
+    const { matched, conditionError, cause } = await matchPolicy(
+      policy,
       principal,
       action,
-      globalPolicies,
-      resourcePolicies,
-      systemAdminRoles,
-      resolveOrganization,
-      resource,
-      resolveRelation,
-      ignoreResourceConditions = false,
-    } = input;
-
-    if (!principal) {
-      return { allowed: false, reason: "UNAUTHENTICATED" };
+      undefined,
+      false
+    );
+    if (conditionError) {
+      return { allowed: false, cause, reason: "EVALUATION_ERROR" };
     }
-
-    for (const policy of globalPolicies) {
-      if (policy.effect !== "deny") {
-        continue;
-      }
-      const match = await matchPolicy(
-        policy,
-        principal,
-        action,
-        undefined,
-        resolveRelation
-      );
-      if (match) {
-        return {
-          allowed: false,
-          matchedPolicy: policy.label,
-          reason: "GLOBAL_DENY",
-        };
-      }
+    if (matched) {
+      return {
+        allowed: false,
+        matchedPolicy: policy.label,
+        reason: "GLOBAL_DENY",
+      };
     }
-
-    let orgDenyReason: DenyReason | undefined;
-
-    for (const policy of resourcePolicies) {
-      if (policy.effect !== "deny") {
-        continue;
-      }
-
-      if (hasResourceConditions(policy) && resource === undefined) {
-        continue;
-      }
-
-      if (resolveOrganization && resource !== undefined) {
-        const orgResult = checkOrgScoping(
-          principal,
-          resource,
-          resolveOrganization,
-          policy,
-          systemAdminRoles
-        );
-
-        if (orgResult !== "pass") {
-          orgDenyReason ??= orgResult.skip;
-          continue;
-        }
-      }
-
-      const match = await matchPolicy(
-        policy,
-        principal,
-        action,
-        resource,
-        resolveRelation
-      );
-      if (match) {
-        return {
-          allowed: false,
-          matchedPolicy: policy.label,
-          reason: "EXPLICIT_DENY",
-        };
-      }
-    }
-
-    for (const policy of resourcePolicies) {
-      if (policy.effect !== "allow") {
-        continue;
-      }
-
-      if (
-        hasResourceConditions(policy) &&
-        resource === undefined &&
-        !ignoreResourceConditions
-      ) {
-        continue;
-      }
-
-      if (resolveOrganization && resource !== undefined) {
-        const orgResult = checkOrgScoping(
-          principal,
-          resource,
-          resolveOrganization,
-          policy,
-          systemAdminRoles
-        );
-
-        if (orgResult !== "pass") {
-          orgDenyReason ??= orgResult.skip;
-          continue;
-        }
-      }
-
-      const match = await matchPolicy(
-        policy,
-        principal,
-        action,
-        resource,
-        resolveRelation,
-        ignoreResourceConditions
-      );
-      if (match) {
-        return { allowed: true, matchedPolicy: policy.label };
-      }
-    }
-
-    if (orgDenyReason) {
-      return { allowed: false, reason: orgDenyReason };
-    }
-    return { allowed: false, reason: "NO_MATCHING_POLICY" };
-  } catch (cause) {
-    return { allowed: false, cause, reason: "EVALUATION_ERROR" };
   }
+
+  let orgDenyReason: DenyReason | undefined;
+
+  for (const policy of resourcePolicies) {
+    if (policy.effect !== "deny") {
+      continue;
+    }
+
+    if (hasResourceConditions(policy) && resource === undefined) {
+      continue;
+    }
+
+    if (resolveOrganization && resource !== undefined) {
+      const orgResult = checkOrgScoping(
+        principal,
+        resource,
+        resolveOrganization,
+        policy,
+        systemAdminRoles
+      );
+      if (orgResult.kind === "error") {
+        return {
+          allowed: false,
+          cause: orgResult.cause,
+          reason: "EVALUATION_ERROR",
+        };
+      }
+      if (orgResult.kind === "skip") {
+        orgDenyReason ??= orgResult.reason;
+        continue;
+      }
+    }
+
+    const { matched, conditionError, cause } = await matchPolicy(
+      policy,
+      principal,
+      action,
+      resource,
+      false
+    );
+    if (conditionError) {
+      return { allowed: false, cause, reason: "EVALUATION_ERROR" };
+    }
+    if (matched) {
+      return {
+        allowed: false,
+        matchedPolicy: policy.label,
+        reason: "EXPLICIT_DENY",
+      };
+    }
+  }
+
+  for (const policy of resourcePolicies) {
+    if (policy.effect !== "allow") {
+      continue;
+    }
+
+    if (
+      hasResourceConditions(policy) &&
+      resource === undefined &&
+      !optimistic
+    ) {
+      continue;
+    }
+
+    if (resolveOrganization && resource !== undefined) {
+      const orgResult = checkOrgScoping(
+        principal,
+        resource,
+        resolveOrganization,
+        policy,
+        systemAdminRoles
+      );
+      if (orgResult.kind === "error") {
+        return {
+          allowed: false,
+          cause: orgResult.cause,
+          reason: "EVALUATION_ERROR",
+        };
+      }
+      if (orgResult.kind === "skip") {
+        orgDenyReason ??= orgResult.reason;
+        continue;
+      }
+    }
+
+    const { matched, conditionError, cause } = await matchPolicy(
+      policy,
+      principal,
+      action,
+      resource,
+      optimistic
+    );
+    if (conditionError) {
+      return { allowed: false, cause, reason: "EVALUATION_ERROR" };
+    }
+    if (matched) {
+      return { allowed: true, matchedPolicy: policy.label };
+    }
+  }
+
+  if (orgDenyReason) {
+    return { allowed: false, reason: orgDenyReason };
+  }
+  return { allowed: false, reason: "NO_MATCHING_POLICY" };
 }
 
 function roleMatches(policy: PolicyRule, principal: Principal): boolean {
@@ -177,50 +192,81 @@ function hasResourceConditions(policy: PolicyRule): boolean {
   return policy.conditions.some((c) => c.effect === "requires_resource");
 }
 
+function describeError(error: unknown) {
+  return error instanceof Error
+    ? { message: error.message, name: error.name, stack: error.stack }
+    : { value: String(error) };
+}
+
+type MatchResult = {
+  matched: boolean;
+  cause?: unknown;
+  conditionError?: true;
+};
+
 async function matchPolicy(
   policy: PolicyRule,
   principal: Principal,
   action: string,
   resource: unknown | undefined,
-  resolveRelation?: EvaluateInput["resolveRelation"],
-  ignoreResourceConditions = false
-): Promise<boolean> {
+  optimistic: boolean
+): Promise<MatchResult> {
   if (!roleMatches(policy, principal)) {
-    return false;
+    return { matched: false };
   }
 
   if (!actionMatches(policy, action)) {
-    return false;
+    return { matched: false };
   }
 
   for (const condition of policy.conditions) {
-    if (condition.effect === "requires_resource" && ignoreResourceConditions) {
+    if (condition.effect === "requires_resource" && optimistic) {
       continue;
     }
 
     if (condition.effect === "requires_resource" && resource === undefined) {
-      return false;
+      return { matched: false };
     }
 
     const ctx: ConditionContext = {
       principal,
-      resolveRelation,
       resource,
     };
-    const result = await condition.evaluate(ctx);
-    if (!result) {
-      return false;
+    try {
+      const result = await condition.evaluate(ctx);
+      if (!result) {
+        return { matched: false };
+      }
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          action,
+          condition: { label: condition.label, type: condition.type },
+          error: describeError(error),
+          level: "error",
+          message: "authorization.evaluator.condition_error",
+          policyId: policy.label,
+          principalId: principal.id,
+          ts: Date.now(),
+        })
+      );
+      return { cause: error, conditionError: true, matched: false };
     }
   }
 
-  return true;
+  return { matched: true };
 }
 
 type OrgCheckResult =
-  | "pass"
+  | { kind: "pass" }
   | {
-      skip: "ORG_CONTEXT_MISSING" | "ORG_RESOLUTION_FAILED" | "TENANT_MISMATCH";
-    };
+      kind: "skip";
+      reason:
+        | "ORG_CONTEXT_MISSING"
+        | "ORG_RESOLUTION_FAILED"
+        | "TENANT_MISMATCH";
+    }
+  | { cause: unknown; kind: "error" };
 
 function checkOrgScoping(
   principal: Principal,
@@ -234,24 +280,40 @@ function checkOrgScoping(
       policy.roles.some((r) => principal.roles.includes(r))) &&
     principal.roles.some((r) => systemAdminRoles.includes(r))
   ) {
-    return "pass";
+    return { kind: "pass" };
   }
 
   const org = principal.organization;
   if (!org) {
-    return { skip: "ORG_CONTEXT_MISSING" };
+    return { kind: "skip", reason: "ORG_CONTEXT_MISSING" };
   }
 
-  const resourceOrgId = (
-    resolveOrganization as (r: unknown) => string | null | undefined
-  )(resource);
+  let resourceOrgId: string | null | undefined;
+  try {
+    resourceOrgId = (
+      resolveOrganization as (r: unknown) => string | null | undefined
+    )(resource);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        error: describeError(error),
+        level: "error",
+        message: "authorization.evaluator.org_resolution_error",
+        policyId: policy.label,
+        principalId: principal.id,
+        ts: Date.now(),
+      })
+    );
+    return { cause: error, kind: "error" };
+  }
+
   if (resourceOrgId === null || resourceOrgId === undefined) {
-    return { skip: "ORG_RESOLUTION_FAILED" };
+    return { kind: "skip", reason: "ORG_RESOLUTION_FAILED" };
   }
 
   if (org.id !== resourceOrgId) {
-    return { skip: "TENANT_MISMATCH" };
+    return { kind: "skip", reason: "TENANT_MISMATCH" };
   }
 
-  return "pass";
+  return { kind: "pass" };
 }

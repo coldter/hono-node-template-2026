@@ -3,10 +3,7 @@ import {
   createAuthorize,
   getAuthorizedResource,
 } from "@repo/authorization/hono";
-import {
-  buildAuthorizationPrincipal,
-  toBaseAuthorizationPrincipal,
-} from "@repo/shared/authorization";
+import { buildAuthorizationPrincipal } from "@repo/shared/authorization";
 import type { Context } from "hono";
 import type { Env } from "@/lib/context";
 import { authorization } from "./registry";
@@ -16,17 +13,21 @@ export function resolvePrincipalFromContext(c: Context<Env>): Principal | null {
 }
 
 function resolvePrincipal(c: Context<Env>): Principal | null {
-  const user = c.get("user");
-  if (!user) {
-    return null;
+  const cached = c.get("principal");
+  if (cached !== undefined) {
+    return cached;
   }
-  const session = c.get("session");
-  return toBaseAuthorizationPrincipal(
-    buildAuthorizationPrincipal(user, {
-      activeOrganizationId: session?.activeOrganizationId ?? null,
-      activeOrgRole: session?.activeOrgRole ?? null,
-    })
-  );
+
+  const user = c.get("user");
+  const principal = user
+    ? buildAuthorizationPrincipal(user, {
+        activeOrganizationId: c.get("session")?.activeOrganizationId ?? null,
+        activeOrgRole: c.get("session")?.activeOrgRole ?? null,
+      })
+    : null;
+
+  c.set("principal", principal);
+  return principal;
 }
 
 export const authorize = createAuthorize<typeof authorization.resources, Env>(

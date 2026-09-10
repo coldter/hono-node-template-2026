@@ -99,7 +99,7 @@ changelogs.
 - **API**: Hono with OpenAPI
 - **Database**: PostgreSQL + Drizzle ORM
 - **Auth**: Better-Auth
-- **Authorization**: CASL (RBAC)
+- **Authorization**: `@repo/authorization` (deny-by-default RBAC)
 - **Background Jobs**: Hatchet
 - **Cache/Queue**: Redis
 - **Email**: React Email + Nodemailer

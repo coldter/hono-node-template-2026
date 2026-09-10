@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { capabilitiesQueryOptions } from "@/hooks/use-authorization";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/modules/ui/button";
 import { Input } from "@/modules/ui/input";
@@ -59,6 +60,9 @@ export function SignInForm({
 
       await queryClient.invalidateQueries({
         queryKey: sessionQueryOptions.queryKey,
+      });
+      queryClient.removeQueries({
+        queryKey: capabilitiesQueryOptions.queryKey,
       });
       toast.success("Signed in successfully");
       onSuccess?.();

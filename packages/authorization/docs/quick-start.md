@@ -1,363 +1,177 @@
 # Quick Start
 
-This guide gets a new app from "I need access control" to a working authorization setup.
+This guide builds a complete setup: schema, principal, resources, registry, route middleware, and a capability endpoint. It ends with the changes needed for multi-tenant scoping.
 
-It starts with the smallest single-tenant shape, then shows what to add for multi-tenant authorization and what usually changes for a multi-application platform.
+## 1. Create the schema
 
-## 1. Define the schema
-
-The schema defines the valid roles, relations, and principal attributes for the app.
+The schema declares the role vocabulary, the system admin roles, and the global deny policies. Global policies are deny-only and must call `.to(...)` before any condition.
 
 ```ts
-import {
-  createAuthSchema,
-  principalAttribute,
-  principalNotActive,
-} from "@repo/authorization";
+import { createAuthSchema, principalNotActive } from "@repo/authorization";
 
 export const auth = createAuthSchema({
   roles: ["admin", "user"],
   systemAdminRoles: ["admin"],
-  relations: ["owner"],
-  principal: {
-    status: principalAttribute<"active" | "inactive">(),
-    emailVerified: principalAttribute<boolean>(),
-  },
   globalPolicies: (p) => [
-    p.deny("*").to("*").where(principalNotActive()),
+    p.deny("*").to("*").whereCondition(principalNotActive()),
   ],
 });
 ```
 
-### Keep this for single-tenant
+`roles` is inferred as a literal union and types every policy. `systemAdminRoles` must be a subset of `roles`. `p.deny("*").to("*")` covers every action and role; `principalNotActive()` narrows it to principals whose status is not `"active"`.
 
-- `roles`
-- `systemAdminRoles`
-- `relations`
-- `principal`
-- `globalPolicies`
+## 2. Build a principal
 
-### Add this for multi-tenant
+The principal is the authenticated actor and the trust boundary. Keep its construction at the auth edge.
 
 ```ts
-organizationRoles: ["owner", "admin", "member"],
+import type { Principal } from "@repo/authorization";
+
+export type AppPrincipal = Principal<
+  "admin" | "user",
+  { status: "active" | "inactive" | "deleted" | "locked" }
+>;
+
+const principal: AppPrincipal = {
+  attributes: { status: "active" },
+  id: "usr_1",
+  roles: ["user"],
+};
 ```
 
-### Remove this for single-tenant
+Drop unknown roles and coerce unknown attributes to a safe value before they reach the engine. In this repo, `buildAuthorizationPrincipal(user, session)` in `@repo/shared/authorization` does exactly that: it filters unknown role slugs, accepts only the `status` attribute, and defaults a missing or unknown status to `"deleted"`.
 
-Nothing from the block above. Just do not add org roles if you do not need them.
+## 3. Define resources
 
-## 2. Define a resource
-
-Start with a real resource and real actions. Avoid generic `manage`-everything action names unless they are part of your product language.
+Use `createResource<TResource>()(name, config)`. The curried form pins the record type once; `actions` becomes a literal union, so an action typo is a compile error.
 
 ```ts
-type UserRecord = {
-  id: string;
-  email: string;
-};
+type UserRecord = { id: string };
 
-export const usersAuthorization = auth.createResource<UserRecord>("user", {
-  actions: ["list", "view", "create", "update"],
+export const usersAuthorization = auth.createResource<UserRecord>()("user", {
+  actions: ["list", "view", "create", "update", "delete"],
   policies: (p) => [
     p.allow("admin").to("*"),
-    p.allow("user").to("list"),
     p.allow("user").to("view", "update").whereOwner(),
+    p.deny("*").to("delete").whereTargetIsSelf(),
   ],
   resolveOwner: (resource) => resource.id,
 });
 ```
 
-### Add this for multi-tenant
+`whereOwner()` requires `resolveOwner`. `whereTargetIsSelf()` compares `resource.id` with `principal.id`. Deny policies are evaluated before any allow policy, so nobody can delete their own account even though an allow policy matches the action.
 
-If the resource belongs to an organization, add `resolveOrganization`:
+## 4. Build the registry
 
 ```ts
-type ProjectRecord = {
-  id: string;
-  ownerId: string;
-  organizationId: string;
-};
+export const authorization = auth.buildRegistry({ user: usersAuthorization });
+```
 
-export const projectsAuthorization = auth.createResource<ProjectRecord>(
-  "project",
-  {
-    actions: ["list", "view", "update"],
-    resolveOwner: (resource) => resource.ownerId,
-    resolveOrganization: (resource) => resource.organizationId,
-    policies: (p) => [
-      p.allow("admin").to("*"),
-      p.allow("user").to("list", "view").withOrgRole("owner", "admin", "member"),
-      p.allow("user").to("update").withOrgRole("owner", "admin"),
-      p.allow("user").to("update").whereOwner(),
-    ],
-  }
+`buildRegistry` validates roles, actions, org roles, global policies, and registry keys, then throws at startup when anything is wrong. See the validation list in the package README.
+
+## 5. Guard routes
+
+```ts
+import { createAuthorize, getAuthorizedResource } from "@repo/authorization/hono";
+
+type AppEnv = { Variables: { principal: AppPrincipal | null } };
+
+export const authorize = createAuthorize<typeof authorization.resources, AppEnv>(
+  authorization,
+  { resolvePrincipal: (c) => c.get("principal") ?? null }
 );
-```
 
-## 3. Build the registry
-
-The registry combines all resources owned by the app.
-
-```ts
-export const authorization = auth.buildRegistry({
-  user: usersAuthorization,
-});
-```
-
-For a larger API:
-
-```ts
-export const authorization = auth.buildRegistry({
-  user: usersAuthorization,
-  project: projectsAuthorization,
-  invoice: invoicesAuthorization,
-});
-```
-
-## 4. Build a principal from the session
-
-The principal is your trust boundary. Keep it explicit.
-
-```ts
-type SessionUser = {
-  id: string;
-  roleSlugs?: string[];
-  status?: "active" | "inactive";
-  emailVerified?: boolean;
-};
-
-export function buildPrincipal(user: SessionUser) {
-  return {
-    id: user.id,
-    roles: user.roleSlugs ?? [],
-    attributes: {
-      status: user.status ?? "active",
-      emailVerified: user.emailVerified ?? false,
-    },
-  };
-}
-```
-
-### Add this for multi-tenant
-
-Include the active organization context:
-
-```ts
-type SessionContext = {
-  activeOrganizationId?: string;
-  activeOrgRole?: "owner" | "admin" | "member";
-};
-
-export function buildPrincipal(user: SessionUser, session: SessionContext) {
-  return {
-    id: user.id,
-    roles: user.roleSlugs ?? [],
-    attributes: {
-      status: user.status ?? "active",
-      emailVerified: user.emailVerified ?? false,
-    },
-    ...(session.activeOrganizationId && session.activeOrgRole
-      ? {
-          organization: {
-            id: session.activeOrganizationId,
-            role: session.activeOrgRole,
-          },
-        }
-      : {}),
-  };
-}
-```
-
-## 5. Create route middleware
-
-With Hono:
-
-```ts
-import { createAuthorize } from "@repo/authorization/hono";
-
-export const authorize = createAuthorize(authorization, {
-  resolvePrincipal: (c) => c.get("principal"),
-});
-```
-
-Both `resource` and `action` are narrowed to the registry vocabulary. `authorize("user", "fly")` is a TypeScript error if `"fly"` is not in the resource's `actions` tuple.
-
-Use it directly on routes that do not need a loaded record:
-
-```ts
-app.get("/users", authorize("user", "list"), listUsersHandler);
-```
-
-Use `loadResource` when the policy depends on a concrete record. The callback's return type is type-checked against the registered resource shape, and `getAuthorizedResource` retrieves it without a refetch:
-
-```ts
-import { getAuthorizedResource } from "@repo/authorization/hono";
+app.get("/users", authorize("user", "list"), listUsers);
 
 app.get(
   "/users/:userId",
   authorize("user", "view", {
-    loadResource: async (c) => findUserById(c.req.param("userId")),
+    loadResource: (c) => findUserById(c.req.param("userId") ?? ""),
   }),
-  async (c) => {
-    const user = getAuthorizedResource<UserRecord>(c);
-    return c.json({ user });
-  }
+  (c) => c.json(getAuthorizedResource<UserRecord>(c))
 );
 ```
 
-`getAuthorizedResource<T>(c)` throws if invoked on a route that did not declare a `loadResource`, so handlers can rely on a non-null value.
+`loadResource` runs before evaluation and its return value is passed to the evaluator. On deny the middleware responds with 401 when there is no principal, 404 when the loader returns nothing and the action is otherwise allowed, 403 for policy denials, and 500 when a condition throws. `getAuthorizedResource<T>(c)` returns the loaded record and throws when no record was loaded.
 
-### Bypassing authorization (rare)
-
-Some routes are intentionally public (health checks, public webhooks). To opt them out, register the labels at construction time and use `unsafeBypassAuthorization`:
+For a non-throwing check, use the registry directly:
 
 ```ts
-export const authorize = createAuthorize(authorization, {
-  resolvePrincipal: (c) => c.get("principal"),
-  allowedBypassLabels: ["health", "stripe-webhook"],
-});
+const decision = await authorization.can(principal, "user", "update", { resource });
 
-app.get("/health", authorize.unsafeBypassAuthorization("health"), healthHandler);
+if (!decision.allowed) {
+  console.log(decision.reason, decision.cause);
+}
 ```
 
-Calling `unsafeBypassAuthorization` with an unregistered label throws at middleware construction. Each request through a bypassed route emits a structured `console.warn` (`{ event: "authorization.bypass", label, path, method }`) so deliberate exceptions remain auditable.
-
-## 6. Add a capabilities endpoint
-
-This is optional but strongly recommended for web apps.
+## 6. Expose capabilities
 
 ```ts
 app.get("/authorization/capabilities", async (c) => {
   const principal = c.get("principal");
 
   if (!principal) {
-    return c.json(
-      { error: { code: "UNAUTHORIZED", message: "Unauthorized" } },
-      401
-    );
+    return c.json({ error: { code: "UNAUTHORIZED", message: "Unauthorized" } }, 401);
   }
 
   const capabilities = await authorization.evaluateCapabilities(principal);
+  c.header("Cache-Control", "no-store");
   return c.json({ capabilities });
 });
 ```
 
-## 7. Use capabilities in the UI
+The map is keyed by `${resource}:${action}` and is optimistic: ownership and other resource-dependent conditions are treated as satisfied, and resource-dependent denies are skipped. Use it for navigation, page shells, and broad action visibility only. It never replaces a server-side check against a loaded record. Capabilities are the single source of truth for UI gating; the legacy role `permissions` column is gone.
 
-The UI can use a capability map for broad gating:
+## 7. Add multi-tenancy
+
+In the schema from step 1, add `organizationRoles: ["owner", "admin", "member"]`, then make org-scoped resources resolve their tenant:
 
 ```ts
-function UsersPage() {
-  const { capabilities } = useAuthorization();
+type ProjectRecord = { id: string; organizationId: string };
 
-  return (
-    <>
-      {capabilities["user:create"] ? <CreateUserButton /> : null}
-      <UsersTable />
-    </>
-  );
-}
+export const projectsAuthorization = auth.createResource<ProjectRecord>()(
+  "project",
+  {
+    actions: ["list", "view", "update", "delete"],
+    resolveOrganization: (resource) => resource.organizationId,
+    policies: (p) => [
+      p.allow("admin").to("*"),
+      p.allow("user").to("list", "view").withOrgRole("owner", "admin", "member"),
+      p.allow("user").to("update", "delete").withOrgRole("owner", "admin"),
+    ],
+  }
+);
 ```
 
-Use the capability map for:
+Then add `project: projectsAuthorization` to the registry from step 4. A resource that uses `withOrgRole(...)` must define `resolveOrganization`, or `buildRegistry` throws.
 
-- navigation visibility
-- page entry points
-- broad action visibility
+Add the active organization to the principal:
 
-Do not use it as the final answer for:
+```ts
+const principal: Principal<
+  "admin" | "user",
+  { status: string },
+  "owner" | "admin" | "member"
+> = {
+  attributes: { status: "active" },
+  id: "usr_1",
+  organization: { id: "org_1", role: "owner" },
+  roles: ["user"],
+};
+```
 
-- record-specific edits
-- destructive actions against a concrete target
-- anything that depends on ownership or relationships
+The evaluator compares `principal.organization.id` with `resolveOrganization(resource)` before any policy on the resource can match. A missing organization yields `ORG_CONTEXT_MISSING`, an unresolvable tenant yields `ORG_RESOLUTION_FAILED`, and a different tenant yields `TENANT_MISMATCH`. System admin roles bypass tenant matching but never explicit denies.
 
-## What To Keep, Add, Or Skip
+The server already marks `activeOrganizationId` and `activeOrgRole` as `input: false` and clears an unverifiable `activeOrgRole`, but no app resource uses org scoping yet. Add it only when a resource truly needs it.
 
-### Single-tenant apps
+## 8. Checklist
 
-Keep:
-
-- schema roles
-- global denies
-- resource ownership rules
-- one registry per backend
-- optional capabilities endpoint
-
-Skip:
-
-- org roles
-- org-scoped resources
-- active org session fields
-- org switchers in the UI
-
-### Multi-tenant apps
-
-Keep:
-
-- everything from single-tenant
-
-Add:
-
-- `organizationRoles`
-- active org session fields
-- `resolveOrganization`
-- `withOrgRole(...)`
-- org-aware UI
-
-### Multi-application platforms
-
-Keep shared:
-
-- the package
-- the role and relation vocabulary
-- the principal contract
-- the documentation
-
-Keep separate:
-
-- the registry in each app
-- resource ownership in each app
-- capability endpoint in each backend surface
-
-## Practical Notes
-
-### Single-tenant API shape
-
-Usually:
-
-- one backend app
-- one registry
-- one capability map
-- one principal without org context
-
-### Multi-tenant API shape
-
-Usually:
-
-- one backend app
-- one registry
-- principal includes active org context
-- org-scoped resources enforce tenant match automatically
-
-### Multi-application API shape
-
-Usually:
-
-- shared auth/session contract
-- one registry per app
-- one capability map per backend surface
-- internal service-to-service calls instead of treating every app as one giant API
-
-## Recommended Starting Pattern
-
-If you are unsure where to start:
-
-1. implement single-tenant first
-2. add `resolveOwner` wherever ownership matters
-3. add a capabilities endpoint for the UI
-4. only add org roles and tenant scoping when the product truly needs them
-5. only split across multiple apps when service boundaries are real, not hypothetical
+- Guard every protected route with `authorize(...)` or an explicit `can(...)` check.
+- Keep a global deny for principals that are not active.
+- Define `resolveOwner` wherever ownership matters and `resolveOrganization` on every org-scoped resource.
+- Treat capability maps as UI hints; enforce with a loaded resource on the server.
+- Use `isAuthorizationGuard` in a route-coverage test to assert that every route in your route maps carries an authorization guard.
+- Refetch capabilities after an org switch; the map reflects the principal's active organization.
 
 ## Read Next
 

@@ -1,40 +1,27 @@
 import {
   authorization,
   buildAuthorizationPrincipal,
-  toBaseAuthorizationPrincipal,
 } from "@repo/shared/authorization";
 import { describe, expect, it } from "vitest";
 
-const admin = toBaseAuthorizationPrincipal(
-  buildAuthorizationPrincipal({
-    email: "admin@example.com",
-    emailVerified: true,
-    id: "usr_admin",
-    roleSlugs: ["admin"],
-    status: "active",
-  })
-);
+const admin = buildAuthorizationPrincipal({
+  id: "usr_admin",
+  roleSlugs: ["admin"],
+  status: "active",
+});
 
-const user = toBaseAuthorizationPrincipal(
-  buildAuthorizationPrincipal({
-    email: "user@example.com",
-    emailVerified: true,
-    id: "usr_user",
-    roleSlugs: ["user"],
-    status: "active",
-  })
-);
+const user = buildAuthorizationPrincipal({
+  id: "usr_user",
+  roleSlugs: ["user"],
+  status: "active",
+});
 
 function principalWithStatus(status: string) {
-  return toBaseAuthorizationPrincipal(
-    buildAuthorizationPrincipal({
-      email: "status@example.com",
-      emailVerified: true,
-      id: "usr_status",
-      roleSlugs: ["admin"],
-      status,
-    })
-  );
+  return buildAuthorizationPrincipal({
+    id: "usr_status",
+    roleSlugs: ["admin"],
+    status,
+  });
 }
 
 describe("user management policies", () => {
@@ -113,8 +100,6 @@ describe("user management policies", () => {
 
   it("fails closed on unknown user statuses", async () => {
     const corrupt = buildAuthorizationPrincipal({
-      email: "corrupt@example.com",
-      emailVerified: true,
       id: "usr_corrupt",
       roleSlugs: ["admin"],
       status: "corrupt",
@@ -122,7 +107,7 @@ describe("user management policies", () => {
 
     expect(corrupt.attributes.status).toBe("deleted");
     await expect(
-      authorization.can(toBaseAuthorizationPrincipal(corrupt), "user", "list")
+      authorization.can(corrupt, "user", "list")
     ).resolves.toMatchObject({ allowed: false, reason: "GLOBAL_DENY" });
   });
 });

@@ -37,20 +37,12 @@ export interface Condition<TResource = unknown> {
   effect: ConditionEffect;
   evaluate(ctx: ConditionContext<TResource>): boolean | Promise<boolean>;
   label: string;
-
   params?: Record<string, unknown>;
   type: string;
 }
 
 export interface ConditionContext<TResource = unknown> {
   principal: Principal;
-  resolveRelation?: (
-    subjectType: string,
-    subjectId: string,
-    relation: string,
-    objectType: string,
-    objectId: string
-  ) => Promise<boolean>;
   resource?: TResource;
 }
 
@@ -63,17 +55,4 @@ export interface PolicyRule<
   effect: "allow" | "deny";
   label: string;
   roles: TRole[] | "*";
-}
-
-export interface ResourceDefinition<
-  TResource = unknown,
-  TAction extends string = string,
-  TRole extends string = string,
-> {
-  actions: readonly TAction[];
-  name: string;
-  policies: PolicyRule<TResource, TRole>[];
-  relations?: Record<string, (resource: TResource) => string>;
-  resolveOrganization?: (resource: TResource) => string | null | undefined;
-  resolveOwner?: (resource: TResource) => string;
 }

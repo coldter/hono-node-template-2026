@@ -13,8 +13,7 @@
     "./brand": "./src/brand.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit",
-    "check-types:backup": "tsc --noEmit"
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/authorization": "workspace:*"
