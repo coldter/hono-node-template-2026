@@ -40,7 +40,8 @@ A production-ready monorepo template with authentication, RBAC, user management,
    ```bash
    bun install
    bun run db:push
-   # (no seed script in this template)
+   # Optional demo data (roles, users, audit logs):
+   bun run --filter server db:seed
    ```
 
 6. Run dev (use split terminals for the API and the web app):
@@ -65,10 +66,12 @@ bun run test:coverage                # Run tests with coverage
 ## Database
 
 ```bash
-bun run db:generate                  # Generate migration files
-bun run db:migrate                   # Apply migrations
-bun run db:push                      # Push schema (local dev)
-bun run db:studio                    # Open Drizzle Studio
+bun run db:generate                      # Generate migration files
+bun run db:migrate                       # Apply migrations
+bun run db:push                          # Push schema (local dev)
+bun run db:studio                        # Open Drizzle Studio
+bun run --filter server db:seed          # Seed roles, users, and audit logs
+bun run --filter server seed:audit-logs  # Seed audit logs only
 ```
 
 ## Releases
@@ -80,18 +83,20 @@ changelogs.
 
 ## Requirements
 
-- Bun 1.3.14 (matches `packageManager` in root `package.json`)
-- Node.js 25.9 or newer (matches `@types/node` floor)
+- Bun 1.4.2 (matches `packageManager` in root `package.json` and CI)
+- Node.js `^22.18.0 || ^24.0.0 || >=26.0.0` (matches `engines` in root `package.json`)
 - PostgreSQL
 
 ## Structure
 
-| Path              | Purpose                                       |
-| ----------------- | --------------------------------------------- |
-| `apps/server`     | Main Hono API with OpenAPI + Drizzle/Postgres |
-| `apps/web`        | React SPA (TanStack Router/Query, Zustand)    |
-| `packages/shared` | Shared runtime constants, types, and helpers  |
-| `packages/email`  | React Email templates + transport utilities   |
+| Path                      | Purpose                                        |
+| ------------------------- | ---------------------------------------------- |
+| `apps/server`             | Main Hono API with OpenAPI + Drizzle/Postgres  |
+| `apps/web`                | React SPA (TanStack Router/Query, Zustand)     |
+| `packages/authorization`  | Policy/RBAC evaluation engine                  |
+| `packages/db`             | Drizzle schema, client, IDs, and migrations    |
+| `packages/shared`         | Shared runtime constants, types, and helpers   |
+| `packages/email`          | React Email templates + transport utilities    |
 
 ## Tech Stack
 
@@ -111,9 +116,8 @@ changelogs.
 `apps/server/src/lib/vault/` ships an envelope-encryption vault
 (AES-256-GCM via a local master key; AWS/GCP/Azure KMS provider stubs).
 It has no default consumer - wire it wherever you store third-party
-credentials or other secrets at rest. See the `vault:debug` script and
-`apps/server/tests/vault/` for usage examples. Configure via
-`VAULT_PROVIDER` / `VAULT_MASTER_KEY`.
+credentials or other secrets at rest. See `apps/server/tests/vault/` for
+usage examples. Configure via `VAULT_PROVIDER` / `VAULT_MASTER_KEY`.
 
 ## Documentation
 

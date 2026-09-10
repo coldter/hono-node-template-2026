@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
     "./authorization": "./src/authorization.ts",
     "./users": "./src/users.ts",
     "./roles": "./src/roles.ts",
@@ -13,15 +12,15 @@
     "./brand": "./src/brand.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@repo/authorization": "workspace:*"
+    "@repo/authorization": "workspace:*",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
-  },
-  "peerDependencies": {
-    "zod": "^4.3.6"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   }
 }

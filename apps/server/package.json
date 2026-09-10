@@ -18,11 +18,10 @@
     "generate-openapi": "tsx scripts/generate-openapi.ts",
     "push:debug": "tsx scripts/push-debug.ts",
     "seed:audit-logs": "tsx scripts/seeds/audit-logs/run.ts",
-    "start": "node dist/index.js",
+    "start": "node dist/index.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest",
-    "vault:debug": "tsx scripts/vault-debug.ts"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hatchet-dev/typescript-sdk": "1.29.2",

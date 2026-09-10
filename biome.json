@@ -88,20 +88,5 @@
         "useImportExtensions": "off"
       }
     }
-  },
-  "overrides": [
-    {
-      "includes": [
-        "packages/email/src/components/**/*.tsx",
-        "packages/email/src/templates/**/*.tsx"
-      ],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedImports": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }

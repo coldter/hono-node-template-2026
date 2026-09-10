@@ -1,7 +1,4 @@
-import { z } from "zod";
-import { USER_STATUS_VALUES } from "./constants";
-
-const userStatusSchema = z.enum(USER_STATUS_VALUES);
+import { userStatusSchema } from "./constants";
 
 type UserSummaryRecord = {
   id: string;

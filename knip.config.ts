@@ -2,21 +2,14 @@ import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
-  ignoreIssues: {
-    "apps/web/src/modules/ui/**": ["exports"],
-  },
   rules: {
     exports: "off",
     types: "off",
   },
   tags: ["-lintignore"],
   workspaces: {
-    ".": {
-      ignoreDependencies: ["tsx"],
-    },
     "apps/server": {
       entry: ["scripts/**/*.ts", "mocks/**/*.ts", "tests/**/*.ts"],
-      ignoreFiles: ["src/rcp-client.ts"],
       paths: {
         "@/*": ["./src/*"],
       },

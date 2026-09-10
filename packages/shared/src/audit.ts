@@ -75,33 +75,3 @@ export interface AuditLogMetadata {
   changes?: Record<string, FieldChange>;
   [key: string]: unknown;
 }
-
-export const CRITICAL_EVENTS = [
-  "user.created",
-  "user.updated",
-  "user.deleted",
-  "user.deactivated",
-  "user.activated",
-  "user.unlocked",
-  "auth.password.changed",
-  "auth.session.revoked",
-  "role.created",
-  "role.updated",
-  "role.deleted",
-  "role.assigned",
-  "role.unassigned",
-] as const;
-
-export const BUFFERABLE_EVENTS = [
-  "auth.login.success",
-  "auth.login.failed",
-  "auth.logout",
-  "user.viewed",
-  "user.listed",
-] as const;
-
-export type CriticalAuditEvent = (typeof CRITICAL_EVENTS)[number];
-export type BufferableAuditEvent = (typeof BUFFERABLE_EVENTS)[number];
-
-type _AllClassified = CriticalAuditEvent | BufferableAuditEvent;
-type _ExhaustivenessCheck = AuditEventKey extends _AllClassified ? true : never;

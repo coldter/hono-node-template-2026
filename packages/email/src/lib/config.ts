@@ -3,8 +3,11 @@ import { z } from "zod";
 
 const brand = getBrandConfig(process.env);
 
-function parseBooleanString(value: string | undefined): boolean | undefined {
-  if (value === undefined) {
+function parseBooleanString(
+  name: string,
+  value: string | undefined
+): boolean | undefined {
+  if (value === undefined || value.trim() === "") {
     return;
   }
 
@@ -12,9 +15,13 @@ function parseBooleanString(value: string | undefined): boolean | undefined {
   if (["true", "1", "yes", "on"].includes(normalized)) {
     return true;
   }
-  if (["false", "0", "no", "off", ""].includes(normalized)) {
+  if (["false", "0", "no", "off"].includes(normalized)) {
     return false;
   }
+
+  throw new Error(
+    `Invalid ${name}: "${value}". Expected one of true, false, 1, 0, yes, no, on, off.`
+  );
 }
 
 function parseSmtpPort(value: string | undefined): number | undefined {
@@ -24,7 +31,9 @@ function parseSmtpPort(value: string | undefined): number | undefined {
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
-    return;
+    throw new Error(
+      `Invalid SMTP_PORT: "${value}". Expected an integer between 1 and 65535.`
+    );
   }
 
   return parsed;
@@ -53,7 +62,10 @@ export type EmailConfig = z.infer<typeof emailConfigSchema>;
 
 export function getEmailConfig(): EmailConfig {
   const smtpPort = parseSmtpPort(process.env.SMTP_PORT);
-  const secureFromEnv = parseBooleanString(process.env.SMTP_SECURE);
+  const secureFromEnv = parseBooleanString(
+    "SMTP_SECURE",
+    process.env.SMTP_SECURE
+  );
   const isMailpitHost =
     process.env.SMTP_HOST?.trim().toLowerCase() === "mailpit";
   const usesSubmissionPortWithImplicitTls =

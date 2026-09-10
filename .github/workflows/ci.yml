@@ -55,6 +55,12 @@ jobs:
       - name: Build
         run: bun run build
 
+      - name: Generated client drift check
+        run: |
+          bun run generate-client
+          git add -N apps/web/src/api.gen
+          git diff --exit-code -- apps/web/src/api.gen
+
       - name: Migration drift check
         run: |
           bun run db:generate

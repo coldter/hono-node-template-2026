@@ -115,7 +115,7 @@ describe("audit-logs handler event filtering", () => {
     ]);
   });
 
-  it("subtracts dropped rows from meta.total so data.length and meta stay in sync", async () => {
+  it("keeps the server-reported total when rows are dropped during formatting", async () => {
     findMock.mockResolvedValueOnce({
       data: [
         {
@@ -153,7 +153,7 @@ describe("audit-logs handler event filtering", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as ListResponseBody;
     expect(body.data).toHaveLength(1);
-    expect(body.meta.total).toBe(1);
+    expect(body.meta.total).toBe(2);
     expect(body.meta.pageCount).toBe(1);
   });
 });

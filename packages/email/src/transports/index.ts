@@ -1,3 +1,4 @@
+import type { EmailConfig } from "../lib/config";
 import { ConsoleTransport } from "./console";
 import { NodemailerTransport } from "./nodemailer";
 import type { EmailTransport } from "./types";
@@ -8,32 +9,24 @@ export type {
   SendEmailResult,
 } from "./types";
 
-export function createTransport(config: {
-  provider?: "nodemailer" | "console";
-  smtp?: {
-    host: string;
-    port: number;
-    secure?: boolean;
-    auth: {
-      user: string;
-      pass: string;
-    };
-  };
-}): EmailTransport {
-  const isExplicitConsole = config.provider === "console";
-  if (isExplicitConsole) {
-    return new ConsoleTransport();
+export function createTransport(config: EmailConfig): EmailTransport {
+  const hasSmtpConfig = Boolean(config.smtp?.host && config.smtp?.auth.user);
+  const usesNodemailer =
+    config.provider === undefined || config.provider === "nodemailer";
+
+  if (hasSmtpConfig && usesNodemailer && config.smtp) {
+    return new NodemailerTransport(config.smtp);
   }
 
-  const hasSmtpConfig = config.smtp?.host && config.smtp?.auth?.user;
-  const isExplicitNodemailer =
-    config.provider === "nodemailer" && hasSmtpConfig;
+  if (process.env.NODE_ENV === "production") {
+    const problem =
+      config.provider === "console"
+        ? 'EMAIL_PROVIDER="console" is not allowed in production.'
+        : "No email transport is configured.";
 
-  if (
-    (isExplicitNodemailer || (!config.provider && hasSmtpConfig)) &&
-    config.smtp
-  ) {
-    return new NodemailerTransport(config.smtp);
+    throw new Error(
+      `${problem} Set SMTP_HOST, SMTP_USER and SMTP_PASS, and set EMAIL_PROVIDER="nodemailer" (or leave it unset).`
+    );
   }
 
   console.warn(

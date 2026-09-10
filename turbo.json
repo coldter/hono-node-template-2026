@@ -15,11 +15,6 @@
       "inputs": ["$TURBO_DEFAULT$", "tsconfig*.json", "../../tsconfig*.json"],
       "outputs": []
     },
-    "check-types:backup": {
-      "dependsOn": ["^check-types:backup"],
-      "inputs": ["$TURBO_DEFAULT$", "tsconfig*.json", "../../tsconfig*.json"],
-      "outputs": []
-    },
     "storybook": {
       "cache": false,
       "persistent": true
@@ -59,6 +54,7 @@
       "env": ["DATABASE_URL", "BETTER_AUTH_SECRET", "SKIP_ENV_VALIDATION"]
     },
     "generate-client": {
+      "dependsOn": ["server#generate-openapi"],
       "cache": false
     },
     "test": {

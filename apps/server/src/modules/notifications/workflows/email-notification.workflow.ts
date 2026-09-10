@@ -23,7 +23,10 @@ const emailNotificationPropsSchema = z
   })
   .passthrough();
 
-async function resolveAndSendEmail(notification: Notification, to: string) {
+async function resolveAndSendEmail(
+  notification: Notification,
+  to: string
+): Promise<{ messageId?: string }> {
   const parsedProps = emailNotificationPropsSchema.safeParse(
     notification.props ?? {}
   );
@@ -90,43 +93,10 @@ function createEmailNotificationWorkflow() {
         throw new Error(`User not found: ${notification.userId}`);
       }
 
+      let messageId: string | undefined;
+
       try {
-        const result = await resolveAndSendEmail(notification, user.email);
-
-        if (!result.success) {
-          const errorMsg = result.error?.message ?? "Email delivery failed";
-
-          await db
-            .update(notifications)
-            .set({
-              errorMessage: errorMsg,
-              status: "failed",
-            })
-            .where(eq(notifications.id, input.notificationId));
-
-          taskLogger.error("Email send failed", {
-            error: errorMsg,
-            userId: notification.userId,
-          });
-
-          return { sent: false };
-        }
-
-        await db
-          .update(notifications)
-          .set({
-            providerMessageId: result.messageId ?? null,
-            sentAt: new Date(),
-            status: "sent",
-          })
-          .where(eq(notifications.id, input.notificationId));
-
-        taskLogger.info("Email sent successfully", {
-          messageId: result.messageId,
-          userId: notification.userId,
-        });
-
-        return { messageId: result.messageId, sent: true };
+        ({ messageId } = await resolveAndSendEmail(notification, user.email));
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
 
@@ -138,13 +108,29 @@ function createEmailNotificationWorkflow() {
           })
           .where(eq(notifications.id, input.notificationId));
 
-        taskLogger.error("Email send threw an error", {
+        taskLogger.error("Email send failed", {
           error: errorMsg,
           userId: notification.userId,
         });
 
-        throw error;
+        return { sent: false };
       }
+
+      await db
+        .update(notifications)
+        .set({
+          providerMessageId: messageId ?? null,
+          sentAt: new Date(),
+          status: "sent",
+        })
+        .where(eq(notifications.id, input.notificationId));
+
+      taskLogger.info("Email sent successfully", {
+        messageId,
+        userId: notification.userId,
+      });
+
+      return { messageId, sent: true };
     },
     name: "send-email",
   });

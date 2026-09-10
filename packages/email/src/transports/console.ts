@@ -6,6 +6,8 @@ import type {
 } from "./types";
 
 export class ConsoleTransport implements EmailTransport {
+  close(): void {}
+
   async send(options: SendEmailOptions): Promise<SendEmailResult> {
     console.log("---------------------------------------");
     console.log("[email/console] Email sent (Console Transport)");

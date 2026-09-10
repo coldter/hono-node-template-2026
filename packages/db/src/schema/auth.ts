@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -18,7 +19,10 @@ export const users = pgTable(
       .defaultNow()
       .notNull(),
     deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
-    deactivatedBy: varchar("deactivated_by", { length: 255 }),
+    deactivatedBy: varchar("deactivated_by", { length: 255 }).references(
+      (): AnyPgColumn => users.id,
+      { onDelete: "set null" }
+    ),
     deactivatedReason: text("deactivated_reason"),
     email: text("email").notNull().unique(),
     emailVerified: boolean("email_verified").default(false).notNull(),
@@ -48,6 +52,9 @@ export const users = pgTable(
       "users_status_check",
       sql`${table.status} IN ('active', 'inactive', 'locked', 'deleted')`
     ),
+    index("users_created_at_idx").on(table.createdAt),
+    index("users_status_idx").on(table.status),
+    index("users_role_slugs_idx").using("gin", table.roleSlugs),
   ]
 );
 
@@ -75,7 +82,13 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
   },
-  (table) => [index("sessions_user_id_idx").on(table.userId)]
+  (table) => [
+    index("sessions_user_id_idx").on(table.userId),
+    check(
+      "sessions_platform_check",
+      sql`${table.platform} in ('web', 'mobile')`
+    ),
+  ]
 );
 
 export const accounts = pgTable(
@@ -140,7 +153,7 @@ export const jwkss = pgTable("jwks", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   id: varchar("id", { length: 255 })
     .primaryKey()
-    .$defaultFn(() => generatePrefixedCuid("jwk")),
+    .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.jwk)),
   privateKey: text("private_key").notNull(),
   publicKey: text("public_key").notNull(),
 });
@@ -155,7 +168,7 @@ export const twoFactors = pgTable(
     failedVerificationCount: integer("failed_verification_count").default(0),
     id: varchar("id", { length: 255 })
       .primaryKey()
-      .$defaultFn(() => generatePrefixedCuid("2fa")),
+      .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.twoFactor)),
     lockedUntil: timestamp("locked_until", { withTimezone: true }),
 
     secret: text("secret"),

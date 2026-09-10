@@ -1,6 +1,5 @@
 import { Hr, Link, Section, Text } from "@react-email/components";
 import { getBrandConfig } from "@repo/shared/brand";
-import React from "react";
 
 interface EmailFooterProps {
   companyAddress?: string;

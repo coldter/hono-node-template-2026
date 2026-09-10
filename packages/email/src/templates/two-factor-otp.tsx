@@ -1,5 +1,4 @@
 import { Heading, Section, Text } from "@react-email/components";
-import React from "react";
 import { BaseLayout } from "../components/base-layout";
 
 export interface TwoFactorOtpEmailProps {

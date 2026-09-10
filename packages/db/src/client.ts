@@ -1,18 +1,7 @@
 import type { Logger as DrizzleLoggerInterface } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import type { Client, PoolConfig } from "pg";
+import type { PoolConfig } from "pg";
 import { relations } from "./relations";
-
-export function createDrizzleClient(
-  client: Client,
-  logger?: DrizzleLoggerInterface
-) {
-  return drizzle({
-    client,
-    relations,
-    ...(logger && { logger }),
-  });
-}
 
 export function createNodeDrizzleClient(
   connection: string | PoolConfig,
@@ -25,11 +14,7 @@ export function createNodeDrizzleClient(
   });
 }
 
-function _inferType() {
-  return createDrizzleClient(null as never);
-}
-
-export type DrizzleClient = ReturnType<typeof _inferType>;
+export type DrizzleClient = ReturnType<typeof createNodeDrizzleClient>;
 export type Transaction = Parameters<
   Parameters<DrizzleClient["transaction"]>[0]
 >[0];

@@ -19,5 +19,6 @@ export interface SendEmailResult {
 }
 
 export interface EmailTransport {
+  close: () => void;
   send: (options: SendEmailOptions) => Promise<SendEmailResult>;
 }

@@ -1,8 +1,15 @@
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+import { createdAt } from "../helpers";
 import { users } from "./auth";
 
 export const organizations = pgTable("organization", {
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: createdAt(),
   id: text("id").primaryKey(),
   logo: text("logo"),
   metadata: text("metadata"),
@@ -13,7 +20,7 @@ export const organizations = pgTable("organization", {
 export const members = pgTable(
   "member",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: createdAt(),
     id: text("id").primaryKey(),
     organizationId: text("organization_id")
       .notNull()
@@ -23,18 +30,22 @@ export const members = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
   },
-  (t) => [
-    index("member_user_id_idx").on(t.userId),
-    index("member_org_id_idx").on(t.organizationId),
+  (table) => [
+    index("member_user_id_idx").on(table.userId),
+    index("member_org_id_idx").on(table.organizationId),
+    uniqueIndex("members_user_org_unique").on(
+      table.userId,
+      table.organizationId
+    ),
   ]
 );
 
 export const invitations = pgTable(
   "invitation",
   {
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: createdAt(),
     email: text("email").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     id: text("id").primaryKey(),
     inviterId: text("inviter_id")
       .notNull()
@@ -45,8 +56,9 @@ export const invitations = pgTable(
     role: text("role").notNull(),
     status: text("status").notNull(),
   },
-  (t) => [
-    index("invitation_org_id_idx").on(t.organizationId),
-    index("invitation_email_idx").on(t.email),
+  (table) => [
+    index("invitation_org_id_idx").on(table.organizationId),
+    index("invitation_inviter_id_idx").on(table.inviterId),
+    index("invitation_email_idx").on(table.email),
   ]
 );

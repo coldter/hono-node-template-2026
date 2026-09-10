@@ -1,3 +1,4 @@
+import { generateIdForModel } from "@repo/db/ids";
 import { accounts, users } from "@repo/db/schema";
 import chalk from "chalk";
 
@@ -5,7 +6,6 @@ import { db } from "@/db";
 import { env } from "@/env";
 import { hashPassword } from "@/modules/auth/helpers/argon2id";
 import { SYSTEM_ROLES } from "@/modules/auth/roles";
-import { createAccountId, createUserId } from "../../../src/lib/ids";
 import { defaultAdminUser } from "../fixtures";
 import { isUserSeeded } from "../utils";
 
@@ -20,7 +20,7 @@ export const userSeed = async () => {
     return;
   }
 
-  const userId = createUserId();
+  const userId = generateIdForModel("user");
   const hashedPassword = await hashPassword(defaultAdminUser.password);
 
   const [user] = await db
@@ -43,7 +43,7 @@ export const userSeed = async () => {
 
   await db.insert(accounts).values({
     accountId: userId,
-    id: createAccountId(),
+    id: generateIdForModel("account"),
     password: hashedPassword,
     providerId: "credential",
     userId,

@@ -1,3 +1,4 @@
+import { generateIdForModel } from "@repo/db/ids";
 import * as schema from "@repo/db/schema";
 import {
   sendEmail,
@@ -17,7 +18,6 @@ import { seconds } from "itty-time";
 import { z } from "zod";
 import { db } from "@/db";
 import { env } from "@/env";
-import { generateIdForModel } from "@/lib/ids";
 import { resolveClientIpFromHeaders } from "@/lib/ip";
 import { logger } from "@/lib/logger";
 import { getRedis, isRedisEnabled } from "@/lib/redis";
@@ -185,6 +185,7 @@ async function resolveActiveOrganizationRole(
       organizationId,
       userId,
     });
+    return undefined;
   }
 }
 

@@ -75,16 +75,43 @@ export const PAGINATION_DEFAULTS = {
 } as const;
 
 export function getPaginationParams(query: Partial<PaginationQuery>) {
-  const page = query.page ?? PAGINATION_DEFAULTS.PAGE;
-  const perPage = Math.min(
-    query.perPage ?? PAGINATION_DEFAULTS.PER_PAGE,
-    PAGINATION_DEFAULTS.MAX_PER_PAGE
-  );
+  const requestedPage = query.page ?? PAGINATION_DEFAULTS.PAGE;
+  const requestedPerPage = query.perPage ?? PAGINATION_DEFAULTS.PER_PAGE;
+  const requested = Number.isFinite(requestedPage)
+    ? Math.max(1, Math.trunc(requestedPage))
+    : PAGINATION_DEFAULTS.PAGE;
+  const perPage = Number.isFinite(requestedPerPage)
+    ? Math.min(
+        Math.max(1, Math.trunc(requestedPerPage)),
+        PAGINATION_DEFAULTS.MAX_PER_PAGE
+      )
+    : PAGINATION_DEFAULTS.PER_PAGE;
+  const maxPage = Math.floor(Number.MAX_SAFE_INTEGER / perPage);
+  const page = Math.min(requested, maxPage);
   const offset = (page - 1) * perPage;
   const { sort } = query;
   const order = query.order ?? PAGINATION_DEFAULTS.ORDER;
 
   return { offset, order, page, perPage, sort } as const;
+}
+
+function buildPaginationMeta(
+  page: number,
+  perPage: number,
+  total: number
+): PaginationMeta {
+  const pageCount = Math.ceil(total / perPage);
+
+  return {
+    hasNext: page < pageCount,
+    hasPrev: page > 1,
+    nextPage: page < pageCount ? page + 1 : null,
+    page,
+    pageCount,
+    perPage,
+    prevPage: page > 1 ? page - 1 : null,
+    total,
+  };
 }
 
 export function createPaginatedResponse<T>(options: {
@@ -106,47 +133,20 @@ export function createPaginatedResponse<T, R>(options: {
 }): PaginatedResponse<T> | PaginatedResponse<R> {
   const { data, total, query, formatter } = options;
   const { page, perPage } = getPaginationParams(query);
+  const meta = buildPaginationMeta(page, perPage, total);
 
   if (formatter) {
     const formatted: R[] = [];
-    let dropped = 0;
+
     for (const item of data) {
       const result = formatter(item);
-      if (result === null || result === undefined) {
-        dropped += 1;
-        continue;
+      if (result !== null && result !== undefined) {
+        formatted.push(result);
       }
-      formatted.push(result);
     }
-    const adjustedTotal = Math.max(0, total - dropped);
-    const pageCount = Math.ceil(adjustedTotal / perPage);
-    return {
-      data: formatted,
-      meta: {
-        hasNext: page < pageCount,
-        hasPrev: page > 1,
-        nextPage: page < pageCount ? page + 1 : null,
-        page,
-        pageCount,
-        perPage,
-        prevPage: page > 1 ? page - 1 : null,
-        total: adjustedTotal,
-      },
-    };
+
+    return { data: formatted, meta };
   }
 
-  const pageCount = Math.ceil(total / perPage);
-  return {
-    data,
-    meta: {
-      hasNext: page < pageCount,
-      hasPrev: page > 1,
-      nextPage: page < pageCount ? page + 1 : null,
-      page,
-      pageCount,
-      perPage,
-      prevPage: page > 1 ? page - 1 : null,
-      total,
-    },
-  };
+  return { data, meta };
 }

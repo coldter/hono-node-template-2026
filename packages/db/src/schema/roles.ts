@@ -1,4 +1,11 @@
-import { index, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { generatePrefixedCuid, ID_PREFIXES } from "../ids";
 
 export const roles = pgTable(
@@ -12,12 +19,19 @@ export const roles = pgTable(
     id: varchar("id", { length: 255 })
       .primaryKey()
       .$defaultFn(() => generatePrefixedCuid(ID_PREFIXES.role)),
-    name: varchar("name", { length: 32 }).notNull().unique(),
-    slug: varchar("slug", { length: 32 }).notNull().unique(),
+    name: varchar("name", { length: 32 }).notNull(),
+    slug: varchar("slug", { length: 32 }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("roles_slug_idx").on(table.slug)]
+  (table) => [
+    uniqueIndex("roles_name_unique")
+      .on(table.name)
+      .where(sql`${table.deletedAt} is null`),
+    uniqueIndex("roles_slug_unique")
+      .on(table.slug)
+      .where(sql`${table.deletedAt} is null`),
+  ]
 );

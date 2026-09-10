@@ -10,7 +10,6 @@ import {
 } from "@react-email/components";
 import { getBrandConfig } from "@repo/shared/brand";
 import type { ReactNode } from "react";
-import React from "react";
 import { EmailFooter } from "./footer";
 import { EmailLogo } from "./logo";
 

@@ -2,7 +2,7 @@
 # =============================================================================
 # Shared dependency stage
 # =============================================================================
-FROM oven/bun:1.3.14-alpine AS deps
+FROM oven/bun:1.4.2-alpine AS deps
 WORKDIR /app
 
 COPY package.json bun.lock turbo.json ./
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lock
 # =============================================================================
 # Server target
 # =============================================================================
-FROM oven/bun:1.3.14-alpine AS server
+FROM oven/bun:1.4.2-alpine AS server
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="app-server" \
@@ -54,7 +54,7 @@ CMD ["bun", "run", "src/index.ts"]
 # =============================================================================
 # Web build stage (intermediate -- not a final target)
 # =============================================================================
-FROM oven/bun:1.3.14-alpine AS web-build
+FROM oven/bun:1.4.2-alpine AS web-build
 WORKDIR /app
 
 ARG VITE_SERVER_URL

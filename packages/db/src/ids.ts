@@ -1,21 +1,27 @@
 export const ID_PREFIXES = {
   account: "acc",
   auditLog: "aud",
+  jwk: "jwk",
   notification: "ntf",
+  notificationPreference: "ntfp",
   pushToken: "ptk",
   role: "rol",
   session: "ses",
+  twoFactor: "2fa",
   user: "usr",
   verification: "ver",
 } as const;
 
-declare const __brand: unique symbol;
-export type Brand<T, B extends string> = T & { readonly [__brand]: B };
+type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
 
-export type UserId = Brand<string, "UserId">;
-export type SessionId = Brand<string, "SessionId">;
-export type AccountId = Brand<string, "AccountId">;
-export type VerificationId = Brand<string, "VerificationId">;
+const MODEL_PREFIXES: Record<string, IdPrefix> = {
+  account: ID_PREFIXES.account,
+  jwks: ID_PREFIXES.jwk,
+  session: ID_PREFIXES.session,
+  twoFactor: ID_PREFIXES.twoFactor,
+  user: ID_PREFIXES.user,
+  verification: ID_PREFIXES.verification,
+};
 
 export function generatePrefixedCuid<P extends string>(
   prefix: P
@@ -33,29 +39,5 @@ export function generatePrefixedCuid<P extends string>(
   return `${prefix}_${timestampHex}${randomHex}`;
 }
 
-export const createUserId = (): UserId =>
-  generatePrefixedCuid(ID_PREFIXES.user) as UserId;
-
-export const createSessionId = (): SessionId =>
-  generatePrefixedCuid(ID_PREFIXES.session) as SessionId;
-
-export const createAccountId = (): AccountId =>
-  generatePrefixedCuid(ID_PREFIXES.account) as AccountId;
-
-export const createVerificationId = (): VerificationId =>
-  generatePrefixedCuid(ID_PREFIXES.verification) as VerificationId;
-
-export const generateIdForModel = (model: string): string => {
-  switch (model) {
-    case "user":
-      return createUserId();
-    case "session":
-      return createSessionId();
-    case "account":
-      return createAccountId();
-    case "verification":
-      return createVerificationId();
-    default:
-      return generatePrefixedCuid("ent");
-  }
-};
+export const generateIdForModel = (model: string) =>
+  generatePrefixedCuid(MODEL_PREFIXES[model] ?? "ent");

@@ -22,6 +22,7 @@
     "dev:web": "turbo -F web dev",
     "fix": "ultracite fix",
     "format": "biome format --write",
+    "generate-client": "turbo -F web generate-client",
     "generate-openapi": "turbo -F server generate-openapi",
     "postinstall": "test -f apps/server/openapi.cache.json || turbo -F server generate-openapi",
     "knip": "SKIP_ENV_VALIDATION=true knip --no-config-hints -c knip.config.ts",
@@ -37,10 +38,12 @@
     "@changesets/cli": "^3.0.2",
     "@types/node": "^26.5.1",
     "knip": "^6.35.1",
-    "tsx": "^4.23.13",
     "turbo": "^2.10.12",
     "typescript": "^7.0.2",
     "ultracite": "^7.11.1"
   },
-  "packageManager": "bun@1.4.2"
+  "packageManager": "bun@1.4.2",
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  }
 }

@@ -49,7 +49,7 @@ function createUserOnboardingWorkflow() {
       try {
         const loginUrl = `${env.BETTER_AUTH_URL}/login`;
 
-        await sendEmail({
+        const result = await sendEmail({
           props: {
             loginUrl,
             userName: input.name,
@@ -61,6 +61,7 @@ function createUserOnboardingWorkflow() {
 
         taskLogger.info("Welcome email sent successfully", {
           email: input.email,
+          messageId: result.messageId,
         });
 
         return { sent: true };
