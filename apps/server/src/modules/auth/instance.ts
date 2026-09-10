@@ -523,7 +523,7 @@ const authConfig = {
       },
 
       skipVerificationOnEnable: true,
-      twoFactorTable: "twoFactors",
+      twoFactorTable: "twoFactor",
     }),
     openAPI({
       disableDefaultReference: true,
